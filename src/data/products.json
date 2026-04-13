@@ -1,0 +1,56 @@
+[
+  {
+    "id": "1",
+    "name": "Galleta de Chispas de Chocolate",
+    "description": "Clásica galleta con generosas chispas de chocolate oscuro. Crujiente por fuera, suave por dentro.",
+    "price": 45,
+    "category": "clasicas",
+    "emoji": "🍪",
+    "available": true
+  },
+  {
+    "id": "2",
+    "name": "Brownie de Nuez",
+    "description": "Brownie húmedo con nueces tostadas y chocolate amargo. Intenso y esponjoso.",
+    "price": 55,
+    "category": "brownies",
+    "emoji": "🍫",
+    "available": true
+  },
+  {
+    "id": "3",
+    "name": "Galleta de Avena y Arándano",
+    "description": "Saludable y deliciosa, con avena integral y arándanos deshidratados. Perfecta para el desayuno.",
+    "price": 40,
+    "category": "clasicas",
+    "emoji": "🫐",
+    "available": true
+  },
+  {
+    "id": "4",
+    "name": "Cookie de Mantequilla de Maní",
+    "description": "Suave y cremosa con trozos de maní y cobertura de chocolate. Un clásico americano.",
+    "price": 50,
+    "category": "especiales",
+    "emoji": "🥜",
+    "available": true
+  },
+  {
+    "id": "5",
+    "name": "Galleta Red Velvet",
+    "description": "Suave galleta de terciopelo rojo con glaseado de queso crema. La favorita de todos.",
+    "price": 60,
+    "category": "especiales",
+    "emoji": "❤️",
+    "available": true
+  },
+  {
+    "id": "6",
+    "name": "Brownie de Nutella",
+    "description": "Brownie doble chocolate con corazón de Nutella. Peligrosamente adictivo.",
+    "price": 65,
+    "category": "brownies",
+    "emoji": "🌰",
+    "available": true
+  }
+]
