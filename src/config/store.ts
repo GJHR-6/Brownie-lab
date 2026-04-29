@@ -11,11 +11,11 @@ export const storeConfig = {
     "Somos una pequeña tienda artesanal especializada en galletas y brownies hechos con los mejores ingredientes. Cada pieza es elaborada a mano con amor.",
 
   // Contacto y pedidos — CAMBIA EL NÚMERO DE WHATSAPP
-  whatsapp: "5212345678901", // Formato: código país + número sin espacios
+  whatsapp: "50431534704", // Formato: código país + número sin espacios
 
   // Moneda
-  currency: "MXN",
-  currencySymbol: "$",
+  currency: "HNL",
+  currencySymbol: "L.",
 
   // Redes sociales — deja en blanco ("") si no aplica
   social: {

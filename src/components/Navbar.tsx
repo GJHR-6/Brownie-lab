@@ -17,6 +17,7 @@ export default function Navbar() {
   const links = [
     { href: "/", label: "Inicio" },
     { href: "/menu", label: "Menú" },
+    { href: "/personaliza", label: "Personaliza ✦" },
     { href: "/contact", label: "Contacto" },
   ];
 

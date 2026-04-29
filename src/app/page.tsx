@@ -3,16 +3,40 @@ import ProductCard from "@/components/ProductCard";
 import { storeConfig } from "@/config/store";
 import products from "@/data/products.json";
 
+const chefSpecials = [
+  {
+    id: "cs1",
+    name: "Tarta de Lavanda y Limón",
+    description: "Una combinación floral y cítrica que no encontrarás en ningún otro lugar. Disponible solo esta semana.",
+    emoji: "🌸",
+    daysLeft: 3,
+  },
+  {
+    id: "cs2",
+    name: "Brownie de Matcha y Frambuesa",
+    description: "Brownie experimental con matcha japonés y coulis de frambuesa fresca. Edición limitadísima.",
+    emoji: "🍵",
+    daysLeft: 5,
+  },
+  {
+    id: "cs3",
+    name: "Cookie de Miso y Caramelo",
+    description: "Dulce con un toque salado y profundo. Nuestra apuesta más atrevida del mes.",
+    emoji: "🍯",
+    daysLeft: 7,
+  },
+];
+
 export default function Home() {
   const featured = products.filter((p) => p.available).slice(0, 3);
 
   return (
     <div>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-amber-800 to-amber-600 text-white py-24 px-4">
+      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-600 text-white py-28 px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <p className="text-amber-200 text-sm font-medium tracking-widest uppercase mb-3">
-            Hecho a mano con amor
+          <p className="text-amber-300 text-xs font-semibold tracking-[0.25em] uppercase mb-4">
+            Hecho a mano · Con obsesión
           </p>
           <h1
             className="text-5xl md:text-6xl font-bold mb-6 leading-tight"
@@ -20,8 +44,10 @@ export default function Home() {
           >
             {storeConfig.name}
           </h1>
-          <p className="text-amber-100 text-xl mb-10 leading-relaxed max-w-xl mx-auto">
-            {storeConfig.tagline}
+          <p className="text-amber-100 text-xl mb-10 leading-relaxed max-w-2xl mx-auto">
+            Todo empezó con la obsesión perfecta: el brownie ideal. Mientras perfeccionamos
+            nuestra receta secreta, te invitamos a probar las galletas que nacieron en el camino.
+            <span className="text-amber-300 font-medium"> Spoiler: también son adictivas.</span>
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -31,32 +57,61 @@ export default function Home() {
               Ver Menú
             </Link>
             <Link
-              href="/cart"
-              className="border-2 border-white text-white font-semibold px-8 py-3 rounded-full hover:bg-white/10 transition-colors"
+              href="/personaliza"
+              className="border-2 border-amber-300 text-amber-300 font-semibold px-8 py-3 rounded-full hover:bg-amber-300/10 transition-colors"
             >
-              Mi Carrito 🛒
+              Arma tu postre ✦
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Historia */}
-      <section className="py-20 px-4 bg-amber-50">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2
-            className="text-3xl md:text-4xl font-bold text-amber-800 mb-6"
-            style={{ fontFamily: "var(--font-playfair)" }}
-          >
-            Nuestra Historia
-          </h2>
-          <p className="text-stone-600 text-lg leading-relaxed mb-4">
-            {storeConfig.description}
-          </p>
-          <p className="text-stone-500 text-base leading-relaxed">
-            Todo comenzó en nuestra cocina, con la receta de la abuela y el
-            deseo de compartir algo especial. Hoy cada galleta sigue siendo
-            elaborada a mano, con ingredientes frescos y mucho cariño.
-          </p>
+      {/* Capricho del Chef */}
+      <section className="py-20 px-4 bg-stone-900 text-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <p className="text-amber-400 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
+              Edición limitada
+            </p>
+            <h2
+              className="text-3xl md:text-4xl font-bold mb-3"
+              style={{ fontFamily: "var(--font-playfair)" }}
+            >
+              Capricho del Chef
+            </h2>
+            <p className="text-stone-400 max-w-lg mx-auto">
+              Nuevas recetas, cosas que no son comunes en nuestro menú. Nuestra forma de
+              poner las cosas experimentalmente — antes de que desaparezcan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {chefSpecials.map((item) => (
+              <div
+                key={item.id}
+                className="bg-stone-800 border border-stone-700 rounded-2xl p-6 flex flex-col gap-4 hover:border-amber-500/50 transition-colors"
+              >
+                <div className="text-4xl">{item.emoji}</div>
+                <div>
+                  <h3 className="font-bold text-lg mb-1">{item.name}</h3>
+                  <p className="text-stone-400 text-sm leading-relaxed">{item.description}</p>
+                </div>
+                <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-700">
+                  <span className="text-amber-400 text-xs font-medium">
+                    ⏳ Quedan {item.daysLeft} días
+                  </span>
+                  <a
+                    href={`https://wa.me/${storeConfig.whatsapp}?text=Hola! Me interesa el ${item.name} del Capricho del Chef`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs bg-amber-600 hover:bg-amber-500 transition-colors px-4 py-1.5 rounded-full font-medium"
+                  >
+                    Pedir
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -87,6 +142,28 @@ export default function Home() {
               Ver todo el menú →
             </Link>
           </div>
+        </div>
+      </section>
+
+      {/* Arma tu postre CTA */}
+      <section className="py-16 px-4 bg-amber-50 border-y border-amber-100">
+        <div className="max-w-2xl mx-auto text-center">
+          <p className="text-amber-600 text-xs font-semibold tracking-widest uppercase mb-3">Nuevo</p>
+          <h2
+            className="text-3xl font-bold text-amber-800 mb-4"
+            style={{ fontFamily: "var(--font-playfair)" }}
+          >
+            Arma tu postre ideal
+          </h2>
+          <p className="text-stone-500 mb-8">
+            Elige la base y agrégale los toppings que quieras. Míralo antes de pedirlo.
+          </p>
+          <Link
+            href="/personaliza"
+            className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors"
+          >
+            Personalizar ahora ✦
+          </Link>
         </div>
       </section>
 
