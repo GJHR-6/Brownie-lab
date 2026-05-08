@@ -192,7 +192,6 @@ function ToppingShape({ topping, pos }: { topping: Topping; pos: (typeof TOPPING
     );
   }
 
-  // blob (nuts/almonds)
   return (
     <g transform={`translate(${cx} ${cy}) rotate(${rotate})`}>
       <ellipse cx={0} cy={0} rx={r} ry={r * 0.6} fill={topping.color} opacity="0.9" />
@@ -221,23 +220,15 @@ function BrownieSVG({ selected }: { selected: Set<string> }) {
           <rect x="8" y="8" width="84" height="84" rx="10" />
         </clipPath>
       </defs>
-
-      {/* Base brownie */}
       <rect x="8" y="8" width="84" height="84" rx="10" fill="url(#brownieGrad)" filter="url(#shadow)" />
       <rect x="8" y="8" width="84" height="84" rx="10" fill="url(#brownieSheen)" />
-
-      {/* Crust edges */}
       <rect x="8" y="8" width="84" height="84" rx="10" fill="none" stroke="#92400e" strokeWidth="1.5" opacity="0.4" />
-
-      {/* Texture lines */}
       <g clipPath="url(#brownieClip)" opacity="0.15">
         <line x1="8" y1="35" x2="92" y2="35" stroke="#78350f" strokeWidth="0.5" />
         <line x1="8" y1="65" x2="92" y2="65" stroke="#78350f" strokeWidth="0.5" />
         <line x1="35" y1="8" x2="35" y2="92" stroke="#78350f" strokeWidth="0.5" />
         <line x1="65" y1="8" x2="65" y2="92" stroke="#78350f" strokeWidth="0.5" />
       </g>
-
-      {/* Toppings */}
       <g clipPath="url(#brownieClip)">
         {TOPPINGS.filter((t) => selected.has(t.id)).map((topping) =>
           topping.positions.map((pos, i) => (
@@ -247,8 +238,6 @@ function BrownieSVG({ selected }: { selected: Set<string> }) {
           ))
         )}
       </g>
-
-      {/* Gloss overlay */}
       <rect x="8" y="8" width="84" height="30" rx="10" fill="white" opacity="0.04" />
     </svg>
   );
@@ -274,23 +263,15 @@ function GalletaSVG({ selected }: { selected: Set<string> }) {
           <circle cx="50" cy="50" r="42" />
         </clipPath>
       </defs>
-
-      {/* Cookie base */}
       <circle cx="50" cy="50" r="42" fill="url(#cookieGrad)" filter="url(#shadow2)" />
       <circle cx="50" cy="50" r="42" fill="url(#cookieSheen)" />
-
-      {/* Edge crust */}
       <circle cx="50" cy="50" r="42" fill="none" stroke="#b45309" strokeWidth="2" opacity="0.5" />
       <circle cx="50" cy="50" r="38" fill="none" stroke="#fef3c7" strokeWidth="0.5" opacity="0.2" />
-
-      {/* Natural cracks/texture */}
       <g clipPath="url(#cookieClip)" opacity="0.12">
         <path d="M30 30 Q50 45 70 35" stroke="#92400e" strokeWidth="1" fill="none" />
         <path d="M25 60 Q45 55 60 70" stroke="#92400e" strokeWidth="1" fill="none" />
         <path d="M60 28 Q55 50 70 65" stroke="#92400e" strokeWidth="1" fill="none" />
       </g>
-
-      {/* Toppings */}
       <g clipPath="url(#cookieClip)">
         {TOPPINGS.filter((t) => selected.has(t.id)).map((topping) =>
           topping.positions.map((pos, i) => (
@@ -300,8 +281,6 @@ function GalletaSVG({ selected }: { selected: Set<string> }) {
           ))
         )}
       </g>
-
-      {/* Gloss */}
       <ellipse cx="40" cy="35" rx="18" ry="10" fill="white" opacity="0.06" transform="rotate(-15 40 35)" />
     </svg>
   );
@@ -328,36 +307,38 @@ export default function PersonalizaPage() {
       : " sin toppings adicionales"
   }`;
 
+  const whatsappHref = `https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(whatsappText)}`;
+
   return (
-    <div className="min-h-screen bg-amber-50">
+    <div className="min-h-screen bg-amber-50 pb-24 lg:pb-0">
       {/* Header */}
-      <div className="bg-gradient-to-br from-amber-900 to-amber-700 text-white py-14 px-4 text-center">
+      <div className="bg-gradient-to-br from-amber-900 to-amber-700 text-white py-10 md:py-14 px-4 text-center">
         <p className="text-amber-300 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
           Interactivo
         </p>
         <h1
-          className="text-4xl md:text-5xl font-bold mb-3"
+          className="text-3xl md:text-5xl font-bold mb-3"
           style={{ fontFamily: "var(--font-playfair)" }}
         >
           Arma tu postre
         </h1>
-        <p className="text-amber-200 text-lg max-w-md mx-auto">
+        <p className="text-amber-200 text-base md:text-lg max-w-md mx-auto">
           Elige la base y los toppings. Lo que ves es lo que pides.
         </p>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+      <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
+        <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
 
-          {/* Left: visual */}
-          <div className="sticky top-24">
+          {/* Visual — arriba en móvil, sticky en desktop */}
+          <div className="lg:sticky lg:top-24">
             {/* Base selector */}
-            <div className="flex gap-3 mb-6">
+            <div className="flex gap-3 mb-4 md:mb-6">
               {BASES.map((b) => (
                 <button
                   key={b.id}
                   onClick={() => setBase(b.id)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all ${
+                  className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all active:scale-95 ${
                     base === b.id
                       ? "bg-amber-800 text-white border-amber-800"
                       : "bg-white text-amber-800 border-amber-200 hover:border-amber-400"
@@ -369,8 +350,8 @@ export default function PersonalizaPage() {
             </div>
 
             {/* Product visual */}
-            <div className="bg-white rounded-3xl p-8 shadow-lg border border-amber-100">
-              <div className="w-full max-w-xs mx-auto aspect-square">
+            <div className="bg-white rounded-3xl p-4 md:p-8 shadow-lg border border-amber-100">
+              <div className="w-full max-w-[200px] md:max-w-xs mx-auto aspect-square">
                 {base === "brownie" ? (
                   <BrownieSVG selected={selected} />
                 ) : (
@@ -378,13 +359,15 @@ export default function PersonalizaPage() {
                 )}
               </div>
 
-              {/* What's on it */}
-              <div className="mt-6 text-center">
+              {/* Toppings seleccionados */}
+              <div className="mt-4 md:mt-6 text-center">
                 <p className="text-xs text-stone-400 uppercase tracking-widest mb-2">Lleva</p>
                 {selected.size === 0 ? (
-                  <p className="text-stone-400 text-sm">Solo {base === "brownie" ? "brownie" : "galleta"} base</p>
+                  <p className="text-stone-400 text-sm">
+                    Solo {base === "brownie" ? "brownie" : "galleta"} base
+                  </p>
                 ) : (
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
                     {selectedToppings.map((t) => (
                       <span
                         key={t.id}
@@ -398,44 +381,43 @@ export default function PersonalizaPage() {
               </div>
             </div>
 
-            {/* Order CTA */}
+            {/* Botón WhatsApp — solo visible en desktop aquí */}
             <a
-              href={`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(whatsappText)}`}
+              href={whatsappHref}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="hidden lg:flex mt-4 w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               <span>💬</span>
               <span>Pedir por WhatsApp</span>
             </a>
           </div>
 
-          {/* Right: toppings */}
-          <div>
-            <h2 className="text-xl font-bold text-amber-800 mb-1">Elige tus toppings</h2>
-            <p className="text-stone-500 text-sm mb-6">
+          {/* Toppings — debajo del visual en móvil */}
+          <div className="mt-8 lg:mt-0">
+            <h2 className="text-lg md:text-xl font-bold text-amber-800 mb-1">Elige tus toppings</h2>
+            <p className="text-stone-500 text-sm mb-4 md:mb-6">
               Toca cada uno para agregarlo o quitarlo de tu postre.
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2 md:gap-3">
               {TOPPINGS.map((topping) => {
                 const isOn = selected.has(topping.id);
                 return (
                   <button
                     key={topping.id}
                     onClick={() => toggleTopping(topping.id)}
-                    className={`relative flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
+                    className={`relative flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-2xl border-2 text-left transition-all active:scale-95 ${
                       isOn
                         ? "border-amber-600 bg-amber-50 shadow-md"
                         : "border-stone-200 bg-white hover:border-amber-300"
                     }`}
                   >
-                    {/* Color swatch */}
                     <span
-                      className="w-8 h-8 rounded-full flex-shrink-0 border-2 border-white shadow"
+                      className="w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 border-2 border-white shadow"
                       style={{ backgroundColor: topping.color }}
                     />
-                    <span className={`text-sm font-medium ${isOn ? "text-amber-800" : "text-stone-600"}`}>
+                    <span className={`text-xs md:text-sm font-medium leading-tight ${isOn ? "text-amber-800" : "text-stone-600"}`}>
                       {topping.name}
                     </span>
                     {isOn && (
@@ -448,7 +430,6 @@ export default function PersonalizaPage() {
               })}
             </div>
 
-            {/* Reset */}
             {selected.size > 0 && (
               <button
                 onClick={() => setSelected(new Set())}
@@ -460,11 +441,24 @@ export default function PersonalizaPage() {
           </div>
         </div>
 
-        <div className="mt-10 text-center">
+        <div className="mt-8 md:mt-10 text-center">
           <Link href="/menu" className="text-sm text-amber-700 hover:underline">
             ← Ver menú completo
           </Link>
         </div>
+      </div>
+
+      {/* Botón WhatsApp fijo en la parte inferior — solo móvil */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-amber-50/90 backdrop-blur-sm border-t border-amber-100">
+        <a
+          href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3.5 rounded-xl transition-colors"
+        >
+          <span>💬</span>
+          <span>Pedir por WhatsApp</span>
+        </a>
       </div>
 
       <style jsx>{`
