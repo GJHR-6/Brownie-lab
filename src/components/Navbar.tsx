@@ -18,7 +18,7 @@ export default function Navbar() {
     { href: "/", label: "Inicio" },
     { href: "/menu", label: "Menú" },
     { href: "/personaliza", label: "Personaliza ✦" },
-    { href: "/contact", label: "Contacto" },
+    { href: "/contact", label: "Nosotros" },
   ];
 
   return (
