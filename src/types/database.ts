@@ -52,6 +52,18 @@ export interface AdminUser {
   created_at: string;
 }
 
+export interface Configuracion {
+  id: number;
+  nombre: string;
+  tagline: string;
+  descripcion: string | null;
+  whatsapp: string;
+  instagram: string;
+  facebook: string;
+  tiktok: string;
+  updated_at: string;
+}
+
 export interface Especial {
   id: string;
   nombre: string;

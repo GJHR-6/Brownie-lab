@@ -1,19 +1,25 @@
 import { storeConfig } from "@/config/store";
+import { getConfiguracion } from "@/lib/data";
 
-const socialLinks = [
-  { label: "Instagram", href: storeConfig.social.instagram, icon: "📸" },
-  { label: "Facebook", href: storeConfig.social.facebook, icon: "👍" },
-  { label: "TikTok", href: storeConfig.social.tiktok, icon: "🎵" },
-].filter((l) => l.href);
+export default async function Footer() {
+  const config = await getConfiguracion();
 
-export default function Footer() {
+  const nombre = config?.nombre ?? storeConfig.name;
+  const tagline = config?.tagline ?? storeConfig.tagline;
+
+  const socialLinks = [
+    { label: "Instagram", href: config?.instagram || storeConfig.social.instagram, icon: "📸" },
+    { label: "Facebook", href: config?.facebook || storeConfig.social.facebook, icon: "👍" },
+    { label: "TikTok", href: config?.tiktok || storeConfig.social.tiktok, icon: "🎵" },
+  ].filter((l) => l.href);
+
   return (
     <footer className="bg-amber-900 text-amber-100 text-sm mt-auto">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2 font-semibold text-base">
             <span>🍪</span>
-            <span>{storeConfig.name}</span>
+            <span>{nombre}</span>
           </div>
 
           {socialLinks.length > 0 && (
@@ -34,11 +40,11 @@ export default function Footer() {
           )}
 
           <p className="text-amber-400 text-xs">
-            © {new Date().getFullYear()} {storeConfig.name}
+            © {new Date().getFullYear()} {nombre}
           </p>
         </div>
         <p className="text-amber-300 text-xs text-center mt-4 border-t border-amber-800 pt-4">
-          {storeConfig.tagline}
+          {tagline}
         </p>
       </div>
     </footer>

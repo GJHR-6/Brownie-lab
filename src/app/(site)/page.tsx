@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { storeConfig } from "@/config/store";
-import { getProductosPublicos, getEspecialesActivos } from "@/lib/data";
+import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
 
 export const revalidate = 3600;
 
@@ -15,10 +15,12 @@ function getDaysLeft(fechaInicio: string, duracionDias: number): number {
 }
 
 export default async function Home() {
-  const [productos, especiales] = await Promise.all([
+  const [productos, especiales, config] = await Promise.all([
     getProductosPublicos(),
     getEspecialesActivos(),
+    getConfiguracion(),
   ]);
+  const whatsapp = config?.whatsapp || storeConfig.whatsapp;
 
   const featured = productos.slice(0, 3);
   const activeSpecials = especiales.filter(
@@ -99,7 +101,7 @@ export default async function Home() {
                         ⏳ Quedan {daysLeft} {daysLeft === 1 ? "día" : "días"}
                       </span>
                       <a
-                        href={`https://wa.me/${storeConfig.whatsapp}?text=Hola! Me interesa el ${item.nombre} del Capricho del Chef`}
+                        href={`https://wa.me/${whatsapp}?text=Hola! Me interesa el ${item.nombre} del Capricho del Chef`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs bg-amber-600 hover:bg-amber-500 transition-colors px-4 py-1.5 rounded-full font-medium"
@@ -182,7 +184,7 @@ export default async function Home() {
             Escríbenos por WhatsApp, con gusto te atendemos.
           </p>
           <a
-            href={`https://wa.me/${storeConfig.whatsapp}`}
+            href={`https://wa.me/${whatsapp}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-block bg-green-500 hover:bg-green-400 text-white font-semibold px-8 py-3 rounded-full transition-colors"

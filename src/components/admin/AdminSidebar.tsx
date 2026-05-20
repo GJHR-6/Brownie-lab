@@ -9,14 +9,18 @@ import {
   Settings,
   Cookie,
   Star,
+  Megaphone,
+  Tag,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/admin",             label: "Dashboard",   icon: LayoutDashboard, exact: true  },
-  { href: "/admin/inventario",  label: "Inventario",  icon: Package,         exact: false },
-  { href: "/admin/especiales",  label: "Especiales",  icon: Star,            exact: false },
-  { href: "/admin/pedidos",     label: "Pedidos",     icon: ClipboardList,   exact: false },
-  { href: "/admin/configuracion", label: "Configuración", icon: Settings,    exact: false },
+  { href: "/admin",               label: "Dashboard",     icon: LayoutDashboard, exact: true  },
+  { href: "/admin/inventario",    label: "Inventario",    icon: Package,         exact: false },
+  { href: "/admin/especiales",    label: "Especiales",    icon: Star,            exact: false },
+  { href: "/admin/pedidos",       label: "Pedidos",       icon: ClipboardList,   exact: false },
+  { href: "/admin/banners",       label: "Banners",       icon: Megaphone,       exact: false },
+  { href: "/admin/promociones",   label: "Promociones",   icon: Tag,             exact: false },
+  { href: "/admin/configuracion", label: "Configuración", icon: Settings,        exact: false },
 ] as const;
 
 export default function AdminSidebar() {
