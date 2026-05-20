@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopbar from "@/components/admin/AdminTopbar";
 
-export default async function AdminLayout({
+export default async function AdminDashboardLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -14,7 +14,7 @@ export default async function AdminLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect("/");
+  if (!user) redirect("/admin/login");
 
   // Segunda capa de seguridad: verifica rol de admin en BD
   const { data: adminRecord } = await supabase
@@ -23,7 +23,7 @@ export default async function AdminLayout({
     .eq("user_id", user.id)
     .single();
 
-  if (!adminRecord) redirect("/");
+  if (!adminRecord) redirect("/admin/login");
 
   return (
     <div className="flex h-screen bg-stone-100 overflow-hidden">
