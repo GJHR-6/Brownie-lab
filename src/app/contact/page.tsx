@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
 import { storeConfig } from "@/config/store";
+
+export const metadata: Metadata = { title: "Nosotros" };
 
 const valores = [
   {

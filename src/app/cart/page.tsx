@@ -17,7 +17,7 @@ export default function CartPage() {
   const buildWhatsAppMessage = () => {
     const lines = items.map(
       (i) =>
-        `• ${i.quantity}x ${i.name} (${storeConfig.currencySymbol}${i.price} c/u) = ${storeConfig.currencySymbol}${i.price * i.quantity}`
+        `• ${i.quantity}x ${i.name} (${storeConfig.currencySymbol}${i.price.toFixed(2)} c/u) = ${storeConfig.currencySymbol}${(i.price * i.quantity).toFixed(2)}`
     );
     const message = [
       `¡Hola ${storeConfig.name}! Me gustaría hacer el siguiente pedido:`,
@@ -77,9 +77,9 @@ export default function CartPage() {
               <p className="font-semibold text-stone-800 truncate">{item.name}</p>
               <p className="text-amber-800 font-bold">
                 {storeConfig.currencySymbol}
-                {item.price * item.quantity}
+                {(item.price * item.quantity).toFixed(2)}
                 <span className="text-stone-400 font-normal text-sm ml-1">
-                  ({storeConfig.currencySymbol}{item.price} c/u)
+                  ({storeConfig.currencySymbol}{item.price.toFixed(2)} c/u)
                 </span>
               </p>
             </div>
@@ -118,12 +118,12 @@ export default function CartPage() {
       <div className="bg-amber-50 rounded-2xl p-6 mb-6">
         <div className="flex justify-between text-stone-600 mb-2">
           <span>Productos ({itemCount()} artículos)</span>
-          <span>{storeConfig.currencySymbol}{total()} {storeConfig.currency}</span>
+          <span>{storeConfig.currencySymbol}{total().toFixed(2)} {storeConfig.currency}</span>
         </div>
         <div className="border-t border-amber-200 mt-3 pt-3 flex justify-between font-bold text-stone-800 text-lg">
           <span>Total</span>
           <span className="text-amber-800">
-            {storeConfig.currencySymbol}{total()} {storeConfig.currency}
+            {storeConfig.currencySymbol}{total().toFixed(2)} {storeConfig.currency}
           </span>
         </div>
       </div>

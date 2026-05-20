@@ -18,7 +18,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: storeConfig.name,
+  title: {
+    template: `%s | ${storeConfig.name}`,
+    default: storeConfig.name,
+  },
   description: storeConfig.description,
 };
 
