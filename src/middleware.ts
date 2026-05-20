@@ -2,14 +2,25 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // Supabase SSR requiere que la response se construya aquí para poder
-  // propagar cookies actualizadas (refresh de sesión).
+  const isAdminRoute = request.nextUrl.pathname.startsWith('/admin');
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Sin env vars: falla cerrado — admin bloqueado, resto del sitio pasa.
+  if (!supabaseUrl || !supabaseKey) {
+    if (isAdminRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next({ request });
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll() {
           return request.cookies.getAll();
@@ -24,18 +35,25 @@ export async function middleware(request: NextRequest) {
           );
         },
       },
+    });
+
+    // getUser() valida el JWT contra Supabase Auth (no confiar solo en cookies).
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user && isAdminRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
     }
-  );
-
-  // getUser() verifica el JWT con Supabase Auth — no confiar solo en cookies locales.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user && request.nextUrl.pathname.startsWith('/admin')) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = '/';
-    return NextResponse.redirect(redirectUrl);
+  } catch {
+    // Error inesperado de Supabase: falla cerrado en admin.
+    if (isAdminRoute) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;
@@ -43,7 +61,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Excluye assets estáticos y rutas de Next.js internals
     '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
