@@ -4,20 +4,23 @@
     "name": "Tarta de Lavanda y Limón",
     "description": "Una combinación floral y cítrica que no encontrarás en ningún otro lugar. Disponible solo esta semana.",
     "emoji": "🌸",
-    "daysLeft": 3
+    "startDate": "2026-05-17",
+    "durationDays": 7
   },
   {
     "id": "cs2",
     "name": "Brownie de Matcha y Frambuesa",
     "description": "Brownie experimental con matcha japonés y coulis de frambuesa fresca. Edición limitadísima.",
     "emoji": "🍵",
-    "daysLeft": 5
+    "startDate": "2026-05-15",
+    "durationDays": 10
   },
   {
     "id": "cs3",
     "name": "Cookie de Miso y Caramelo",
     "description": "Dulce con un toque salado y profundo. Nuestra apuesta más atrevida del mes.",
     "emoji": "🍯",
-    "daysLeft": 7
+    "startDate": "2026-05-13",
+    "durationDays": 14
   }
 ]

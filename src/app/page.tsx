@@ -4,8 +4,22 @@ import { storeConfig } from "@/config/store";
 import products from "@/data/products.json";
 import chefSpecials from "@/data/chef-specials.json";
 
+export const revalidate = 3600;
+
+function getDaysLeft(startDate: string, durationDays: number): number {
+  const end = new Date(startDate);
+  end.setDate(end.getDate() + durationDays);
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+}
+
 export default function Home() {
   const featured = products.filter((p) => p.available).slice(0, 3);
+  const activeSpecials = chefSpecials.filter(
+    (item) => getDaysLeft(item.startDate, item.durationDays) > 0
+  );
 
   return (
     <div>
@@ -63,7 +77,9 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {chefSpecials.map((item) => (
+            {activeSpecials.map((item) => {
+              const daysLeft = getDaysLeft(item.startDate, item.durationDays);
+              return (
               <div
                 key={item.id}
                 className="bg-stone-800 border border-stone-700 rounded-2xl p-6 flex flex-col gap-4 hover:border-amber-500/50 transition-colors"
@@ -75,7 +91,7 @@ export default function Home() {
                 </div>
                 <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-700">
                   <span className="text-amber-400 text-xs font-medium">
-                    ⏳ Quedan {item.daysLeft} días
+                    ⏳ Quedan {daysLeft} {daysLeft === 1 ? "día" : "días"}
                   </span>
                   <a
                     href={`https://wa.me/${storeConfig.whatsapp}?text=Hola! Me interesa el ${item.name} del Capricho del Chef`}
@@ -87,7 +103,8 @@ export default function Home() {
                   </a>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

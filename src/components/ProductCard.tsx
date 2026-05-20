@@ -12,6 +12,7 @@ interface Product {
   category: string;
   emoji: string;
   available: boolean;
+  imageUrl?: string;
 }
 
 export default function ProductCard({ product }: { product: Product }) {
@@ -31,9 +32,18 @@ export default function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow">
-      {/* Product image placeholder */}
-      <div className="bg-amber-50 h-44 flex items-center justify-center text-6xl">
-        {product.emoji}
+      {/* Product image */}
+      <div className="bg-amber-50 h-44 flex items-center justify-center overflow-hidden">
+        {product.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="text-6xl">{product.emoji}</span>
+        )}
       </div>
 
       <div className="p-4 flex flex-col flex-1">
