@@ -4,7 +4,10 @@ import { useState, useCallback } from 'react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { actualizarEstadoPedido } from '@/actions/pedidos';
 import PedidoCard from './PedidoCard';
-import type { Pedido, EstadoPedido } from '@/types/database';
+import CrearPedidoModal from './CrearPedidoModal';
+import { useRouter } from 'next/navigation';
+import { Plus } from 'lucide-react';
+import type { Pedido, EstadoPedido, Producto } from '@/types/database';
 
 // ── Config de columnas ─────────────────────────────────────────────────────────
 
@@ -38,9 +41,12 @@ function agrupar(pedidos: Pedido[]): Record<EstadoPedido, Pedido[]> {
 
 interface KanbanClientProps {
   initialPedidos: Pedido[];
+  productos: Producto[];
 }
 
-export default function KanbanClient({ initialPedidos }: KanbanClientProps) {
+export default function KanbanClient({ initialPedidos, productos }: KanbanClientProps) {
+  const router = useRouter();
+  const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [columns, setColumns] = useState<Record<EstadoPedido, Pedido[]>>(
     () => agrupar(initialPedidos)
   );
@@ -89,12 +95,30 @@ export default function KanbanClient({ initialPedidos }: KanbanClientProps) {
   return (
     <div className="p-6 h-full flex flex-col">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-stone-800">Pedidos</h1>
-        <p className="text-stone-500 text-sm mt-0.5">
-          {total} {total === 1 ? 'pedido' : 'pedidos'} · Arrastra para cambiar estado
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-stone-800">Pedidos</h1>
+          <p className="text-stone-500 text-sm mt-0.5">
+            {total} {total === 1 ? 'pedido' : 'pedidos'} · Arrastra para cambiar estado
+          </p>
+        </div>
+        <button
+          onClick={() => setIsCrearOpen(true)}
+          className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Nuevo pedido
+        </button>
       </div>
+
+      {/* Modal crear pedido */}
+      {isCrearOpen && (
+        <CrearPedidoModal
+          productos={productos}
+          onSuccess={() => { setIsCrearOpen(false); router.refresh(); }}
+          onClose={() => setIsCrearOpen(false)}
+        />
+      )}
 
       {/* Error toast */}
       {errorMsg && (

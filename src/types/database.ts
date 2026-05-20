@@ -20,9 +20,18 @@ export interface ClienteDatos {
   notas?: string;
 }
 
+export interface PedidoItem {
+  producto_id: string;
+  nombre: string;
+  precio: number;
+  cantidad: number;
+  subtotal: number;
+}
+
 export interface Pedido {
   id: string;
   cliente_datos: ClienteDatos;
+  items: PedidoItem[] | null;
   total: number;
   estado: EstadoPedido;
   created_at: string;
