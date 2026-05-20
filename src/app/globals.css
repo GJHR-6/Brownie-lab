@@ -17,4 +17,6 @@ body {
 
 html {
   scroll-behavior: smooth;
+  overscroll-behavior: none;
+  background: #7c2d12;
 }
