@@ -1,26 +1,33 @@
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import { useActionState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
-import { createProducto } from '@/actions/productos';
-import type { ActionResult } from '@/types/actions';
+import { createProducto, updateProducto } from '@/actions/productos';
 import type { Producto } from '@/types/database';
 
-const CATEGORIAS: { value: string; label: string }[] = [
+const CATEGORIAS = [
   { value: 'clasicas', label: 'Clásicas' },
   { value: 'brownies', label: 'Brownies' },
   { value: 'especiales', label: 'Especiales' },
 ];
 
 interface ProductoFormProps {
+  productoInicial?: Producto;
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-const INITIAL_STATE: ActionResult<Producto> | null = null;
+export default function ProductoForm({ productoInicial, onSuccess, onCancel }: ProductoFormProps) {
+  const isEditing = !!productoInicial;
 
-export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps) {
-  const [state, formAction, isPending] = useActionState(createProducto, INITIAL_STATE);
+  // bind evaluado solo en mount — form se desmonta al cerrar modal
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const action = useMemo(
+    () => isEditing ? updateProducto.bind(null, productoInicial!.id) : createProducto,
+    []
+  );
+
+  const [state, formAction, isPending] = useActionState(action, null);
 
   useEffect(() => {
     if (state?.success) onSuccess();
@@ -28,13 +35,16 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
 
   return (
     <form action={formAction} className="px-6 py-5 space-y-4">
+      {isEditing && (
+        <input type="hidden" name="imagen_url_actual" value={productoInicial.imagen_url ?? ''} />
+      )}
+
       {state?.success === false && (
         <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
           {state.error}
         </div>
       )}
 
-      {/* Nombre */}
       <div>
         <label className="block text-sm font-medium text-stone-700 mb-1.5">
           Nombre <span className="text-red-500">*</span>
@@ -43,24 +53,23 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
           name="nombre"
           required
           disabled={isPending}
+          defaultValue={productoInicial?.nombre}
           className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
           placeholder="Brownie de Nutella"
         />
       </div>
 
-      {/* Descripción */}
       <div>
         <label className="block text-sm font-medium text-stone-700 mb-1.5">Descripción</label>
         <textarea
           name="descripcion"
           rows={2}
           disabled={isPending}
+          defaultValue={productoInicial?.descripcion ?? ''}
           className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 resize-none"
-          placeholder="Descripción breve del producto"
         />
       </div>
 
-      {/* Precio + Stock */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">
@@ -73,8 +82,8 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
             min="0.01"
             required
             disabled={isPending}
+            defaultValue={productoInicial?.precio}
             className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-            placeholder="55.00"
           />
         </div>
         <div>
@@ -87,19 +96,19 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
             min="0"
             required
             disabled={isPending}
+            defaultValue={productoInicial?.stock}
             className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-            placeholder="10"
           />
         </div>
       </div>
 
-      {/* Categoría + Emoji */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Categoría</label>
           <select
             name="categoria"
             disabled={isPending}
+            defaultValue={productoInicial?.categoria ?? 'clasicas'}
             className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 bg-white"
           >
             {CATEGORIAS.map(({ value, label }) => (
@@ -113,15 +122,22 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
             name="emoji"
             maxLength={4}
             disabled={isPending}
+            defaultValue={productoInicial?.emoji ?? ''}
             className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-            placeholder="🍫"
           />
         </div>
       </div>
 
-      {/* Imagen */}
       <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Imagen del producto</label>
+        <label className="block text-sm font-medium text-stone-700 mb-1.5">
+          {isEditing ? 'Cambiar imagen (opcional)' : 'Imagen del producto'}
+        </label>
+        {isEditing && productoInicial.imagen_url && (
+          <div className="mb-2 w-16 h-16 rounded-lg overflow-hidden border border-stone-200">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={productoInicial.imagen_url} alt="actual" className="w-full h-full object-cover" />
+          </div>
+        )}
         <input
           name="imagen"
           type="file"
@@ -132,7 +148,6 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
         <p className="text-xs text-stone-400 mt-1">PNG, JPG o WebP · Máx. 5 MB</p>
       </div>
 
-      {/* Acciones */}
       <div className="flex gap-3 pt-1">
         <button
           type="button"
@@ -148,7 +163,7 @@ export default function ProductoForm({ onSuccess, onCancel }: ProductoFormProps)
           className="flex-1 bg-amber-700 hover:bg-amber-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
         >
           {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-          {isPending ? 'Guardando…' : 'Guardar producto'}
+          {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar producto'}
         </button>
       </div>
     </form>

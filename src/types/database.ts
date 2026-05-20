@@ -51,3 +51,14 @@ export interface AdminUser {
   email: string;
   created_at: string;
 }
+
+export interface Especial {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  emoji: string;
+  fecha_inicio: string;
+  duracion_dias: number;
+  activo: boolean;
+  created_at: string;
+}

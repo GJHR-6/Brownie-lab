@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X, Pencil } from 'lucide-react';
 import { deleteProducto, toggleDisponible } from '@/actions/productos';
 import ProductoForm from './ProductoForm';
 import type { Producto } from '@/types/database';
@@ -13,7 +13,8 @@ interface InventarioClientProps {
 
 export default function InventarioClient({ initialProducts }: InventarioClientProps) {
   const router = useRouter();
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  type ModalState = { open: false } | { open: true; modo: 'crear' } | { open: true; modo: 'editar'; producto: Producto };
+  const [modal, setModal] = useState<ModalState>({ open: false });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -23,7 +24,7 @@ export default function InventarioClient({ initialProducts }: InventarioClientPr
   }, [router]);
 
   const handleSuccess = useCallback(() => {
-    setIsModalOpen(false);
+    setModal({ open: false });
     refresh();
   }, [refresh]);
 
@@ -54,7 +55,7 @@ export default function InventarioClient({ initialProducts }: InventarioClientPr
           </p>
         </div>
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setModal({ open: true, modo: 'crear' })}
           className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -136,20 +137,29 @@ export default function InventarioClient({ initialProducts }: InventarioClientPr
                     </button>
                   </td>
 
-                  {/* Eliminar */}
+                  {/* Acciones */}
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => handleDelete(p.id, p.nombre)}
-                      disabled={deletingId === p.id}
-                      aria-label="Eliminar producto"
-                      className="text-stone-300 hover:text-red-500 transition-colors disabled:opacity-50"
-                    >
-                      {deletingId === p.id ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-4 h-4" />
-                      )}
-                    </button>
+                    <div className="flex items-center justify-end gap-3">
+                      <button
+                        onClick={() => setModal({ open: true, modo: 'editar', producto: p })}
+                        aria-label="Editar producto"
+                        className="text-stone-300 hover:text-amber-600 transition-colors"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(p.id, p.nombre)}
+                        disabled={deletingId === p.id}
+                        aria-label="Eliminar producto"
+                        className="text-stone-300 hover:text-red-500 transition-colors disabled:opacity-50"
+                      >
+                        {deletingId === p.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -166,29 +176,29 @@ export default function InventarioClient({ initialProducts }: InventarioClientPr
         </div>
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
+      {/* Modal crear / editar */}
+      {modal.open && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
+          onClick={(e) => { if (e.target === e.currentTarget) setModal({ open: false }); }}
         >
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
-              <h2 className="text-lg font-bold text-stone-800">Nuevo producto</h2>
+              <h2 className="text-lg font-bold text-stone-800">
+                {modal.modo === 'crear' ? 'Nuevo producto' : 'Editar producto'}
+              </h2>
               <button
-                onClick={() => setIsModalOpen(false)}
+                onClick={() => setModal({ open: false })}
                 className="text-stone-400 hover:text-stone-600 transition-colors"
                 aria-label="Cerrar"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-
-            {/* Form — se desmonta al cerrar el modal, reseteando useActionState */}
             <ProductoForm
+              productoInicial={modal.modo === 'editar' ? modal.producto : undefined}
               onSuccess={handleSuccess}
-              onCancel={() => setIsModalOpen(false)}
+              onCancel={() => setModal({ open: false })}
             />
           </div>
         </div>

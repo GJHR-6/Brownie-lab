@@ -78,6 +78,62 @@ export async function createProducto(
     if (error) return { success: false, error: error.message };
 
     revalidatePath('/admin/inventario');
+    revalidatePath('/');
+    revalidatePath('/menu');
+    return { success: true, data };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+export async function updateProducto(
+  id: string,
+  _prevState: ActionResult<Producto> | null,
+  formData: FormData
+): Promise<ActionResult<Producto>> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const nombre = (formData.get('nombre') as string).trim();
+    const descripcion = (formData.get('descripcion') as string).trim() || null;
+    const precio = parseFloat(formData.get('precio') as string);
+    const stock = parseInt(formData.get('stock') as string, 10);
+    const categoria = (formData.get('categoria') as string) || 'clasicas';
+    const emoji = (formData.get('emoji') as string).trim() || null;
+    const imagenFile = formData.get('imagen') as File | null;
+    const imagenUrlActual = formData.get('imagen_url_actual') as string | null;
+
+    if (!nombre || isNaN(precio) || precio <= 0 || isNaN(stock) || stock < 0) {
+      return { success: false, error: 'Nombre, precio (> 0) y stock (≥ 0) son requeridos.' };
+    }
+
+    let imagen_url: string | null = imagenUrlActual || null;
+
+    if (imagenFile && imagenFile.size > 0) {
+      const ext = imagenFile.name.split('.').pop() ?? 'jpg';
+      const storagePath = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('product-images')
+        .upload(storagePath, imagenFile, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) return { success: false, error: `Error al subir imagen: ${uploadError.message}` };
+
+      imagen_url = supabase.storage.from('product-images').getPublicUrl(storagePath).data.publicUrl;
+    }
+
+    const { data, error } = await supabase
+      .from('productos')
+      .update({ nombre, descripcion, precio, stock, categoria, emoji, imagen_url })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/admin/inventario');
+    revalidatePath('/');
+    revalidatePath('/menu');
     return { success: true, data };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -99,6 +155,8 @@ export async function toggleDisponible(
     if (error) return { success: false, error: error.message };
 
     revalidatePath('/admin/inventario');
+    revalidatePath('/');
+    revalidatePath('/menu');
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -129,6 +187,8 @@ export async function deleteProducto(id: string): Promise<ActionResult> {
     }
 
     revalidatePath('/admin/inventario');
+    revalidatePath('/');
+    revalidatePath('/menu');
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };

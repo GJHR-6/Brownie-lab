@@ -1,24 +1,28 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { storeConfig } from "@/config/store";
-import products from "@/data/products.json";
-import chefSpecials from "@/data/chef-specials.json";
+import { getProductosPublicos, getEspecialesActivos } from "@/lib/data";
 
 export const revalidate = 3600;
 
-function getDaysLeft(startDate: string, durationDays: number): number {
-  const end = new Date(startDate);
-  end.setDate(end.getDate() + durationDays);
+function getDaysLeft(fechaInicio: string, duracionDias: number): number {
+  const end = new Date(fechaInicio);
+  end.setDate(end.getDate() + duracionDias);
   const now = new Date();
   now.setHours(0, 0, 0, 0);
   end.setHours(0, 0, 0, 0);
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-export default function Home() {
-  const featured = products.filter((p) => p.available).slice(0, 3);
-  const activeSpecials = chefSpecials.filter(
-    (item) => getDaysLeft(item.startDate, item.durationDays) > 0
+export default async function Home() {
+  const [productos, especiales] = await Promise.all([
+    getProductosPublicos(),
+    getEspecialesActivos(),
+  ]);
+
+  const featured = productos.slice(0, 3);
+  const activeSpecials = especiales.filter(
+    (e) => getDaysLeft(e.fecha_inicio, e.duracion_dias) > 0
   );
 
   return (
@@ -58,86 +62,90 @@ export default function Home() {
       </section>
 
       {/* Capricho del Chef */}
-      <section className="py-20 px-4 bg-stone-900 text-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-amber-400 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-              Edición limitada
-            </p>
-            <h2
-              className="text-3xl md:text-4xl font-bold mb-3"
-              style={{ fontFamily: "var(--font-playfair)" }}
-            >
-              Capricho del Chef
-            </h2>
-            <p className="text-stone-400 max-w-lg mx-auto">
-              Nuevas recetas, cosas que no son comunes en nuestro menú. Nuestra forma de
-              poner las cosas experimentalmente — antes de que desaparezcan.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {activeSpecials.map((item) => {
-              const daysLeft = getDaysLeft(item.startDate, item.durationDays);
-              return (
-              <div
-                key={item.id}
-                className="bg-stone-800 border border-stone-700 rounded-2xl p-6 flex flex-col gap-4 hover:border-amber-500/50 transition-colors"
+      {activeSpecials.length > 0 && (
+        <section className="py-20 px-4 bg-stone-900 text-white">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <p className="text-amber-400 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
+                Edición limitada
+              </p>
+              <h2
+                className="text-3xl md:text-4xl font-bold mb-3"
+                style={{ fontFamily: "var(--font-playfair)" }}
               >
-                <div className="text-4xl">{item.emoji}</div>
-                <div>
-                  <h3 className="font-bold text-lg mb-1">{item.name}</h3>
-                  <p className="text-stone-400 text-sm leading-relaxed">{item.description}</p>
-                </div>
-                <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-700">
-                  <span className="text-amber-400 text-xs font-medium">
-                    ⏳ Quedan {daysLeft} {daysLeft === 1 ? "día" : "días"}
-                  </span>
-                  <a
-                    href={`https://wa.me/${storeConfig.whatsapp}?text=Hola! Me interesa el ${item.name} del Capricho del Chef`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs bg-amber-600 hover:bg-amber-500 transition-colors px-4 py-1.5 rounded-full font-medium"
+                Capricho del Chef
+              </h2>
+              <p className="text-stone-400 max-w-lg mx-auto">
+                Nuevas recetas, cosas que no son comunes en nuestro menú. Nuestra forma de
+                poner las cosas experimentalmente — antes de que desaparezcan.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {activeSpecials.map((item) => {
+                const daysLeft = getDaysLeft(item.fecha_inicio, item.duracion_dias);
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-stone-800 border border-stone-700 rounded-2xl p-6 flex flex-col gap-4 hover:border-amber-500/50 transition-colors"
                   >
-                    Pedir
-                  </a>
-                </div>
-              </div>
-              );
-            })}
+                    <div className="text-4xl">{item.emoji}</div>
+                    <div>
+                      <h3 className="font-bold text-lg mb-1">{item.nombre}</h3>
+                      <p className="text-stone-400 text-sm leading-relaxed">{item.descripcion}</p>
+                    </div>
+                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-700">
+                      <span className="text-amber-400 text-xs font-medium">
+                        ⏳ Quedan {daysLeft} {daysLeft === 1 ? "día" : "días"}
+                      </span>
+                      <a
+                        href={`https://wa.me/${storeConfig.whatsapp}?text=Hola! Me interesa el ${item.nombre} del Capricho del Chef`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs bg-amber-600 hover:bg-amber-500 transition-colors px-4 py-1.5 rounded-full font-medium"
+                      >
+                        Pedir
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Productos destacados */}
-      <section className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <h2
-              className="text-3xl md:text-4xl font-bold text-amber-800 mb-3"
-              style={{ fontFamily: "var(--font-playfair)" }}
-            >
-              Favoritos del Momento
-            </h2>
-            <p className="text-stone-500">Los más pedidos de la semana</p>
-          </div>
+      {featured.length > 0 && (
+        <section className="py-20 px-4">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <h2
+                className="text-3xl md:text-4xl font-bold text-amber-800 mb-3"
+                style={{ fontFamily: "var(--font-playfair)" }}
+              >
+                Favoritos del Momento
+              </h2>
+              <p className="text-stone-500">Los más pedidos de la semana</p>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-            {featured.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
+              {featured.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
 
-          <div className="text-center">
-            <Link
-              href="/menu"
-              className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors"
-            >
-              Ver todo el menú →
-            </Link>
+            <div className="text-center">
+              <Link
+                href="/menu"
+                className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors"
+              >
+                Ver todo el menú →
+              </Link>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Arma tu postre CTA */}
       <section className="py-16 px-4 bg-amber-50 border-y border-amber-100">
