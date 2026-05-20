@@ -9,10 +9,16 @@ type BaseId = "brownie" | "galleta";
 interface Topping {
   id: string;
   name: string;
+  price: number;
   color: string;
   shape: "circle" | "drop" | "chip" | "shard" | "blob";
   positions: { x: number; y: number; r: number; rotate?: number }[];
 }
+
+const BASE_PRICES: Record<BaseId, number> = {
+  brownie: 40,
+  galleta: 35,
+};
 
 const BASES: { id: BaseId; name: string; description: string }[] = [
   {
@@ -31,6 +37,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "pecanas",
     name: "Pecanas",
+    price: 10,
     color: "#92400e",
     shape: "blob",
     positions: [
@@ -44,6 +51,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "chispas",
     name: "Chispas de Chocolate",
+    price: 8,
     color: "#1c0a00",
     shape: "drop",
     positions: [
@@ -60,6 +68,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "arandanos",
     name: "Arándanos",
+    price: 10,
     color: "#4c1d95",
     shape: "circle",
     positions: [
@@ -73,6 +82,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "caramelo",
     name: "Caramelo",
+    price: 6,
     color: "#d97706",
     shape: "shard",
     positions: [
@@ -83,6 +93,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "coco",
     name: "Coco Rallado",
+    price: 5,
     color: "#fef3c7",
     shape: "shard",
     positions: [
@@ -96,6 +107,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "sal",
     name: "Sal de Mar",
+    price: 3,
     color: "#f0fdf4",
     shape: "chip",
     positions: [
@@ -114,6 +126,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "almendras",
     name: "Almendras",
+    price: 10,
     color: "#c8a86b",
     shape: "blob",
     positions: [
@@ -126,6 +139,7 @@ const TOPPINGS: Topping[] = [
   {
     id: "frambuesas",
     name: "Frambuesas",
+    price: 12,
     color: "#e11d48",
     shape: "circle",
     positions: [
@@ -300,12 +314,13 @@ export default function PersonalizaPage() {
   }
 
   const selectedToppings = TOPPINGS.filter((t) => selected.has(t.id));
+  const totalPrice = BASE_PRICES[base] + selectedToppings.reduce((sum, t) => sum + t.price, 0);
 
   const whatsappText = `Hola! Quisiera pedir un ${base === "brownie" ? "Brownie" : "Galleta"}${
     selectedToppings.length > 0
       ? ` con: ${selectedToppings.map((t) => t.name).join(", ")}`
       : " sin toppings adicionales"
-  }`;
+  } — Total estimado: ${storeConfig.currencySymbol}${totalPrice}`;
 
   const whatsappHref = `https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(whatsappText)}`;
 
@@ -379,6 +394,13 @@ export default function PersonalizaPage() {
                   </div>
                 )}
               </div>
+
+              <div className="mt-4 pt-4 border-t border-amber-100 text-center">
+                <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Total estimado</p>
+                <p className="text-2xl font-bold text-amber-800">
+                  {storeConfig.currencySymbol}{totalPrice}
+                </p>
+              </div>
             </div>
 
             {/* Botón WhatsApp — solo visible en desktop aquí */}
@@ -417,9 +439,14 @@ export default function PersonalizaPage() {
                       className="w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 border-2 border-white shadow"
                       style={{ backgroundColor: topping.color }}
                     />
-                    <span className={`text-xs md:text-sm font-medium leading-tight ${isOn ? "text-amber-800" : "text-stone-600"}`}>
-                      {topping.name}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <span className={`text-xs md:text-sm font-medium leading-tight block ${isOn ? "text-amber-800" : "text-stone-600"}`}>
+                        {topping.name}
+                      </span>
+                      <span className="text-xs text-amber-600 font-medium">
+                        +{storeConfig.currencySymbol}{topping.price}
+                      </span>
+                    </div>
                     {isOn && (
                       <span className="absolute top-2 right-2 w-4 h-4 bg-amber-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
                         ✓

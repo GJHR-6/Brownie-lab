@@ -2,30 +2,7 @@ import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { storeConfig } from "@/config/store";
 import products from "@/data/products.json";
-
-const chefSpecials = [
-  {
-    id: "cs1",
-    name: "Tarta de Lavanda y Limón",
-    description: "Una combinación floral y cítrica que no encontrarás en ningún otro lugar. Disponible solo esta semana.",
-    emoji: "🌸",
-    daysLeft: 3,
-  },
-  {
-    id: "cs2",
-    name: "Brownie de Matcha y Frambuesa",
-    description: "Brownie experimental con matcha japonés y coulis de frambuesa fresca. Edición limitadísima.",
-    emoji: "🍵",
-    daysLeft: 5,
-  },
-  {
-    id: "cs3",
-    name: "Cookie de Miso y Caramelo",
-    description: "Dulce con un toque salado y profundo. Nuestra apuesta más atrevida del mes.",
-    emoji: "🍯",
-    daysLeft: 7,
-  },
-];
+import chefSpecials from "@/data/chef-specials.json";
 
 export default function Home() {
   const featured = products.filter((p) => p.available).slice(0, 3);
