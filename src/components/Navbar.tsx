@@ -4,11 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCartStore } from "@/lib/cartStore";
+import { useWishlistStore } from "@/lib/wishlistStore";
 import { storeConfig } from "@/config/store";
+import { Heart } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
   const itemCount = useCartStore((s) => s.itemCount());
+  const wishlistCount = useWishlistStore((s) => s.count());
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -43,6 +46,14 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+
+          {/* Wishlist */}
+          {mounted && wishlistCount > 0 && (
+            <Link href="/menu" className="relative flex items-center gap-1 text-amber-200 hover:text-white transition-colors text-sm">
+              <Heart className="w-4 h-4 fill-current" />
+              <span>{wishlistCount}</span>
+            </Link>
+          )}
 
           {/* Cart */}
           <Link

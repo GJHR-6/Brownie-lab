@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { storeConfig } from "@/config/store";
 import { getConfiguracion } from "@/lib/data";
 
@@ -43,9 +44,12 @@ export default async function Footer() {
             © {new Date().getFullYear()} {nombre}
           </p>
         </div>
-        <p className="text-amber-300 text-xs text-center mt-4 border-t border-amber-800 pt-4">
-          {tagline}
-        </p>
+        <div className="mt-4 border-t border-amber-800 pt-4 flex items-center justify-between gap-4">
+          <p className="text-amber-300 text-xs">{tagline}</p>
+          <Link href="/privacidad" className="text-amber-500 hover:text-amber-300 text-xs transition-colors flex-shrink-0">
+            Privacidad
+          </Link>
+        </div>
       </div>
     </footer>
   );

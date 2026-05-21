@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
+import AnimateIn from "@/components/AnimateIn";
 import { storeConfig } from "@/config/store";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
 import { getTestimoniosPublicos } from "@/actions/testimonios";
@@ -67,6 +68,7 @@ export default async function Home() {
 
       {/* Capricho del Chef */}
       {activeSpecials.length > 0 && (
+        <AnimateIn>
         <section className="py-20 px-4 bg-stone-900 text-white">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
@@ -117,10 +119,12 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </AnimateIn>
       )}
 
       {/* Productos destacados */}
       {featured.length > 0 && (
+        <AnimateIn delay={100}>
         <section className="py-20 px-4">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
@@ -149,10 +153,12 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </AnimateIn>
       )}
 
       {/* Testimonios */}
       {testimonios.length > 0 && (
+        <AnimateIn delay={150}>
         <section className="py-20 px-4 bg-stone-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
@@ -172,6 +178,7 @@ export default async function Home() {
             </div>
           </div>
         </section>
+        </AnimateIn>
       )}
 
       {/* Instagram */}
