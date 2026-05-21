@@ -1,6 +1,5 @@
 import { LogOut } from "lucide-react";
 import { logout } from "@/actions/auth";
-import NotificacionesButton from "./NotificacionesButton";
 
 interface AdminTopbarProps {
   userEmail: string;
@@ -11,7 +10,6 @@ export default function AdminTopbar({ userEmail }: AdminTopbarProps) {
     <header className="h-14 bg-white border-b border-stone-200 flex items-center justify-between px-6 flex-shrink-0">
       <div />
       <div className="flex items-center gap-5">
-        <NotificacionesButton />
         <span className="text-sm text-stone-400 hidden sm:block">{userEmail}</span>
         <form action={logout}>
           <button
