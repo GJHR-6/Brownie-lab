@@ -1,17 +1,34 @@
 import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Producto, Especial, Banner, Configuracion } from '@/types/database';
+import type { Producto, Especial, Banner, Configuracion, Categoria } from '@/types/database';
 
 export async function getProductosPublicos(): Promise<Producto[]> {
   const supabase = await createSupabaseServerClient();
+  const today = new Date().toISOString().split('T')[0];
+
   const { data, error } = await supabase
     .from('productos')
     .select('*')
     .eq('disponible', true)
+    .or(`disponible_desde.is.null,disponible_desde.lte.${today}`)
+    .or(`disponible_hasta.is.null,disponible_hasta.gte.${today}`)
     .order('categoria')
     .order('nombre');
   if (error) {
     console.error('getProductosPublicos:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function getCategoriasPublicas(): Promise<Categoria[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('categorias')
+    .select('*')
+    .order('orden');
+  if (error) {
+    console.error('getCategoriasPublicas:', error.message);
     return [];
   }
   return data ?? [];

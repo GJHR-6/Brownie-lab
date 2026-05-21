@@ -1,6 +1,9 @@
 export type EstadoPedido = 'pendiente' | 'preparacion' | 'listo' | 'completado';
 
 export interface Producto {
+  // disponibilidad_programada
+  disponible_desde?: string | null;
+  disponible_hasta?: string | null;
   id: string;
   nombre: string;
   descripcion: string | null;
@@ -71,6 +74,14 @@ export interface Configuracion {
   facebook: string;
   tiktok: string;
   updated_at: string;
+}
+
+export interface Categoria {
+  id: string;
+  nombre: string;
+  slug: string;
+  orden: number;
+  created_at: string;
 }
 
 export interface Especial {

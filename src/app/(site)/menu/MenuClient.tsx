@@ -3,15 +3,10 @@
 import { useState } from "react";
 import { Search, X } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
-import type { Producto } from "@/types/database";
+import type { Producto, Categoria } from "@/types/database";
 
-const LABELS: Record<string, string> = {
-  clasicas: "Clásicas",
-  brownies: "Brownies",
-  especiales: "Especiales",
-};
-
-export default function MenuClient({ productos }: { productos: Producto[] }) {
+export default function MenuClient({ productos, categorias }: { productos: Producto[]; categorias: Categoria[] }) {
+  const LABELS = Object.fromEntries(categorias.map(c => [c.slug, c.nombre]));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 

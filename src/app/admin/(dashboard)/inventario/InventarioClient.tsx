@@ -5,13 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X, Pencil } from 'lucide-react';
 import { deleteProducto, toggleDisponible } from '@/actions/productos';
 import ProductoForm from './ProductoForm';
-import type { Producto } from '@/types/database';
+import type { Producto, Categoria } from '@/types/database';
 
 interface InventarioClientProps {
   initialProducts: Producto[];
+  categorias: Categoria[];
 }
 
-export default function InventarioClient({ initialProducts }: InventarioClientProps) {
+export default function InventarioClient({ initialProducts, categorias }: InventarioClientProps) {
   const router = useRouter();
   type ModalState = { open: false } | { open: true; modo: 'crear' } | { open: true; modo: 'editar'; producto: Producto };
   const [modal, setModal] = useState<ModalState>({ open: false });
@@ -197,6 +198,7 @@ export default function InventarioClient({ initialProducts }: InventarioClientPr
             </div>
             <ProductoForm
               productoInicial={modal.modo === 'editar' ? modal.producto : undefined}
+              categorias={categorias}
               onSuccess={handleSuccess}
               onCancel={() => setModal({ open: false })}
             />

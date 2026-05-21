@@ -3,21 +3,16 @@
 import { useActionState, useEffect, useMemo } from 'react';
 import { Loader2 } from 'lucide-react';
 import { createProducto, updateProducto } from '@/actions/productos';
-import type { Producto } from '@/types/database';
-
-const CATEGORIAS = [
-  { value: 'clasicas', label: 'Clásicas' },
-  { value: 'brownies', label: 'Brownies' },
-  { value: 'especiales', label: 'Especiales' },
-];
+import type { Producto, Categoria } from '@/types/database';
 
 interface ProductoFormProps {
   productoInicial?: Producto;
+  categorias: Categoria[];
   onSuccess: () => void;
   onCancel: () => void;
 }
 
-export default function ProductoForm({ productoInicial, onSuccess, onCancel }: ProductoFormProps) {
+export default function ProductoForm({ productoInicial, categorias, onSuccess, onCancel }: ProductoFormProps) {
   const isEditing = !!productoInicial;
 
   // bind evaluado solo en mount — form se desmonta al cerrar modal
@@ -111,8 +106,8 @@ export default function ProductoForm({ productoInicial, onSuccess, onCancel }: P
             defaultValue={productoInicial?.categoria ?? 'clasicas'}
             className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 bg-white"
           >
-            {CATEGORIAS.map(({ value, label }) => (
-              <option key={value} value={value}>{label}</option>
+            {categorias.map((c) => (
+              <option key={c.slug} value={c.slug}>{c.nombre}</option>
             ))}
           </select>
         </div>
@@ -127,6 +122,23 @@ export default function ProductoForm({ productoInicial, onSuccess, onCancel }: P
           />
         </div>
       </div>
+
+      {/* Disponibilidad programada */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">Disponible desde</label>
+          <input name="disponible_desde" type="date" disabled={isPending}
+            defaultValue={productoInicial?.disponible_desde ?? ''}
+            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-stone-700 mb-1.5">Disponible hasta</label>
+          <input name="disponible_hasta" type="date" disabled={isPending}
+            defaultValue={productoInicial?.disponible_hasta ?? ''}
+            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+        </div>
+      </div>
+      <p className="text-xs text-stone-400 -mt-2">Deja vacío para disponibilidad siempre activa.</p>
 
       <div>
         <label className="block text-sm font-medium text-stone-700 mb-1.5">

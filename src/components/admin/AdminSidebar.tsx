@@ -11,11 +11,16 @@ import {
   Star,
   Megaphone,
   Tag,
+  FolderOpen,
+  Image,
+  Layers,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin",               label: "Dashboard",     icon: LayoutDashboard, exact: true  },
   { href: "/admin/inventario",    label: "Inventario",    icon: Package,         exact: false },
+  { href: "/admin/categorias",    label: "Categorías",    icon: Layers,          exact: false },
+  { href: "/admin/galeria",       label: "Galería",       icon: Image,           exact: false },
   { href: "/admin/especiales",    label: "Especiales",    icon: Star,            exact: false },
   { href: "/admin/pedidos",       label: "Pedidos",       icon: ClipboardList,   exact: false },
   { href: "/admin/banners",       label: "Banners",       icon: Megaphone,       exact: false },

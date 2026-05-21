@@ -45,6 +45,8 @@ export async function createProducto(
     const categoria = (formData.get('categoria') as string) || 'clasicas';
     const emoji = (formData.get('emoji') as string).trim() || null;
     const imagenFile = formData.get('imagen') as File | null;
+    const disponible_desde = (formData.get('disponible_desde') as string) || null;
+    const disponible_hasta = (formData.get('disponible_hasta') as string) || null;
 
     if (!nombre || isNaN(precio) || precio <= 0 || isNaN(stock) || stock < 0) {
       return { success: false, error: 'Nombre, precio (> 0) y stock (≥ 0) son requeridos.' };
@@ -71,7 +73,7 @@ export async function createProducto(
 
     const { data, error } = await supabase
       .from('productos')
-      .insert({ nombre, descripcion, precio, stock, categoria, emoji, imagen_url })
+      .insert({ nombre, descripcion, precio, stock, categoria, emoji, imagen_url, disponible_desde, disponible_hasta })
       .select()
       .single();
 
@@ -124,7 +126,9 @@ export async function updateProducto(
 
     const { data, error } = await supabase
       .from('productos')
-      .update({ nombre, descripcion, precio, stock, categoria, emoji, imagen_url })
+      .update({ nombre, descripcion, precio, stock, categoria, emoji, imagen_url,
+        disponible_desde: (formData.get('disponible_desde') as string) || null,
+        disponible_hasta: (formData.get('disponible_hasta') as string) || null })
       .eq('id', id)
       .select()
       .single();
