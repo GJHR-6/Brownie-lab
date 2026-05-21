@@ -2,6 +2,7 @@ import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import { storeConfig } from "@/config/store";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
+import { getTestimoniosPublicos } from "@/actions/testimonios";
 
 export const revalidate = 3600;
 
@@ -15,10 +16,11 @@ function getDaysLeft(fechaInicio: string, duracionDias: number): number {
 }
 
 export default async function Home() {
-  const [productos, especiales, config] = await Promise.all([
+  const [productos, especiales, config, testimonios] = await Promise.all([
     getProductosPublicos(),
     getEspecialesActivos(),
     getConfiguracion(),
+    getTestimoniosPublicos(),
   ]);
   const whatsapp = config?.whatsapp || storeConfig.whatsapp;
 
@@ -145,6 +147,44 @@ export default async function Home() {
                 Ver todo el menú →
               </Link>
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* Testimonios */}
+      {testimonios.length > 0 && (
+        <section className="py-20 px-4 bg-stone-50">
+          <div className="max-w-5xl mx-auto">
+            <div className="text-center mb-12">
+              <p className="text-amber-600 text-xs font-semibold tracking-widest uppercase mb-3">Lo que dicen</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-amber-800" style={{ fontFamily: "var(--font-playfair)" }}>
+                Nuestros clientes
+              </h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
+              {testimonios.map((t) => (
+                <div key={t.id} className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col gap-3">
+                  <p className="text-amber-500 text-sm">{'⭐'.repeat(t.estrellas)}</p>
+                  <p className="text-stone-600 text-sm leading-relaxed flex-1">&ldquo;{t.texto}&rdquo;</p>
+                  <p className="font-semibold text-stone-800 text-sm">— {t.autor}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Instagram */}
+      {(config?.instagram || storeConfig.social.instagram) && (
+        <section className="py-16 px-4 bg-white">
+          <div className="max-w-2xl mx-auto text-center">
+            <p className="text-2xl mb-3">📸</p>
+            <h2 className="text-2xl font-bold text-stone-800 mb-2">Síguenos en Instagram</h2>
+            <p className="text-stone-500 mb-6">Mira nuestras creaciones del día y las últimas novedades.</p>
+            <a href={config?.instagram || storeConfig.social.instagram} target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold px-8 py-3 rounded-full hover:opacity-90 transition-opacity">
+              Ver perfil en Instagram
+            </a>
           </div>
         </section>
       )}

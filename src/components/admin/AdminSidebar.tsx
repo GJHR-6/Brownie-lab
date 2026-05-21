@@ -14,6 +14,8 @@ import {
   FolderOpen,
   Image,
   Layers,
+  MessageSquare,
+  Activity,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -25,6 +27,8 @@ const NAV_ITEMS = [
   { href: "/admin/pedidos",       label: "Pedidos",       icon: ClipboardList,   exact: false },
   { href: "/admin/banners",       label: "Banners",       icon: Megaphone,       exact: false },
   { href: "/admin/promociones",   label: "Promociones",   icon: Tag,             exact: false },
+  { href: "/admin/testimonios",   label: "Testimonios",   icon: MessageSquare,   exact: false },
+  { href: "/admin/actividad",     label: "Actividad",     icon: Activity,        exact: false },
   { href: "/admin/configuracion", label: "Configuración", icon: Settings,        exact: false },
 ] as const;
 

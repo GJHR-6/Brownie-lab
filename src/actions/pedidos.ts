@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Pedido, EstadoPedido, PedidoItem } from '@/types/database';
+import { logActividad } from './actividad';
 import type { ActionResult } from '@/types/actions';
 
 async function requireAdmin() {
@@ -40,6 +41,7 @@ export async function actualizarEstadoPedido(
 
     if (error) return { success: false, error: error.message };
 
+    await logActividad('pedido', `Pedido ${id.slice(0,8).toUpperCase()} → ${estado}`, { id, estado });
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');
     return { success: true, data: undefined };

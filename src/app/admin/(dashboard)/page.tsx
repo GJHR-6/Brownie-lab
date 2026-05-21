@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { Package, ShoppingBag, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
+import VentasChart from "@/components/admin/VentasChart";
 import { storeConfig } from "@/config/store";
 import type { LucideIcon } from "lucide-react";
 import type { EstadoPedido, ClienteDatos } from "@/types/database";
@@ -57,6 +58,24 @@ export default async function AdminDashboardPage() {
   );
 
   const pedidosActivos = porEstado.pendiente + porEstado.preparacion + porEstado.listo;
+
+  // Ventas diarias últimos 30 días
+  const thirtyDaysAgo = new Date(now);
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+  const dailyMap: Record<string, number> = {};
+  pedidos.forEach((p) => {
+    const d = new Date(p.created_at);
+    if (d >= thirtyDaysAgo) {
+      const key = d.toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit" });
+      dailyMap[key] = (dailyMap[key] ?? 0) + Number(p.total);
+    }
+  });
+  const chartData = Array.from({ length: 30 }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - (29 - i));
+    const fecha = d.toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit" });
+    return { fecha, total: dailyMap[fecha] ?? 0 };
+  });
   const pedidosHoy = pedidos.filter((p) => p.created_at >= startOfToday).length;
   const ultimosPedidos = pedidos.slice(0, 6);
 
@@ -106,6 +125,9 @@ export default async function AdminDashboardPage() {
         <StatCard icon={Package}    label="Productos activos" value={productosActivos} color="text-blue-600" />
         <StatCard icon={Clock}      label="Pedidos hoy"       value={pedidosHoy} color="text-purple-600" />
       </div>
+
+      {/* Gráfica ventas */}
+      <VentasChart data={chartData} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Pedidos por estado */}
