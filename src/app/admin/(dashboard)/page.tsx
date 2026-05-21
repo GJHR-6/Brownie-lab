@@ -1,5 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { Package, ShoppingBag, TrendingUp, Clock } from "lucide-react";
+import { Package, ShoppingBag, TrendingUp, Clock, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { storeConfig } from "@/config/store";
 import type { LucideIcon } from "lucide-react";
 import type { EstadoPedido, ClienteDatos } from "@/types/database";
@@ -35,7 +36,7 @@ export default async function AdminDashboardPage() {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
   const [productosRes, pedidosRes, ventasMesRes] = await Promise.all([
-    supabase.from("productos").select("id, disponible"),
+    supabase.from("productos").select("id, nombre, stock, disponible"),
     supabase.from("pedidos").select("id, estado, total, cliente_datos, created_at")
       .order("created_at", { ascending: false }),
     supabase.from("pedidos").select("total").gte("created_at", startOfMonth),
@@ -46,6 +47,8 @@ export default async function AdminDashboardPage() {
   const ventasMes = ventasMesRes.data ?? [];
 
   const productosActivos = productos.filter((p) => p.disponible).length;
+  const stockBajo = productos.filter((p) => p.disponible && p.stock > 0 && p.stock <= 5);
+  const agotados  = productos.filter((p) => p.disponible && p.stock === 0);
   const totalVentasMes = ventasMes.reduce((s, p) => s + Number(p.total), 0);
 
   const porEstado = (["pendiente", "preparacion", "listo", "completado"] as EstadoPedido[]).reduce(
@@ -65,6 +68,36 @@ export default async function AdminDashboardPage() {
           {now.toLocaleDateString("es-HN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
       </div>
+
+      {/* Alertas stock */}
+      {(agotados.length > 0 || stockBajo.length > 0) && (
+        <div className="space-y-2">
+          {agotados.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+              <p className="text-sm text-red-700 flex-1">
+                <span className="font-semibold">{agotados.length} {agotados.length === 1 ? 'producto agotado' : 'productos agotados'}:</span>{" "}
+                {agotados.map(p => p.nombre).join(", ")}
+              </p>
+              <Link href="/admin/inventario" className="text-xs text-red-600 hover:underline font-medium flex-shrink-0">
+                Ir a inventario →
+              </Link>
+            </div>
+          )}
+          {stockBajo.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
+              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
+              <p className="text-sm text-amber-700 flex-1">
+                <span className="font-semibold">Stock bajo (≤5):</span>{" "}
+                {stockBajo.map(p => `${p.nombre} (${p.stock})`).join(", ")}
+              </p>
+              <Link href="/admin/inventario" className="text-xs text-amber-600 hover:underline font-medium flex-shrink-0">
+                Ir a inventario →
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

@@ -6,7 +6,8 @@ import { actualizarEstadoPedido } from '@/actions/pedidos';
 import PedidoCard from './PedidoCard';
 import CrearPedidoModal from './CrearPedidoModal';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Download, Printer } from 'lucide-react';
+import type { ClienteDatos, PedidoItem } from '@/types/database';
 import type { Pedido, EstadoPedido, Producto } from '@/types/database';
 
 // ── Config de columnas ─────────────────────────────────────────────────────────
@@ -42,6 +43,34 @@ function agrupar(pedidos: Pedido[]): Record<EstadoPedido, Pedido[]> {
 interface KanbanClientProps {
   initialPedidos: Pedido[];
   productos: Producto[];
+}
+
+function printPedido(pedido: Pedido) {
+  const cd = pedido.cliente_datos as ClienteDatos;
+  const items = pedido.items as PedidoItem[] | null;
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Pedido #${pedido.id.slice(0,8)}</title>
+  <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Courier New',monospace;padding:16px;max-width:320px;font-size:12px}
+  h1{text-align:center;font-size:15px;margin-bottom:2px}.center{text-align:center}.divider{border-top:1px dashed #000;margin:8px 0}
+  .row{display:flex;justify-content:space-between;margin:3px 0}.total{font-weight:bold;font-size:14px}.label{color:#666;font-size:10px;text-transform:uppercase}
+  </style></head><body>
+  <h1>🍪 Brownie Lab</h1><p class="center label">Ticket de pedido</p>
+  <div class="divider"></div>
+  <p class="label">Cliente</p><p>${cd.nombre}</p><p>${cd.telefono}</p>${cd.notas ? `<p style="color:#555">${cd.notas}</p>` : ''}
+  <div class="divider"></div>
+  ${items && items.length > 0
+    ? items.map(i => `<div class="row"><span>${i.cantidad}× ${i.nombre}</span><span>L.${Number(i.subtotal).toFixed(2)}</span></div>`).join('')
+    : '<p>Sin detalle de productos</p>'}
+  <div class="divider"></div>
+  <div class="row total"><span>TOTAL</span><span>L.${Number(pedido.total).toFixed(2)}</span></div>
+  <div class="divider"></div>
+  <p class="center label">${new Date(pedido.created_at).toLocaleString('es-HN')}</p>
+  <p class="center label">#${pedido.id.slice(0,8).toUpperCase()}</p>
+  <script>window.print();setTimeout(()=>window.close(),800);</script>
+  </body></html>`;
+  const win = window.open('', '_blank', 'width=420,height=620');
+  if (!win) return;
+  win.document.write(html);
+  win.document.close();
 }
 
 export default function KanbanClient({ initialPedidos, productos }: KanbanClientProps) {
@@ -102,13 +131,21 @@ export default function KanbanClient({ initialPedidos, productos }: KanbanClient
             {total} {total === 1 ? 'pedido' : 'pedidos'} · Arrastra para cambiar estado
           </p>
         </div>
-        <button
-          onClick={() => setIsCrearOpen(true)}
-          className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo pedido
-        </button>
+        <div className="flex items-center gap-2">
+          <a href="/api/admin/export/pedidos" download>
+            <button className="flex items-center gap-2 border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors">
+              <Download className="w-4 h-4" />
+              CSV
+            </button>
+          </a>
+          <button
+            onClick={() => setIsCrearOpen(true)}
+            className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo pedido
+          </button>
+        </div>
       </div>
 
       {/* Modal crear pedido */}
@@ -165,11 +202,19 @@ export default function KanbanClient({ initialPedidos, productos }: KanbanClient
                             ref={provided.innerRef}
                             {...provided.draggableProps}
                             {...provided.dragHandleProps}
-                            className={`transition-shadow ${
+                            className={`relative group transition-shadow ${
                               snapshot.isDragging ? 'shadow-xl rotate-1' : ''
                             }`}
                           >
                             <PedidoCard pedido={pedido} />
+                            <button
+                              onMouseDown={(e) => e.stopPropagation()}
+                              onClick={() => printPedido(pedido)}
+                              aria-label="Imprimir ticket"
+                              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-stone-300 hover:text-stone-700 bg-white rounded-lg p-1 shadow-sm"
+                            >
+                              <Printer className="w-3 h-3" />
+                            </button>
                           </div>
                         )}
                       </Draggable>
