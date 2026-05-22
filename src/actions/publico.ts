@@ -4,6 +4,21 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { ActionResult } from '@/types/actions';
 import type { EstadoPedido } from '@/types/database';
 
+// ── Configuración pública (para client components) ────────────────────────────
+
+export async function getConfiguracionPublica(): Promise<{ pedido_minimo: number } | null> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from('configuracion')
+      .select('pedido_minimo')
+      .single();
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Validar código de promo (decrements usos_restantes on apply) ──────────────
 
 export async function validarPromocion(

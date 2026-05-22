@@ -68,6 +68,13 @@ export default function ConfiguracionClient({ config }: ConfiguracionClientProps
               className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
             <p className="text-xs text-stone-400 mt-1">Código de país + número, sin espacios. Ej: 50431534704</p>
           </div>
+          <div className="mt-4">
+            <label className="block text-sm font-medium text-stone-700 mb-1.5">Pedido mínimo (HNL)</label>
+            <input name="pedido_minimo" type="number" min="0" step="0.01" disabled={isPending}
+              defaultValue={config.pedido_minimo ?? 0}
+              className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+            <p className="text-xs text-stone-400 mt-1">0 = sin mínimo. El carrito avisará si el total no alcanza.</p>
+          </div>
         </div>
 
         {/* Sección: Redes sociales */}

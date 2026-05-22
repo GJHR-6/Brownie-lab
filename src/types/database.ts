@@ -1,9 +1,10 @@
 export type EstadoPedido = 'pendiente' | 'preparacion' | 'listo' | 'completado';
 
 export interface Producto {
-  // disponibilidad_programada
   disponible_desde?: string | null;
   disponible_hasta?: string | null;
+  alergenos?: string[] | null;
+  tiempo_preparacion?: string | null;
   id: string;
   nombre: string;
   descripcion: string | null;
@@ -73,6 +74,7 @@ export interface Configuracion {
   instagram: string;
   facebook: string;
   tiktok: string;
+  pedido_minimo: number;
   updated_at: string;
 }
 
