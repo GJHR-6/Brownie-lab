@@ -25,7 +25,6 @@ export async function updateConfiguracion(
     const instagram = (formData.get('instagram') as string).trim();
     const facebook = (formData.get('facebook') as string).trim();
     const tiktok = (formData.get('tiktok') as string).trim();
-    const pedido_minimo = parseFloat(formData.get('pedido_minimo') as string) || 0;
 
     if (!nombre || !whatsapp) {
       return { success: false, error: 'Nombre y WhatsApp son requeridos.' };
@@ -33,7 +32,7 @@ export async function updateConfiguracion(
 
     const { error } = await supabase
       .from('configuracion')
-      .upsert({ id: 1, nombre, tagline, descripcion, whatsapp, instagram, facebook, tiktok, pedido_minimo });
+      .upsert({ id: 1, nombre, tagline, descripcion, whatsapp, instagram, facebook, tiktok });
 
     if (error) return { success: false, error: error.message };
 

@@ -140,35 +140,6 @@ export default function ProductoForm({ productoInicial, categorias, onSuccess, o
       </div>
       <p className="text-xs text-stone-400 -mt-2">Deja vacío para disponibilidad siempre activa.</p>
 
-      {/* Tiempo de preparación */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Tiempo de preparación</label>
-        <input name="tiempo_preparacion" disabled={isPending}
-          defaultValue={productoInicial?.tiempo_preparacion ?? ''}
-          placeholder="Ej: 24 horas, 2 días"
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
-      </div>
-
-      {/* Alérgenos */}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-2">Alérgenos</label>
-        <div className="grid grid-cols-2 gap-2">
-          {['Gluten','Lácteos','Huevos','Nueces','Maní','Soya'].map((a) => (
-            <label key={a} className="flex items-center gap-2 text-sm text-stone-600 cursor-pointer">
-              <input
-                type="checkbox"
-                name="alergenos"
-                value={a}
-                disabled={isPending}
-                defaultChecked={productoInicial?.alergenos?.includes(a) ?? false}
-                className="rounded text-amber-700 focus:ring-amber-400"
-              />
-              {a}
-            </label>
-          ))}
-        </div>
-      </div>
-
       <div>
         <label className="block text-sm font-medium text-stone-700 mb-1.5">
           {isEditing ? 'Cambiar imagen (opcional)' : 'Imagen del producto'}

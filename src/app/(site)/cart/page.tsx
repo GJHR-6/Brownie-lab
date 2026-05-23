@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Loader2, Tag, X, CheckCircle } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
 import { storeConfig } from "@/config/store";
-import { validarPromocion, getConfiguracionPublica } from "@/actions/publico";
+import { validarPromocion } from "@/actions/publico";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total, itemCount } = useCartStore();
@@ -14,12 +14,8 @@ export default function CartPage() {
   const [promo, setPromo] = useState<{ codigo: string; descuento_porcentaje: number } | null>(null);
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
-  const [pedidoMinimo, setPedidoMinimo] = useState(0);
 
-  useEffect(() => {
-    setMounted(true);
-    getConfiguracionPublica().then((d) => { if (d) setPedidoMinimo(Number(d.pedido_minimo)); });
-  }, []);
+  useEffect(() => setMounted(true), []);
 
   if (!mounted) return null;
 
@@ -107,14 +103,6 @@ export default function CartPage() {
         ))}
       </div>
 
-      {/* Aviso pedido mínimo */}
-      {pedidoMinimo > 0 && totalFinal < pedidoMinimo && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
-          ⚠️ El pedido mínimo es <strong>{storeConfig.currencySymbol}{pedidoMinimo.toFixed(2)}</strong>.
-          Te faltan <strong>{storeConfig.currencySymbol}{(pedidoMinimo - totalFinal).toFixed(2)}</strong> para poder ordenar.
-        </div>
-      )}
-
       {/* Código de descuento */}
       <div className="mb-6">
         {promo ? (
@@ -176,17 +164,10 @@ export default function CartPage() {
 
       {/* Actions */}
       <div className="flex flex-col gap-3">
-        {pedidoMinimo > 0 && totalFinal < pedidoMinimo ? (
-          <button disabled
-            className="w-full bg-stone-300 text-stone-500 cursor-not-allowed font-semibold py-4 rounded-full text-center text-lg">
-            💬 Enviar pedido por WhatsApp
-          </button>
-        ) : (
-          <a href={buildWhatsAppMessage()} target="_blank" rel="noopener noreferrer"
-            className="w-full bg-green-500 hover:bg-green-400 text-white font-semibold py-4 rounded-full text-center text-lg transition-colors">
-            💬 Enviar pedido por WhatsApp
-          </a>
-        )}
+        <a href={buildWhatsAppMessage()} target="_blank" rel="noopener noreferrer"
+          className="w-full bg-green-500 hover:bg-green-400 text-white font-semibold py-4 rounded-full text-center text-lg transition-colors">
+          💬 Enviar pedido por WhatsApp
+        </a>
         <button onClick={clearCart}
           className="w-full border border-stone-300 text-stone-500 hover:text-red-500 hover:border-red-300 font-medium py-3 rounded-full text-center transition-colors text-sm">
           Vaciar carrito

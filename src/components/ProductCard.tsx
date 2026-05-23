@@ -5,8 +5,7 @@ import { useWishlistStore } from "@/lib/wishlistStore";
 import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
 import { useState, useEffect } from "react";
-import { Heart, Share2, Check, Clock } from "lucide-react";
-import Lightbox from "@/components/Lightbox";
+import { Heart, Share2, Check } from "lucide-react";
 import type { Producto } from "@/types/database";
 
 export default function ProductCard({ product }: { product: Producto }) {
@@ -19,7 +18,6 @@ export default function ProductCard({ product }: { product: Producto }) {
   const [qty, setQty] = useState(1);
   const [shared, setShared] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [lightbox, setLightbox] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -66,10 +64,7 @@ export default function ProductCard({ product }: { product: Producto }) {
       )}
 
       {/* Image */}
-      <div
-        className={`bg-amber-50 h-44 flex items-center justify-center overflow-hidden ${product.imagen_url ? "cursor-zoom-in" : ""}`}
-        onClick={() => product.imagen_url && setLightbox(true)}
-      >
+      <div className="bg-amber-50 h-44 flex items-center justify-center overflow-hidden">
         {product.imagen_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.imagen_url} alt={product.nombre} className="w-full h-full object-cover" />
@@ -77,10 +72,6 @@ export default function ProductCard({ product }: { product: Producto }) {
           <span className="text-6xl">{product.emoji ?? "🍪"}</span>
         )}
       </div>
-
-      {lightbox && product.imagen_url && (
-        <Lightbox src={product.imagen_url} alt={product.nombre} onClose={() => setLightbox(false)} />
-      )}
 
       <div className="p-4 flex flex-col flex-1">
         {/* Name + price */}
@@ -92,26 +83,7 @@ export default function ProductCard({ product }: { product: Producto }) {
         </div>
 
         {/* Description */}
-        <p className="text-stone-500 text-sm leading-relaxed mb-2">{product.descripcion}</p>
-
-        {/* Tiempo de preparación */}
-        {product.tiempo_preparacion && (
-          <div className="flex items-center gap-1 text-xs text-stone-400 mb-2">
-            <Clock className="w-3 h-3" />
-            <span>{product.tiempo_preparacion}</span>
-          </div>
-        )}
-
-        {/* Alérgenos */}
-        {product.alergenos && product.alergenos.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {product.alergenos.map((a) => (
-              <span key={a} className="text-xs bg-red-50 text-red-600 border border-red-100 rounded-full px-2 py-0.5">
-                {a}
-              </span>
-            ))}
-          </div>
-        )}
+        <p className="text-stone-500 text-sm leading-relaxed flex-1 mb-3">{product.descripcion}</p>
 
         {/* Category + share */}
         <div className="flex items-center justify-between mb-3">
