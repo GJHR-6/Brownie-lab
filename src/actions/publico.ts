@@ -2,7 +2,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { ActionResult } from '@/types/actions';
-import type { EstadoPedido } from '@/types/database';
+import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
 
 // ── Validar código de promo (decrements usos_restantes on apply) ──────────────
 
@@ -55,6 +55,45 @@ export async function buscarPedidosPorTelefono(
 
     if (error) return { success: false, error: 'Error al buscar pedidos.' };
     return { success: true, data: (data ?? []) as PedidoTracking[] };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+// ── Crear pedido desde checkout público (sin autenticación) ───────────────────
+
+export async function crearPedidoPublico(
+  clienteDatos: ClienteDatos,
+  items: PedidoItem[],
+  total: number,
+  promo?: { codigo: string; descuento_porcentaje: number } | null
+): Promise<ActionResult<{ id: string }>> {
+  try {
+    if (!clienteDatos.nombre?.trim() || !clienteDatos.telefono?.trim()) {
+      return { success: false, error: 'Nombre y teléfono requeridos.' };
+    }
+    if (!items.length) {
+      return { success: false, error: 'El carrito está vacío.' };
+    }
+
+    const supabase = await createSupabaseServerClient();
+
+    const nota_promo = promo
+      ? `Descuento ${promo.codigo} (${promo.descuento_porcentaje}%)`
+      : undefined;
+
+    const datos = nota_promo
+      ? { ...clienteDatos, notas: [clienteDatos.notas, nota_promo].filter(Boolean).join(' | ') }
+      : clienteDatos;
+
+    const { data, error } = await supabase
+      .from('pedidos')
+      .insert({ cliente_datos: datos, items, total, estado: 'pendiente' })
+      .select('id')
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: { id: data.id } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }

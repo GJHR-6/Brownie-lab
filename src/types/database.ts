@@ -21,6 +21,11 @@ export interface ClienteDatos {
   nombre: string;
   telefono: string;
   notas?: string;
+  metodo_pago?: string;
+  tipo_entrega?: 'pickup' | 'domicilio';
+  direccion?: string;
+  fecha_entrega?: string;
+  hora_entrega?: string;
 }
 
 export interface PedidoItem {
