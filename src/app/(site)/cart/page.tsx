@@ -61,6 +61,7 @@ export default function CartPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const [ssFile, setSsFile] = useState<File | null>(null);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof DatosForm, string>>>({});
   const [datos, setDatos] = useState<DatosForm>({
     nombre: "", telefono: "", tipo_entrega: "pickup",
@@ -113,29 +114,57 @@ export default function CartPage() {
       const id = result.success ? result.data?.id : undefined;
       if (id) setOrderId(id);
 
-      const lines: string[] = [`¡Hola ${storeConfig.name}! 🍪`, ""];
-      if (id) lines.push(`📋 Pedido #${id.slice(0, 8).toUpperCase()}`, "");
-      lines.push("📦 PRODUCTOS:");
-      items.forEach(i => lines.push(`• ${i.quantity}x ${i.name} = ${sym}${(i.price * i.quantity).toFixed(2)}`));
-      lines.push("", "💰 RESUMEN:");
-      lines.push(`Subtotal: ${sym}${subtotal.toFixed(2)}`);
-      if (promo) lines.push(`Descuento ${promo.codigo} (${promo.descuento_porcentaje}%): -${sym}${descuento.toFixed(2)}`);
-      lines.push(`*Total: ${sym}${totalFinal.toFixed(2)} ${storeConfig.currency}*`);
-      lines.push("", "👤 DATOS DEL CLIENTE:");
-      lines.push(`Nombre: ${datos.nombre}`, `Teléfono: ${datos.telefono}`);
-      lines.push("", `🚚 ENTREGA: ${datos.tipo_entrega === "pickup" ? "Recoger en tienda" : "A domicilio"}`);
-      if (datos.tipo_entrega === "domicilio" && datos.direccion) lines.push(`Dirección: ${datos.direccion}`);
-      if (datos.fecha_entrega) {
-        const fecha = new Date(datos.fecha_entrega + "T12:00:00").toLocaleDateString("es-HN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-        lines.push(`Fecha: ${fecha}`);
-      }
-      if (datos.hora_entrega) lines.push(`Hora preferida: ${datos.hora_entrega}`);
-      const metodoPagoLabel = METODOS_PAGO.find(m => m.id === datos.metodo_pago)?.label ?? datos.metodo_pago;
-      lines.push("", `💳 MÉTODO DE PAGO: ${metodoPagoLabel}`);
-      if (datos.notas) lines.push("", `📝 NOTAS: ${datos.notas}`);
-      lines.push("", "¡Gracias! Esperamos confirmar pronto. 🙏");
+      const seguimientoUrl = `${window.location.origin}/seguimiento`;
+      const pedidoTag = id ? `#${id.slice(0, 8).toUpperCase()}` : "";
 
-      window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(lines.join("\n"))}`, "_blank");
+      const buildBase = () => {
+        const lines: string[] = [`¡Hola ${storeConfig.name}! 🍪`, ""];
+        if (pedidoTag) lines.push(`📋 Pedido ${pedidoTag}`, "");
+        lines.push("📦 PRODUCTOS:");
+        items.forEach(i => lines.push(`• ${i.quantity}x ${i.name} = ${sym}${(i.price * i.quantity).toFixed(2)}`));
+        lines.push("", "💰 RESUMEN:");
+        lines.push(`Subtotal: ${sym}${subtotal.toFixed(2)}`);
+        if (promo) lines.push(`Descuento ${promo.codigo} (${promo.descuento_porcentaje}%): -${sym}${descuento.toFixed(2)}`);
+        lines.push(`*Total: ${sym}${totalFinal.toFixed(2)} ${storeConfig.currency}*`);
+        lines.push("", "👤 DATOS DEL CLIENTE:");
+        lines.push(`Nombre: ${datos.nombre}`, `Teléfono: ${datos.telefono}`);
+        lines.push("", `🚚 ENTREGA: ${datos.tipo_entrega === "pickup" ? "Recoger en tienda" : "A domicilio"}`);
+        if (datos.tipo_entrega === "domicilio" && datos.direccion) lines.push(`Dirección: ${datos.direccion}`);
+        if (datos.fecha_entrega) {
+          const fecha = new Date(datos.fecha_entrega + "T12:00:00").toLocaleDateString("es-HN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+          lines.push(`Fecha: ${fecha}`);
+        }
+        if (datos.hora_entrega) lines.push(`Hora preferida: ${datos.hora_entrega}`);
+        if (datos.notas) lines.push("", `📝 NOTAS: ${datos.notas}`);
+        return lines;
+      };
+
+      let waLines: string[];
+
+      if (datos.metodo_pago === "efectivo") {
+        waLines = buildBase();
+        waLines.push("", "💵 MÉTODO DE PAGO: Efectivo al recibir");
+        waLines.push("", "✅ Tu pedido ha sido recibido. Te contactaremos pronto para confirmarlo.");
+        waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
+      } else if (datos.metodo_pago === "transferencia" && ssFile) {
+        waLines = buildBase();
+        waLines.push("", "🏦 MÉTODO DE PAGO: Transferencia bancaria");
+        waLines.push("✅ Adjunto el comprobante de pago.");
+        waLines.push("", "¡Gracias! Por favor confirma la recepción.");
+        waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
+      } else {
+        // transferencia sin SS
+        waLines = buildBase();
+        waLines.push("", "🏦 MÉTODO DE PAGO: Transferencia bancaria");
+        waLines.push("", "Por favor realiza la transferencia a:");
+        waLines.push(`🏛 Banco: ${storeConfig.banco.banco}`);
+        waLines.push(`👤 Titular: ${storeConfig.banco.titular}`);
+        waLines.push(`💳 Cuenta: ${storeConfig.banco.numero}`);
+        waLines.push("", "Una vez realizado el pago, envía tu comprobante por este chat.");
+        waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
+      }
+
+      window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(waLines.join("\n"))}`, "_blank");
       clearCart();
       setStep("success");
     } finally {
@@ -462,6 +491,17 @@ export default function CartPage() {
                   </button>
                 ))}
               </div>
+
+              {datos.metodo_pago === "transferencia" && (
+                <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-3">Datos para transferencia</p>
+                  <div className="space-y-1.5 text-sm">
+                    <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.banco}</span></p>
+                    <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.titular}</span></p>
+                    <p><span className="text-stone-500">No. de cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{storeConfig.banco.numero}</span></p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notas */}
@@ -543,6 +583,47 @@ export default function CartPage() {
                   <button onClick={() => setStep(2)} className="text-xs text-amber-700 hover:underline">Editar</button>
                 </div>
                 <p className="text-sm text-stone-600">{datos.notas}</p>
+              </div>
+            )}
+
+            {/* SS upload — solo transferencia */}
+            {datos.metodo_pago === "transferencia" && (
+              <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
+                <h3 className="font-semibold text-stone-800 text-sm mb-1">Comprobante de transferencia</h3>
+                <p className="text-xs text-stone-400 mb-4">
+                  Si ya realizaste el pago, adjunta el screenshot para agilizar la confirmación. Si no, igual puedes continuar y enviarlo en el chat de WhatsApp.
+                </p>
+
+                {/* Datos bancarios recordatorio */}
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl mb-4 text-sm space-y-1">
+                  <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Transferir a</p>
+                  <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.banco}</span></p>
+                  <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.titular}</span></p>
+                  <p><span className="text-stone-500">Cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{storeConfig.banco.numero}</span></p>
+                </div>
+
+                <label className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
+                  ssFile ? "border-green-400 bg-green-50" : "border-stone-200 hover:border-amber-300 hover:bg-amber-50"
+                }`}>
+                  <span className="text-2xl">{ssFile ? "✅" : "📎"}</span>
+                  <span className={`text-sm font-medium ${ssFile ? "text-green-700" : "text-stone-600"}`}>
+                    {ssFile ? ssFile.name : "Adjuntar comprobante (opcional)"}
+                  </span>
+                  {ssFile && (
+                    <button type="button" onClick={e => { e.preventDefault(); setSsFile(null); }}
+                      className="text-xs text-red-400 hover:text-red-600 underline">
+                      Quitar
+                    </button>
+                  )}
+                  <input type="file" accept="image/*" className="sr-only"
+                    onChange={e => setSsFile(e.target.files?.[0] ?? null)} />
+                </label>
+
+                <p className="text-xs text-stone-400 mt-2 text-center">
+                  {ssFile
+                    ? "El comprobante se adjuntará al mensaje de WhatsApp."
+                    : "Sin comprobante, te enviaremos los datos de pago por WhatsApp para que los confirmes ahí."}
+                </p>
               </div>
             )}
 

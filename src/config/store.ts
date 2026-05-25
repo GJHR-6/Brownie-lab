@@ -24,6 +24,13 @@ export const storeConfig = {
     tiktok: "",
   },
 
+  // Datos bancarios para transferencias — CAMBIA ESTOS VALORES
+  banco: {
+    banco: "BANCO_AQUI",        // Ej: "BAC Honduras"
+    titular: "TITULAR_AQUI",    // Ej: "María García"
+    numero: "NUMERO_AQUI",      // Ej: "1234-5678-9012"
+  },
+
   // Colores de la marca (clases de Tailwind)
   theme: {
     primary: "amber-800",
