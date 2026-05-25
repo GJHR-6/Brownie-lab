@@ -12,6 +12,9 @@ const DEFAULT_CONFIG: Configuracion = {
   instagram: '',
   facebook: '',
   tiktok: '',
+  banco_nombre: '',
+  banco_titular: '',
+  banco_numero: '',
   updated_at: new Date().toISOString(),
 };
 

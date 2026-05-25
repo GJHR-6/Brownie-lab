@@ -78,6 +78,9 @@ export interface Configuracion {
   instagram: string;
   facebook: string;
   tiktok: string;
+  banco_nombre: string;
+  banco_titular: string;
+  banco_numero: string;
   updated_at: string;
 }
 

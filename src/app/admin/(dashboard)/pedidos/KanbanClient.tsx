@@ -6,7 +6,7 @@ import { actualizarEstadoPedido } from '@/actions/pedidos';
 import PedidoCard from './PedidoCard';
 import CrearPedidoModal from './CrearPedidoModal';
 import { useRouter } from 'next/navigation';
-import { Plus, Download, Printer, Search, X, CheckSquare, Square, Loader2 } from 'lucide-react';
+import { Plus, Download, Printer, Search, X, CheckSquare, Square, Loader2, MessageCircle } from 'lucide-react';
 import type { ClienteDatos, PedidoItem } from '@/types/database';
 import { marcarPedidosCompletados } from '@/actions/pedidos';
 import type { Pedido, EstadoPedido, Producto } from '@/types/database';
@@ -44,6 +44,24 @@ function agrupar(pedidos: Pedido[]): Record<EstadoPedido, Pedido[]> {
 interface KanbanClientProps {
   initialPedidos: Pedido[];
   productos: Producto[];
+}
+
+function sendWhatsAppCliente(pedido: Pedido) {
+  const cd = pedido.cliente_datos as ClienteDatos;
+  const telefono = cd.telefono.replace(/\D/g, '');
+  const origen = typeof window !== 'undefined' ? window.location.origin : '';
+  const id = pedido.id.slice(0, 8).toUpperCase();
+  const lineas = [
+    `¡Hola ${cd.nombre}! 🍪`,
+    '',
+    `Tu pedido *#${id}* ha sido confirmado y está siendo preparado con mucho amor. 💛`,
+    '',
+    `📍 Puedes rastrear el estado de tu pedido aquí:`,
+    `${origen}/seguimiento`,
+    '',
+    '¡Gracias por tu compra en Brownie Lab! 🍪',
+  ];
+  window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(lineas.join('\n'))}`, '_blank');
 }
 
 function printPedido(pedido: Pedido) {
@@ -284,14 +302,25 @@ export default function KanbanClient({ initialPedidos, productos }: KanbanClient
                                 className={`relative group transition-shadow ${snapshot.isDragging ? 'shadow-xl rotate-1' : ''}`}
                               >
                                 <PedidoCard pedido={pedido} />
-                                <button
-                                  onMouseDown={(e) => e.stopPropagation()}
-                                  onClick={() => printPedido(pedido)}
-                                  aria-label="Imprimir ticket"
-                                  className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity text-stone-300 hover:text-stone-700 bg-white rounded-lg p-1 shadow-sm"
-                                >
-                                  <Printer className="w-3 h-3" />
-                                </button>
+                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onClick={() => sendWhatsAppCliente(pedido)}
+                                    aria-label="Enviar WhatsApp al cliente"
+                                    title="Enviar confirmación por WhatsApp"
+                                    className="text-stone-300 hover:text-green-600 bg-white rounded-lg p-1 shadow-sm"
+                                  >
+                                    <MessageCircle className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onClick={() => printPedido(pedido)}
+                                    aria-label="Imprimir ticket"
+                                    className="text-stone-300 hover:text-stone-700 bg-white rounded-lg p-1 shadow-sm"
+                                  >
+                                    <Printer className="w-3 h-3" />
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </Draggable>

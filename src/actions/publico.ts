@@ -60,6 +60,26 @@ export async function buscarPedidosPorTelefono(
   }
 }
 
+// ── Datos bancarios públicos (para el carrito) ────────────────────────────────
+
+export async function getConfiguracionBanco(): Promise<{ banco: string; titular: string; numero: string }> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from('configuracion')
+      .select('banco_nombre, banco_titular, banco_numero')
+      .eq('id', 1)
+      .single();
+    return {
+      banco:   data?.banco_nombre  ?? '',
+      titular: data?.banco_titular ?? '',
+      numero:  data?.banco_numero  ?? '',
+    };
+  } catch {
+    return { banco: '', titular: '', numero: '' };
+  }
+}
+
 // ── Crear pedido desde checkout público (sin autenticación) ───────────────────
 
 export async function crearPedidoPublico(

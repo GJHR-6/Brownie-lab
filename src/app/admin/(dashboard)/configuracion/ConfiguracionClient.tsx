@@ -91,6 +91,32 @@ export default function ConfiguracionClient({ config }: ConfiguracionClientProps
           </div>
         </div>
 
+        {/* Sección: Datos bancarios */}
+        <div className="px-6 py-5">
+          <h2 className="font-semibold text-stone-700 mb-1 text-sm uppercase tracking-wide">Datos bancarios</h2>
+          <p className="text-xs text-stone-400 mb-4">Se muestran al cliente cuando elige pago por transferencia.</p>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Banco</label>
+              <input name="banco_nombre" disabled={isPending} defaultValue={config.banco_nombre}
+                placeholder="BAC Honduras"
+                className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Nombre del titular</label>
+              <input name="banco_titular" disabled={isPending} defaultValue={config.banco_titular}
+                placeholder="María García"
+                className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-stone-700 mb-1.5">Número de cuenta</label>
+              <input name="banco_numero" disabled={isPending} defaultValue={config.banco_numero}
+                placeholder="1234-5678-9012"
+                className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+            </div>
+          </div>
+        </div>
+
         {/* Guardar */}
         <div className="px-6 py-5 flex justify-end">
           <button type="submit" disabled={isPending}

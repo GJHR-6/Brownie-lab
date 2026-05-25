@@ -25,6 +25,9 @@ export async function updateConfiguracion(
     const instagram = (formData.get('instagram') as string).trim();
     const facebook = (formData.get('facebook') as string).trim();
     const tiktok = (formData.get('tiktok') as string).trim();
+    const banco_nombre = (formData.get('banco_nombre') as string).trim();
+    const banco_titular = (formData.get('banco_titular') as string).trim();
+    const banco_numero = (formData.get('banco_numero') as string).trim();
 
     if (!nombre || !whatsapp) {
       return { success: false, error: 'Nombre y WhatsApp son requeridos.' };
@@ -32,7 +35,7 @@ export async function updateConfiguracion(
 
     const { error } = await supabase
       .from('configuracion')
-      .upsert({ id: 1, nombre, tagline, descripcion, whatsapp, instagram, facebook, tiktok });
+      .upsert({ id: 1, nombre, tagline, descripcion, whatsapp, instagram, facebook, tiktok, banco_nombre, banco_titular, banco_numero });
 
     if (error) return { success: false, error: error.message };
 

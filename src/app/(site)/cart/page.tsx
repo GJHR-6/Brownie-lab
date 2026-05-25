@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
 import { storeConfig } from "@/config/store";
-import { validarPromocion, crearPedidoPublico } from "@/actions/publico";
+import { validarPromocion, crearPedidoPublico, getConfiguracionBanco } from "@/actions/publico";
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
@@ -62,13 +62,17 @@ export default function CartPage() {
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [ssFile, setSsFile] = useState<File | null>(null);
+  const [banco, setBanco] = useState({ banco: '', titular: '', numero: '' });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof DatosForm, string>>>({});
   const [datos, setDatos] = useState<DatosForm>({
     nombre: "", telefono: "", tipo_entrega: "pickup",
     direccion: "", fecha_entrega: "", hora_entrega: "", notas: "", metodo_pago: "",
   });
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    getConfiguracionBanco().then(setBanco);
+  }, []);
   if (!mounted) return null;
 
   const subtotal = total();
@@ -157,9 +161,9 @@ export default function CartPage() {
         waLines = buildBase();
         waLines.push("", "🏦 MÉTODO DE PAGO: Transferencia bancaria");
         waLines.push("", "Por favor realiza la transferencia a:");
-        waLines.push(`🏛 Banco: ${storeConfig.banco.banco}`);
-        waLines.push(`👤 Titular: ${storeConfig.banco.titular}`);
-        waLines.push(`💳 Cuenta: ${storeConfig.banco.numero}`);
+        waLines.push(`🏛 Banco: ${banco.banco}`);
+        waLines.push(`👤 Titular: ${banco.titular}`);
+        waLines.push(`💳 Cuenta: ${banco.numero}`);
         waLines.push("", "Una vez realizado el pago, envía tu comprobante por este chat.");
         waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
       }
@@ -496,9 +500,9 @@ export default function CartPage() {
                 <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
                   <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-3">Datos para transferencia</p>
                   <div className="space-y-1.5 text-sm">
-                    <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.banco}</span></p>
-                    <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.titular}</span></p>
-                    <p><span className="text-stone-500">No. de cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{storeConfig.banco.numero}</span></p>
+                    <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{banco.banco}</span></p>
+                    <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{banco.titular}</span></p>
+                    <p><span className="text-stone-500">No. de cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{banco.numero}</span></p>
                   </div>
                 </div>
               )}
@@ -597,9 +601,9 @@ export default function CartPage() {
                 {/* Datos bancarios recordatorio */}
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl mb-4 text-sm space-y-1">
                   <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Transferir a</p>
-                  <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.banco}</span></p>
-                  <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{storeConfig.banco.titular}</span></p>
-                  <p><span className="text-stone-500">Cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{storeConfig.banco.numero}</span></p>
+                  <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{banco.banco}</span></p>
+                  <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{banco.titular}</span></p>
+                  <p><span className="text-stone-500">Cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{banco.numero}</span></p>
                 </div>
 
                 <label className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
