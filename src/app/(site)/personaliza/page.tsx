@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { storeConfig } from "@/config/store";
+import { useCartStore } from "@/lib/cartStore";
 
 type BaseId = "brownie" | "galleta";
 
@@ -304,6 +306,8 @@ export default function PersonalizaPage() {
   const [base, setBase] = useState<BaseId>("brownie");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [qty, setQty] = useState(1);
+  const addItem = useCartStore((s) => s.addItem);
+  const router = useRouter();
 
   function toggleTopping(id: string) {
     setSelected((prev) => {
@@ -323,9 +327,16 @@ export default function PersonalizaPage() {
     ? ` con: ${selectedToppings.map((t) => t.name).join(", ")}`
     : " sin toppings adicionales";
 
-  const whatsappText = `Hola! Quisiera pedir ${qty > 1 ? `${qty}x` : "un"} ${baseName}${toppingsText} — Precio unitario: ${storeConfig.currencySymbol}${unitPrice}${qty > 1 ? ` | Total (${qty} unidades): ${storeConfig.currencySymbol}${totalPrice}` : ""}`;
+  const itemName = `${baseName}${selectedToppings.length > 0 ? ` con ${selectedToppings.map((t) => t.name).join(", ")}` : ""}`;
+  const itemEmoji = base === "brownie" ? "🍫" : "🍪";
 
-  const whatsappHref = `https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(whatsappText)}`;
+  function handleAddToCart() {
+    const id = `custom-${base}-${Date.now()}`;
+    for (let i = 0; i < qty; i++) {
+      addItem({ id, name: itemName, price: unitPrice, emoji: itemEmoji });
+    }
+    router.push("/cart");
+  }
 
   return (
     <div className="min-h-screen bg-amber-50 pb-24 lg:pb-0">
@@ -430,16 +441,14 @@ export default function PersonalizaPage() {
               </div>
             </div>
 
-            {/* Botón WhatsApp — solo visible en desktop aquí */}
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden lg:flex mt-4 w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl transition-colors"
+            {/* Botón agregar al carrito — solo visible en desktop aquí */}
+            <button
+              onClick={handleAddToCart}
+              className="hidden lg:flex mt-4 w-full items-center justify-center gap-2 bg-amber-800 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition-colors"
             >
-              <span>💬</span>
-              <span>Pedir {qty > 1 ? `${qty} unidades` : "por WhatsApp"}</span>
-            </a>
+              <span>🛒</span>
+              <span>Agregar al carrito{qty > 1 ? ` (${qty})` : ""}</span>
+            </button>
           </div>
 
           {/* Toppings — debajo del visual en móvil */}
@@ -502,17 +511,15 @@ export default function PersonalizaPage() {
         </div>
       </div>
 
-      {/* Botón WhatsApp fijo en la parte inferior — solo móvil */}
+      {/* Botón fijo en la parte inferior — solo móvil */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-amber-50/90 backdrop-blur-sm border-t border-amber-100">
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3.5 rounded-xl transition-colors"
+        <button
+          onClick={handleAddToCart}
+          className="flex w-full items-center justify-center gap-2 bg-amber-800 hover:bg-amber-700 text-white font-semibold py-3.5 rounded-xl transition-colors"
         >
-          <span>💬</span>
-          <span>Pedir {qty > 1 ? `${qty} unidades` : "por WhatsApp"}</span>
-        </a>
+          <span>🛒</span>
+          <span>Agregar al carrito{qty > 1 ? ` (${qty})` : ""}</span>
+        </button>
       </div>
 
       <style jsx>{`
