@@ -10,6 +10,7 @@ import {
 import { useCartStore } from "@/lib/cartStore";
 import { storeConfig } from "@/config/store";
 import { validarPromocion, crearPedidoPublico, getConfiguracionBanco } from "@/actions/publico";
+import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
@@ -116,7 +117,16 @@ export default function CartPage() {
 
       const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo);
       const id = result.success ? result.data?.id : undefined;
-      if (id) setOrderId(id);
+      if (id) {
+        setOrderId(id);
+        // Fire & forget — no bloquea el checkout si falla
+        enviarConfirmacionWhatsApp({
+          telefono: datos.telefono,
+          nombre: datos.nombre,
+          orderId: id,
+          seguimientoUrl: `${window.location.origin}/seguimiento`,
+        });
+      }
 
       const seguimientoUrl = `${window.location.origin}/seguimiento`;
       const pedidoTag = id ? `#${id.slice(0, 8).toUpperCase()}` : "";

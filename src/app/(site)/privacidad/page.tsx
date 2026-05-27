@@ -67,11 +67,26 @@ export default function PrivacidadPage() {
           </p>
         </section>
 
-        <section>
-          <h2 className="text-xl font-bold text-stone-800 mb-2">5. Tus derechos</h2>
+        <section id="eliminacion-datos">
+          <h2 className="text-xl font-bold text-stone-800 mb-2">5. Eliminación de datos</h2>
           <p>
             Tienes derecho a solicitar la eliminación de cualquier dato personal que hayamos
-            recopilado. Para hacerlo, contáctanos directamente por WhatsApp.
+            recopilado (nombre, teléfono, historial de pedidos).
+          </p>
+          <p className="mt-2">
+            Para solicitar la eliminación de tus datos, envíanos un mensaje por WhatsApp indicando:{" "}
+            <strong>"Solicito eliminar mis datos personales"</strong> junto con el número de teléfono
+            asociado a tus pedidos. Procesamos la solicitud en un plazo máximo de <strong>72 horas</strong>.
+          </p>
+          <p className="mt-2">
+            <a
+              href={`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent("Solicito eliminar mis datos personales de Brownie Lab.")}`}
+              className="inline-block bg-amber-800 text-white text-sm font-semibold px-4 py-2 rounded-full hover:bg-amber-700 transition-colors"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Solicitar eliminación por WhatsApp
+            </a>
           </p>
         </section>
 
