@@ -1,4 +1,6 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { sanitizeText } from '@/lib/sanitize';
 import { NextRequest } from 'next/server';
 import webpush from 'web-push';
 
@@ -11,17 +13,43 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
 }
 
 export async function POST(request: NextRequest): Promise<Response> {
-  try {
-    const { title, body, url = '/' } = await request.json();
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim()
+    ?? request.headers.get('x-real-ip')
+    ?? 'unknown';
 
+  if (!rateLimit(`push-send:${ip}`, 10, 60 * 60 * 1000)) {
+    return rateLimitResponse();
+  }
+
+  try {
     const supabase = await createSupabaseServerClient();
+
+    // Admin-only: verify authenticated user is in admin_users table.
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return Response.json({ error: 'No autorizado.' }, { status: 401 });
+
+    const { data: adminRecord } = await supabase
+      .from('admin_users')
+      .select('user_id')
+      .eq('user_id', user.id)
+      .single();
+
+    if (!adminRecord) return Response.json({ error: 'No autorizado.' }, { status: 403 });
+
+    const body = await request.json();
+    const title = sanitizeText(body?.title, 100);
+    const text  = sanitizeText(body?.body,  300);
+    const url   = sanitizeText(body?.url,   200) || '/';
+
+    if (!title) return Response.json({ error: 'Título requerido.' }, { status: 400 });
+
     const { data: subs } = await supabase
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth');
 
     if (!subs?.length) return Response.json({ sent: 0 });
 
-    const payload = JSON.stringify({ title, body, url });
+    const payload = JSON.stringify({ title, body: text, url });
     let sent = 0;
 
     await Promise.allSettled(
@@ -33,7 +61,6 @@ export async function POST(request: NextRequest): Promise<Response> {
           );
           sent++;
         } catch (err: unknown) {
-          // Remove expired subscriptions
           if ((err as { statusCode?: number }).statusCode === 410) {
             await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
           }

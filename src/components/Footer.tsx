@@ -44,7 +44,7 @@ export default async function Footer() {
             © {new Date().getFullYear()} {nombre}
           </p>
         </div>
-        <div className="mt-4 border-t border-amber-800 pt-4 flex items-center justify-between gap-4">
+        <div className="mt-4 border-t border-amber-800 pt-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-amber-300 text-xs">{tagline}</p>
           <div className="flex items-center gap-4">
             <Link href="/privacidad" className="text-amber-500 hover:text-amber-300 text-xs transition-colors">

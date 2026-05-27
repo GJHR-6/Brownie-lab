@@ -72,23 +72,23 @@ export default function NosotrosPage() {
     <div className="min-h-screen">
 
       {/* Hero */}
-      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-700 text-white py-20 px-4 text-center">
+      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-700 text-white py-12 md:py-20 px-4 text-center">
         <p className="text-amber-300 text-xs font-semibold tracking-[0.25em] uppercase mb-4">
           Quiénes somos
         </p>
         <h1
-          className="text-4xl md:text-5xl font-bold mb-4"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4"
           style={{ fontFamily: "var(--font-playfair)" }}
         >
           Nosotros
         </h1>
-        <p className="text-amber-200 text-lg max-w-xl mx-auto leading-relaxed">
+        <p className="text-amber-200 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           Una pequeña operación con una obsesión enorme: hacer el mejor brownie que hayas probado.
         </p>
       </section>
 
       {/* Historia */}
-      <section className="py-20 px-4 bg-amber-50">
+      <section className="py-12 md:py-20 px-4 bg-amber-50">
         <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
           {/* Decorative block */}
           <div className="flex justify-center md:justify-start">
@@ -111,7 +111,7 @@ export default function NosotrosPage() {
           {/* Texto */}
           <div>
             <h2
-              className="text-3xl md:text-4xl font-bold text-amber-800 mb-6"
+              className="text-2xl sm:text-3xl md:text-4xl font-bold text-amber-800 mb-6"
               style={{ fontFamily: "var(--font-playfair)" }}
             >
               Nuestra Historia
@@ -134,7 +134,7 @@ export default function NosotrosPage() {
       </section>
 
       {/* Misión & Visión */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-12 md:py-20 px-4 bg-white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2
@@ -186,7 +186,7 @@ export default function NosotrosPage() {
       </section>
 
       {/* Valores */}
-      <section className="py-20 px-4 bg-amber-50">
+      <section className="py-12 md:py-20 px-4 bg-amber-50">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h2
@@ -216,7 +216,7 @@ export default function NosotrosPage() {
       </section>
 
       {/* Contacto */}
-      <section className="py-20 px-4 bg-white">
+      <section className="py-12 md:py-20 px-4 bg-white">
         <div className="max-w-xl mx-auto">
           <div className="text-center mb-10">
             <h2

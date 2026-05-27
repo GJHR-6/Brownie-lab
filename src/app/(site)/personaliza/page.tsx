@@ -303,6 +303,7 @@ function GalletaSVG({ selected }: { selected: Set<string> }) {
 export default function PersonalizaPage() {
   const [base, setBase] = useState<BaseId>("brownie");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [qty, setQty] = useState(1);
 
   function toggleTopping(id: string) {
     setSelected((prev) => {
@@ -314,13 +315,15 @@ export default function PersonalizaPage() {
   }
 
   const selectedToppings = TOPPINGS.filter((t) => selected.has(t.id));
-  const totalPrice = BASE_PRICES[base] + selectedToppings.reduce((sum, t) => sum + t.price, 0);
+  const unitPrice = BASE_PRICES[base] + selectedToppings.reduce((sum, t) => sum + t.price, 0);
+  const totalPrice = unitPrice * qty;
 
-  const whatsappText = `Hola! Quisiera pedir un ${base === "brownie" ? "Brownie" : "Galleta"}${
-    selectedToppings.length > 0
-      ? ` con: ${selectedToppings.map((t) => t.name).join(", ")}`
-      : " sin toppings adicionales"
-  } — Total estimado: ${storeConfig.currencySymbol}${totalPrice}`;
+  const baseName = base === "brownie" ? "Brownie" : "Galleta";
+  const toppingsText = selectedToppings.length > 0
+    ? ` con: ${selectedToppings.map((t) => t.name).join(", ")}`
+    : " sin toppings adicionales";
+
+  const whatsappText = `Hola! Quisiera pedir ${qty > 1 ? `${qty}x` : "un"} ${baseName}${toppingsText} — Precio unitario: ${storeConfig.currencySymbol}${unitPrice}${qty > 1 ? ` | Total (${qty} unidades): ${storeConfig.currencySymbol}${totalPrice}` : ""}`;
 
   const whatsappHref = `https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(whatsappText)}`;
 
@@ -332,7 +335,7 @@ export default function PersonalizaPage() {
           Interactivo
         </p>
         <h1
-          className="text-3xl md:text-5xl font-bold mb-3"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3"
           style={{ fontFamily: "var(--font-playfair)" }}
         >
           Arma tu postre
@@ -366,7 +369,7 @@ export default function PersonalizaPage() {
 
             {/* Product visual */}
             <div className="bg-white rounded-3xl p-4 md:p-8 shadow-lg border border-amber-100">
-              <div className="w-full max-w-[200px] md:max-w-xs mx-auto aspect-square">
+              <div className="w-full max-w-[160px] sm:max-w-[220px] md:max-w-xs mx-auto aspect-square">
                 {base === "brownie" ? (
                   <BrownieSVG selected={selected} />
                 ) : (
@@ -395,11 +398,35 @@ export default function PersonalizaPage() {
                 )}
               </div>
 
-              <div className="mt-4 pt-4 border-t border-amber-100 text-center">
-                <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">Total estimado</p>
-                <p className="text-2xl font-bold text-amber-800">
-                  {storeConfig.currencySymbol}{totalPrice}
-                </p>
+              <div className="mt-4 pt-4 border-t border-amber-100">
+                {/* Quantity selector */}
+                <div className="flex items-center justify-center gap-4 mb-4">
+                  <p className="text-xs text-stone-400 uppercase tracking-widest">Cantidad</p>
+                  <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => setQty(q => Math.max(1, q - 1))}
+                      className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors font-bold text-lg"
+                    >
+                      −
+                    </button>
+                    <span className="w-10 text-center text-base font-bold text-stone-800">{qty}</span>
+                    <button
+                      onClick={() => setQty(q => Math.min(50, q + 1))}
+                      className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors font-bold text-lg"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">
+                    Total estimado{qty > 1 && <span className="normal-case ml-1 text-stone-400">({qty} × {storeConfig.currencySymbol}{unitPrice})</span>}
+                  </p>
+                  <p className="text-2xl font-bold text-amber-800">
+                    {storeConfig.currencySymbol}{totalPrice}
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -411,7 +438,7 @@ export default function PersonalizaPage() {
               className="hidden lg:flex mt-4 w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3 rounded-xl transition-colors"
             >
               <span>💬</span>
-              <span>Pedir por WhatsApp</span>
+              <span>Pedir {qty > 1 ? `${qty} unidades` : "por WhatsApp"}</span>
             </a>
           </div>
 
@@ -484,7 +511,7 @@ export default function PersonalizaPage() {
           className="flex w-full items-center justify-center gap-2 bg-green-600 hover:bg-green-500 text-white font-semibold py-3.5 rounded-xl transition-colors"
         >
           <span>💬</span>
-          <span>Pedir por WhatsApp</span>
+          <span>Pedir {qty > 1 ? `${qty} unidades` : "por WhatsApp"}</span>
         </a>
       </div>
 

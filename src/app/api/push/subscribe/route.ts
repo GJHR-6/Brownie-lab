@@ -1,11 +1,27 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { isValidPushEndpoint, isValidBase64 } from '@/lib/sanitize';
 import { NextRequest } from 'next/server';
 
 export async function POST(request: NextRequest): Promise<Response> {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim()
+    ?? request.headers.get('x-real-ip')
+    ?? 'unknown';
+
+  if (!rateLimit(`push-subscribe:${ip}`, 5, 60 * 60 * 1000)) {
+    return rateLimitResponse();
+  }
+
   try {
-    const { endpoint, keys } = await request.json();
-    if (!endpoint || !keys?.p256dh || !keys?.auth) {
-      return Response.json({ error: 'Datos de suscripción incompletos.' }, { status: 400 });
+    const body = await request.json();
+    const { endpoint, keys } = body ?? {};
+
+    if (
+      !isValidPushEndpoint(endpoint) ||
+      !isValidBase64(keys?.p256dh, 256) ||
+      !isValidBase64(keys?.auth, 64)
+    ) {
+      return Response.json({ error: 'Datos de suscripción inválidos.' }, { status: 400 });
     }
 
     const supabase = await createSupabaseServerClient();

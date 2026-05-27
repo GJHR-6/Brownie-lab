@@ -37,21 +37,21 @@ export default function MenuClient({ productos, categorias }: { productos: Produ
   const noResults = filtered.length === 0 && (search || activeCategory);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-16">
+    <div className="max-w-5xl mx-auto px-4 py-10 md:py-16">
       <div className="text-center mb-10">
         <h1
-          className="text-4xl md:text-5xl font-bold text-amber-800 mb-3"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold text-amber-800 mb-3"
           style={{ fontFamily: "var(--font-playfair)" }}
         >
           Nuestro Menú
         </h1>
-        <p className="text-stone-500 text-lg">
+        <p className="text-stone-500 text-base sm:text-lg">
           Todo hecho a mano. Pedidos con 24h de anticipación.
         </p>
       </div>
 
       {/* Búsqueda */}
-      <div className="relative max-w-sm mx-auto mb-6">
+      <div className="relative w-full max-w-sm mx-auto mb-6">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
         <input
           type="text"

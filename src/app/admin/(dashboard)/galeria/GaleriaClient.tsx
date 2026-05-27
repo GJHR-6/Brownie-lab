@@ -45,7 +45,7 @@ export default function GaleriaClient({ files }: { files: FileInfo[] }) {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">Galería de imágenes</h1>

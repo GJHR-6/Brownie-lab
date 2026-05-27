@@ -64,7 +64,7 @@ export default function ProductCard({ product }: { product: Producto }) {
       )}
 
       {/* Image */}
-      <div className="bg-amber-50 h-44 flex items-center justify-center overflow-hidden">
+      <div className="bg-amber-50 h-36 sm:h-44 flex items-center justify-center overflow-hidden">
         {product.imagen_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={product.imagen_url} alt={product.nombre} className="w-full h-full object-cover" />
@@ -106,14 +106,14 @@ export default function ProductCard({ product }: { product: Producto }) {
             <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden flex-shrink-0">
               <button
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-8 h-8 flex items-center justify-center text-stone-500 hover:bg-stone-50 transition-colors font-bold"
+                className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-50 transition-colors font-bold"
               >
                 −
               </button>
-              <span className="w-7 text-center text-sm font-semibold text-stone-700">{qty}</span>
+              <span className="w-8 text-center text-sm font-semibold text-stone-700">{qty}</span>
               <button
                 onClick={() => setQty((q) => q + 1)}
-                className="w-8 h-8 flex items-center justify-center text-stone-500 hover:bg-stone-50 transition-colors font-bold"
+                className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-50 transition-colors font-bold"
               >
                 +
               </button>

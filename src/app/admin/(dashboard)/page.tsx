@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
   const ultimosPedidos = pedidos.slice(0, 6);
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-stone-800">Dashboard</h1>
         <p className="text-stone-500 text-sm mt-0.5">

@@ -45,7 +45,7 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>

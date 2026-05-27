@@ -5,9 +5,9 @@ export const metadata: Metadata = { title: "Términos y Condiciones" };
 
 export default function TerminosPage() {
   return (
-    <div className="max-w-3xl mx-auto px-4 py-16">
+    <div className="max-w-3xl mx-auto px-4 py-10 md:py-16">
       <h1
-        className="text-3xl font-bold text-amber-800 mb-8"
+        className="text-2xl sm:text-3xl font-bold text-amber-800 mb-8"
         style={{ fontFamily: "var(--font-playfair)" }}
       >
         Términos y Condiciones

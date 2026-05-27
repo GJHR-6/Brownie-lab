@@ -65,7 +65,7 @@ export default function ProductoForm({ productoInicial, categorias, onSuccess, o
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">
             Precio HNL <span className="text-red-500">*</span>
@@ -97,7 +97,7 @@ export default function ProductoForm({ productoInicial, categorias, onSuccess, o
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Categoría</label>
           <select
@@ -124,7 +124,7 @@ export default function ProductoForm({ productoInicial, categorias, onSuccess, o
       </div>
 
       {/* Disponibilidad programada */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-stone-700 mb-1.5">Disponible desde</label>
           <input name="disponible_desde" type="date" disabled={isPending}

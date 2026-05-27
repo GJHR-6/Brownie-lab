@@ -168,7 +168,7 @@ export default function KanbanClient({ initialPedidos, productos }: KanbanClient
     : [];
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <div className="p-4 sm:p-6 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
         <div>
