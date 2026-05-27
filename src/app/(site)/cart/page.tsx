@@ -24,7 +24,7 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 
 type Step = 1 | 2 | 3 | "success";
 type TipoEntrega = "pickup" | "domicilio";
-type MetodoPago = "efectivo" | "transferencia" | "tigo_money" | "";
+type MetodoPago = "efectivo" | "transferencia" | "";
 
 interface DatosForm {
   nombre: string;
@@ -40,7 +40,6 @@ interface DatosForm {
 const METODOS_PAGO = [
   { id: "efectivo",      label: "Efectivo",             icon: "💵", desc: "Paga al recibir tu pedido" },
   { id: "transferencia", label: "Transferencia bancaria", icon: "🏦", desc: "Te enviamos los datos al confirmar" },
-  { id: "tigo_money",   label: "Tigo Money",            icon: "📱", desc: "Pago móvil Tigo" },
 ] as const;
 
 const HORAS = ["9:00 AM","10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM"];
