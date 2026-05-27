@@ -12,7 +12,7 @@ export default async function ActividadPage() {
   const logs = await getActividad(200);
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-stone-800">Registro de actividad</h1>
         <p className="text-stone-500 text-sm mt-0.5">{logs.length} eventos recientes</p>

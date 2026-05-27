@@ -116,7 +116,7 @@ export default function EspecialesClient({ initialEspeciales }: EspecialesClient
   }
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">Capricho del Chef</h1>

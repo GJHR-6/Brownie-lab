@@ -73,7 +73,7 @@ export default function TestimoniosClient({ initialTestimonios }: { initialTesti
   const aprobados = initialTestimonios.filter(t => t.aprobado).length;
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-stone-800">Testimonios</h1>
