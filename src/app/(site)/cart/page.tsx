@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Loader2, Tag, X, CheckCircle, ChevronDown, ChevronUp,
@@ -61,6 +61,8 @@ export default function CartPage() {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
+  const submittingRef = useRef(false);
+  const idempotencyKey = useRef(crypto.randomUUID());
   const [ssFile, setSsFile] = useState<File | null>(null);
   const [banco, setBanco] = useState({ banco: '', titular: '', numero: '' });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof DatosForm, string>>>({});
@@ -101,6 +103,8 @@ export default function CartPage() {
   }
 
   async function handleConfirm() {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     try {
       const pedidoItems = items.map(i => ({
@@ -114,7 +118,7 @@ export default function CartPage() {
         fecha_entrega: datos.fecha_entrega || undefined, hora_entrega: datos.hora_entrega || undefined,
       };
 
-      const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo);
+      const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo, idempotencyKey.current);
       const id = result.success ? result.data?.id : undefined;
       if (id) {
         setOrderId(id);
@@ -180,7 +184,8 @@ export default function CartPage() {
       window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(waLines.join("\n"))}`, "_blank");
       clearCart();
       setStep("success");
-    } finally {
+    } catch {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
