@@ -70,10 +70,19 @@ export default function CartPage() {
     nombre: "", telefono: "", tipo_entrega: "pickup",
     direccion: "", fecha_entrega: "", hora_entrega: "", notas: "", metodo_pago: "",
   });
+  const [savedUser, setSavedUser] = useState<Partial<DatosForm> | null>(null);
 
   useEffect(() => {
     setMounted(true);
     getConfiguracionBanco().then(setBanco);
+    // Load saved user data from previous order
+    try {
+      const lastPhone = localStorage.getItem("brownielab_last_phone");
+      if (lastPhone) {
+        const raw = localStorage.getItem(`brownielab_user_${lastPhone}`);
+        if (raw) setSavedUser(JSON.parse(raw));
+      }
+    } catch { /* ignore */ }
   }, []);
   if (!mounted) return null;
 
@@ -81,6 +90,19 @@ export default function CartPage() {
   const descuento = promo ? Math.round(subtotal * (promo.descuento_porcentaje / 100) * 100) / 100 : 0;
   const totalFinal = subtotal - descuento;
   const sym = storeConfig.currencySymbol;
+
+  function fillFromSaved() {
+    if (!savedUser) return;
+    setDatos(d => ({
+      ...d,
+      nombre:        savedUser.nombre        ?? d.nombre,
+      telefono:      savedUser.telefono      ?? d.telefono,
+      tipo_entrega:  savedUser.tipo_entrega  ?? d.tipo_entrega,
+      direccion:     savedUser.direccion     ?? d.direccion,
+      metodo_pago:   savedUser.metodo_pago   ?? d.metodo_pago,
+    }));
+    setSavedUser(null);
+  }
 
   async function handleApplyPromo() {
     if (!promoInput.trim()) return;
@@ -182,6 +204,20 @@ export default function CartPage() {
       }
 
       window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(waLines.join("\n"))}`, "_blank");
+
+      // Persist user data keyed by phone for next visit
+      try {
+        const toSave: Partial<DatosForm> = {
+          nombre:       datos.nombre,
+          telefono:     datos.telefono,
+          tipo_entrega: datos.tipo_entrega,
+          direccion:    datos.direccion,
+          metodo_pago:  datos.metodo_pago,
+        };
+        localStorage.setItem("brownielab_last_phone", datos.telefono);
+        localStorage.setItem(`brownielab_user_${datos.telefono}`, JSON.stringify(toSave));
+      } catch { /* ignore quota errors */ }
+
       clearCart();
       setStep("success");
     } catch {
@@ -407,6 +443,22 @@ export default function CartPage() {
           {step === 2 && <>
             <h2 className="text-2xl font-bold text-amber-800" style={{ fontFamily: "var(--font-playfair)" }}>Datos y método de pago</h2>
 
+            {/* Banner datos guardados */}
+            {savedUser?.nombre && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-amber-800 truncate">👋 ¿Eres {savedUser.nombre}?</p>
+                  <p className="text-xs text-stone-500">Tenemos tus datos del pedido anterior guardados.</p>
+                </div>
+                <button
+                  onClick={fillFromSaved}
+                  className="text-xs font-semibold bg-amber-800 text-white px-4 py-2 rounded-full hover:bg-amber-700 transition-colors whitespace-nowrap flex-shrink-0"
+                >
+                  Usar mis datos
+                </button>
+              </div>
+            )}
+
             {/* Contacto */}
             <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
               {cardTitle(<User className="w-4 h-4" />, "Datos de contacto")}
@@ -415,6 +467,7 @@ export default function CartPage() {
                   <input type="text" value={datos.nombre}
                     onChange={e => setDatos(d => ({ ...d, nombre: e.target.value }))}
                     placeholder="María García"
+                    autoComplete="name"
                     className={inputCls(formErrors.nombre)}
                   />
                 </Field>
@@ -424,6 +477,7 @@ export default function CartPage() {
                     <input type="tel" value={datos.telefono}
                       onChange={e => setDatos(d => ({ ...d, telefono: e.target.value }))}
                       placeholder="9999-9999"
+                      autoComplete="tel"
                       className={`${inputCls(formErrors.telefono)} pl-10`}
                     />
                   </div>
@@ -459,6 +513,7 @@ export default function CartPage() {
                         onChange={e => setDatos(d => ({ ...d, direccion: e.target.value }))}
                         placeholder="Col. Palmira, Calle Principal #123, frente al parque..."
                         rows={2}
+                        autoComplete="street-address"
                         className={`${inputCls(formErrors.direccion)} pl-10 resize-none`}
                       />
                     </div>
