@@ -332,7 +332,7 @@ export default function PersonalizaPage() {
           Interactivo
         </p>
         <h1
-          className="text-3xl md:text-5xl font-bold mb-3"
+          className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3"
           style={{ fontFamily: "var(--font-playfair)" }}
         >
           Arma tu postre
@@ -366,7 +366,7 @@ export default function PersonalizaPage() {
 
             {/* Product visual */}
             <div className="bg-white rounded-3xl p-4 md:p-8 shadow-lg border border-amber-100">
-              <div className="w-full max-w-[200px] md:max-w-xs mx-auto aspect-square">
+              <div className="w-full max-w-[160px] sm:max-w-[220px] md:max-w-xs mx-auto aspect-square">
                 {base === "brownie" ? (
                   <BrownieSVG selected={selected} />
                 ) : (

@@ -56,11 +56,11 @@ function WelcomeBadge({ show, tagline }: { show: boolean; tagline: string }) {
 
   return (
     <div className={`welcome-badge ${phase}`}>
-      <div className="flex flex-col items-center gap-3 bg-amber-950/90 backdrop-blur-md border border-amber-700/60 rounded-2xl px-10 py-7 shadow-2xl">
-        <span className="text-5xl">🎁</span>
-        <p className="text-amber-50 font-bold text-2xl tracking-wide">¡Bienvenido!</p>
-        <p className="text-amber-300 font-semibold text-lg">Brownie Lab</p>
-        <p className="text-amber-400/80 text-sm">{tagline}</p>
+      <div className="flex flex-col items-center gap-3 bg-amber-950/90 backdrop-blur-md border border-amber-700/60 rounded-2xl px-6 sm:px-10 py-5 sm:py-7 shadow-2xl mx-4">
+        <span className="text-4xl sm:text-5xl">🎁</span>
+        <p className="text-amber-50 font-bold text-xl sm:text-2xl tracking-wide">¡Bienvenido!</p>
+        <p className="text-amber-300 font-semibold text-base sm:text-lg">Brownie Lab</p>
+        <p className="text-amber-400/80 text-xs sm:text-sm text-center">{tagline}</p>
       </div>
     </div>
   );

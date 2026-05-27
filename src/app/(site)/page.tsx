@@ -33,18 +33,18 @@ export default async function Home() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-600 text-white py-28 px-4">
+      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-600 text-white py-16 md:py-28 px-4">
         <div className="max-w-3xl mx-auto text-center">
           <p className="text-amber-300 text-xs font-semibold tracking-[0.25em] uppercase mb-4">
             Hecho a mano · Con obsesión
           </p>
           <h1
-            className="text-5xl md:text-6xl font-bold mb-6 leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight"
             style={{ fontFamily: "var(--font-playfair)" }}
           >
             {storeConfig.name}
           </h1>
-          <p className="text-amber-100 text-xl mb-10 leading-relaxed max-w-2xl mx-auto">
+          <p className="text-amber-100 text-base sm:text-xl mb-10 leading-relaxed max-w-2xl mx-auto">
             Todo empezó con la obsesión perfecta: el brownie ideal. Mientras perfeccionamos
             nuestra receta secreta, te invitamos a probar las galletas que nacieron en el camino.
             <span className="text-amber-300 font-medium"> Spoiler: también son adictivas.</span>
@@ -69,7 +69,7 @@ export default async function Home() {
       {/* Capricho del Chef */}
       {activeSpecials.length > 0 && (
         <AnimateIn>
-        <section className="py-20 px-4 bg-stone-900 text-white">
+        <section className="py-12 md:py-20 px-4 bg-stone-900 text-white">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <p className="text-amber-400 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
@@ -87,7 +87,7 @@ export default async function Home() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
               {activeSpecials.map((item) => {
                 const daysLeft = getDaysLeft(item.fecha_inicio, item.duracion_dias);
                 return (
@@ -125,7 +125,7 @@ export default async function Home() {
       {/* Productos destacados */}
       {featured.length > 0 && (
         <AnimateIn delay={100}>
-        <section className="py-20 px-4">
+        <section className="py-12 md:py-20 px-4">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <h2
@@ -159,7 +159,7 @@ export default async function Home() {
       {/* Testimonios */}
       {testimonios.length > 0 && (
         <AnimateIn delay={150}>
-        <section className="py-20 px-4 bg-stone-50">
+        <section className="py-12 md:py-20 px-4 bg-stone-50">
           <div className="max-w-5xl mx-auto">
             <div className="text-center mb-12">
               <p className="text-amber-600 text-xs font-semibold tracking-widest uppercase mb-3">Lo que dicen</p>
@@ -183,7 +183,7 @@ export default async function Home() {
 
       {/* Instagram */}
       {(config?.instagram || storeConfig.social.instagram) && (
-        <section className="py-16 px-4 bg-white">
+        <section className="py-10 md:py-16 px-4 bg-white">
           <div className="max-w-2xl mx-auto text-center">
             <p className="text-2xl mb-3">📸</p>
             <h2 className="text-2xl font-bold text-stone-800 mb-2">Síguenos en Instagram</h2>
@@ -197,7 +197,7 @@ export default async function Home() {
       )}
 
       {/* Arma tu postre CTA */}
-      <section className="py-16 px-4 bg-amber-50 border-y border-amber-100">
+      <section className="py-10 md:py-16 px-4 bg-amber-50 border-y border-amber-100">
         <div className="max-w-2xl mx-auto text-center">
           <p className="text-amber-600 text-xs font-semibold tracking-widest uppercase mb-3">Nuevo</p>
           <h2
@@ -219,7 +219,7 @@ export default async function Home() {
       </section>
 
       {/* CTA WhatsApp */}
-      <section className="bg-amber-800 text-white py-16 px-4">
+      <section className="bg-amber-800 text-white py-10 md:py-16 px-4">
         <div className="max-w-2xl mx-auto text-center">
           <h2
             className="text-3xl font-bold mb-4"
