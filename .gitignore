@@ -33,6 +33,11 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Google Cloud service account key files (contienen private_key — NUNCA commitear)
+*-key.json
+*service-account*.json
+*serviceaccount*.json
+
 # vercel
 .vercel
 
@@ -40,3 +45,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .txt
+brownie-lab-a739b8dc2cc5.json
+scripts/crear-loyalty-class.ts
