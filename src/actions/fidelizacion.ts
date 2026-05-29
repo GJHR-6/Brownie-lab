@@ -27,7 +27,12 @@ export interface CuponFidelizacion {
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function normalizarTelefono(telefono: string): string {
-  return telefono.replace(/\D/g, '');
+  const digits = telefono.replace(/\D/g, '');
+  // Honduras: +504 (11 dígitos) → quitar prefijo 504 → 8 dígitos locales
+  if (digits.length === 11 && digits.startsWith('504')) return digits.slice(3);
+  // Con doble cero: 0504... (12 dígitos)
+  if (digits.length === 12 && digits.startsWith('0504')) return digits.slice(4);
+  return digits;
 }
 
 function generarCodigoCupon(): string {
