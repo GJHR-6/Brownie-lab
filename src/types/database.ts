@@ -102,3 +102,21 @@ export interface Especial {
   activo: boolean;
   created_at: string;
 }
+
+export interface Ingrediente {
+  id: string;
+  nombre: string;
+  descripcion_paquete: string | null;
+  unidad: string;
+  tamano_paquete: number;
+  costo_paquete: number;
+  costo_por_unidad: number | null;
+  cantidad_por_bandeja: number | null;
+  costo_por_bandeja: number | null;
+  stock_paquetes: number;
+  es_topping: boolean;
+  activo: boolean;
+  notas: string | null;
+  created_at: string;
+  updated_at: string;
+}

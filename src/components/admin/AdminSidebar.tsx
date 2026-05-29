@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { X, LayoutDashboard, Package, ClipboardList, Settings, Cookie, Star, Megaphone, Tag, Image, Layers, MessageSquare, Activity } from "lucide-react";
+import { X, LayoutDashboard, Package, ClipboardList, Settings, Cookie, Star, Megaphone, Tag, Image, Layers, MessageSquare, Activity, FlaskConical } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/admin",               label: "Dashboard",     icon: LayoutDashboard, exact: true  },
-  { href: "/admin/inventario",    label: "Inventario",    icon: Package,         exact: false },
+  { href: "/admin",                 label: "Dashboard",     icon: LayoutDashboard, exact: true  },
+  { href: "/admin/inventario",      label: "Inventario",    icon: Package,         exact: false },
+  { href: "/admin/ingredientes",    label: "Ingredientes",  icon: FlaskConical,    exact: false },
   { href: "/admin/categorias",    label: "Categorías",    icon: Layers,          exact: false },
   { href: "/admin/galeria",       label: "Galería",       icon: Image,           exact: false },
   { href: "/admin/especiales",    label: "Especiales",    icon: Star,            exact: false },
