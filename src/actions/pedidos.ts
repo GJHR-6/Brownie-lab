@@ -55,9 +55,11 @@ export async function actualizarEstadoPedido(
 
     // Registrar sello de fidelización — fallo no bloquea la actualización del pedido
     if (estado === 'completado' && clienteDatos?.telefono) {
-      registrarCompra(clienteDatos.telefono, clienteDatos.nombre).catch((err) =>
-        console.error('[Fidelización] Error registrando compra:', err)
-      );
+      try {
+        await registrarCompra(clienteDatos.telefono, clienteDatos.nombre);
+      } catch (err) {
+        console.error('[Fidelización] Error registrando compra:', err);
+      }
     }
 
     await logActividad('pedido', `Pedido ${id.slice(0,8).toUpperCase()} → ${estado}`, { id, estado });
@@ -72,8 +74,29 @@ export async function actualizarEstadoPedido(
 export async function marcarPedidosCompletados(ids: string[]): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdmin();
+
+    // Fetch cliente_datos before bulk update to register loyalty stamps
+    const { data: pedidos } = await supabase
+      .from('pedidos')
+      .select('id, cliente_datos')
+      .in('id', ids)
+      .neq('estado', 'completado');
+
     const { error } = await supabase.from('pedidos').update({ estado: 'completado' }).in('id', ids);
     if (error) return { success: false, error: error.message };
+
+    // Register loyalty stamp for each newly completed order
+    for (const pedido of pedidos ?? []) {
+      const cd = pedido.cliente_datos as { telefono?: string; nombre?: string } | null;
+      if (cd?.telefono) {
+        try {
+          await registrarCompra(cd.telefono, cd.nombre);
+        } catch (err) {
+          console.error('[Fidelización] Error registrando compra:', err);
+        }
+      }
+    }
+
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');
     return { success: true, data: undefined };

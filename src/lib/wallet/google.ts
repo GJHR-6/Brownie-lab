@@ -104,6 +104,58 @@ export async function generarGoogleWalletUrl(cliente: ClienteFidelizacion): Prom
 }
 
 /**
+ * Actualiza un LoyaltyObject existente en Google Wallet via REST API PATCH.
+ * Llamar después de cada registrarCompra para mantener el pase sincronizado.
+ */
+export async function actualizarGoogleWalletObject(cliente: ClienteFidelizacion): Promise<void> {
+  if (!ISSUER_ID || !SA_EMAIL || !SA_KEY_B64) return; // env vars no configurados → skip silencioso
+
+  const { GoogleAuth } = await import('google-auth-library');
+  const saKey = JSON.parse(Buffer.from(SA_KEY_B64, 'base64').toString('utf-8'));
+
+  const auth = new GoogleAuth({
+    credentials: saKey,
+    scopes: ['https://www.googleapis.com/auth/wallet_object.issuer'],
+  });
+
+  const authClient = await auth.getClient();
+  const objectId = `${ISSUER_ID}.brownielab_${cliente.telefono}`;
+  const sellosRestantes = 10 - cliente.compras_actuales;
+
+  const patch = {
+    loyaltyPoints: {
+      balance: { int: cliente.compras_actuales },
+      label:   'Sellos',
+    },
+    textModulesData: [
+      {
+        id:     'progreso',
+        header: 'Progreso',
+        body:   `${cliente.compras_actuales} de 10 sellos completados`,
+      },
+      {
+        id:     'restantes',
+        header: 'Siguiente premio',
+        body:   sellosRestantes === 0
+          ? '¡Tienes un brownie gratis disponible!'
+          : `Te faltan ${sellosRestantes} compra${sellosRestantes !== 1 ? 's' : ''}`,
+      },
+      {
+        id:     'totales',
+        header: 'Compras históricas',
+        body:   `${cliente.compras_totales} en total`,
+      },
+    ],
+  };
+
+  await (authClient as any).request({
+    url:    `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}`,
+    method: 'PATCH',
+    data:   patch,
+  });
+}
+
+/**
  * Crea el LoyaltyClass una sola vez en Google Wallet.
  * Llamar este script manualmente con: npx ts-node src/lib/wallet/google-setup.ts
  * No se necesita llamar en runtime.

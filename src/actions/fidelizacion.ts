@@ -2,6 +2,7 @@
 
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { actualizarGoogleWalletObject } from '@/lib/wallet/google';
 import type { ActionResult } from '@/types/actions';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -122,6 +123,11 @@ export async function registrarCompra(
       .single();
 
     if (error) return { success: false, error: error.message };
+
+    // Sync Google Wallet pass — fallo no bloquea el flujo
+    actualizarGoogleWalletObject(cliente).catch((err) =>
+      console.error('[Google Wallet] Error actualizando objeto:', err)
+    );
 
     let cuponGenerado: CuponFidelizacion | null = null;
 
