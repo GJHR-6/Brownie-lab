@@ -1,6 +1,7 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import AnimateIn from "@/components/AnimateIn";
+import LoyaltySection from "@/components/LoyaltySection";
 import { storeConfig } from "@/config/store";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
 import { getTestimoniosPublicos } from "@/actions/testimonios";
@@ -181,20 +182,12 @@ export default async function Home() {
         </AnimateIn>
       )}
 
-      {/* Instagram */}
-      {(config?.instagram || storeConfig.social.instagram) && (
-        <section className="py-10 md:py-16 px-4 bg-white">
-          <div className="max-w-2xl mx-auto text-center">
-            <p className="text-2xl mb-3">📸</p>
-            <h2 className="text-2xl font-bold text-stone-800 mb-2">Síguenos en Instagram</h2>
-            <p className="text-stone-500 mb-6">Mira nuestras creaciones del día y las últimas novedades.</p>
-            <a href={config?.instagram || storeConfig.social.instagram} target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-600 to-pink-500 text-white font-semibold px-8 py-3 rounded-full hover:opacity-90 transition-opacity">
-              Ver perfil en Instagram
-            </a>
-          </div>
-        </section>
-      )}
+      {/* Club de fidelización */}
+      <section className="py-12 md:py-20 px-4 bg-stone-50 border-y border-stone-100">
+        <div className="max-w-md mx-auto">
+          <LoyaltySection />
+        </div>
+      </section>
 
       {/* Arma tu postre CTA */}
       <section className="py-10 md:py-16 px-4 bg-amber-50 border-y border-amber-100">

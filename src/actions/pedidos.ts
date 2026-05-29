@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Pedido, EstadoPedido, PedidoItem } from '@/types/database';
 import { logActividad } from './actividad';
+import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
 
 async function requireAdmin() {
@@ -34,12 +35,30 @@ export async function actualizarEstadoPedido(
   try {
     const { supabase } = await requireAdmin();
 
+    // Fetch cliente_datos before update to register loyalty stamp
+    let clienteDatos: { telefono?: string; nombre?: string } | null = null;
+    if (estado === 'completado') {
+      const { data } = await supabase
+        .from('pedidos')
+        .select('cliente_datos')
+        .eq('id', id)
+        .single();
+      clienteDatos = data?.cliente_datos ?? null;
+    }
+
     const { error } = await supabase
       .from('pedidos')
       .update({ estado })
       .eq('id', id);
 
     if (error) return { success: false, error: error.message };
+
+    // Registrar sello de fidelización — fallo no bloquea la actualización del pedido
+    if (estado === 'completado' && clienteDatos?.telefono) {
+      registrarCompra(clienteDatos.telefono, clienteDatos.nombre).catch((err) =>
+        console.error('[Fidelización] Error registrando compra:', err)
+      );
+    }
 
     await logActividad('pedido', `Pedido ${id.slice(0,8).toUpperCase()} → ${estado}`, { id, estado });
     revalidatePath('/admin/pedidos');
