@@ -14,11 +14,12 @@ export default function Navbar() {
 
   useEffect(() => setMounted(true), []);
 
-  const links = [
+  const links: { href: string; label: string; icon?: "sparkle" | "truck" }[] = [
     { href: "/", label: "Inicio" },
     { href: "/menu", label: "Menú" },
-    { href: "/personaliza", label: "Personaliza", icon: true },
+    { href: "/personaliza", label: "Personaliza", icon: "sparkle" },
     { href: "/contact", label: "Nosotros" },
+    { href: "/seguimiento", label: "Seguir pedido", icon: "truck" },
   ];
 
   return (
@@ -71,7 +72,7 @@ export default function Navbar() {
               >
                 {l.label}
                 {l.icon && (
-                  <BLIcon name="sparkle" size={15} style={{ color: "var(--amber)" } as React.CSSProperties} />
+                  <BLIcon name={l.icon} size={15} style={{ color: "var(--amber)" } as React.CSSProperties} />
                 )}
               </Link>
             );
@@ -80,6 +81,17 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2.5">
+          {/* Seguimiento */}
+          <Link
+            href="/seguimiento"
+            aria-label="Seguir pedido"
+            title="Seguir pedido"
+            className="hidden sm:grid w-10 h-10 rounded-full place-items-center border transition-colors no-underline"
+            style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)", background: "none" }}
+          >
+            <BLIcon name="truck" size={20} />
+          </Link>
+
           {/* Cart */}
           <Link
             href="/cart"
@@ -136,7 +148,7 @@ export default function Navbar() {
                 style={{ color: active ? "var(--amber)" : "var(--on-dark-soft)" }}
               >
                 {l.label}
-                {l.icon && <BLIcon name="sparkle" size={14} style={{ color: "var(--amber)" } as React.CSSProperties} />}
+                {l.icon && <BLIcon name={l.icon} size={14} style={{ color: "var(--amber)" } as React.CSSProperties} />}
               </Link>
             );
           })}

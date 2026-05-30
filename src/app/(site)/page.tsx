@@ -3,6 +3,7 @@ import ProductCard from "@/components/ProductCard";
 import AnimateIn from "@/components/AnimateIn";
 import LoyaltySection from "@/components/LoyaltySection";
 import BLIcon from "@/components/BLIcon";
+import GiftIntro from "@/components/GiftIntro";
 import { storeConfig } from "@/config/store";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
 
@@ -33,6 +34,7 @@ export default async function Home() {
 
   return (
     <div>
+      <GiftIntro />
       {/* ── Hero ──────────────────────────────────────────────────────── */}
       <section
         className="relative overflow-hidden"

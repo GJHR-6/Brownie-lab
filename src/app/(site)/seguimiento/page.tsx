@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { buscarPedidosPorTelefono, type PedidoTracking } from "@/actions/publico";
 import BLIcon from "@/components/BLIcon";
@@ -37,6 +37,23 @@ export default function SeguimientoPage() {
   const [searched, setSearched] = useState(false);
   const [error, setError] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const phone = new URLSearchParams(window.location.search).get("telefono");
+    if (!phone) return;
+    setTelefono(phone);
+    setLoading(true);
+    buscarPedidosPorTelefono(phone).then((result) => {
+      if (result.success) {
+        setPedidos(result.data);
+        setSearched(true);
+        if (result.data.length > 0) setOpenId(result.data[0].id);
+      } else {
+        setError(result.error);
+      }
+      setLoading(false);
+    });
+  }, []);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();

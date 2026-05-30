@@ -229,21 +229,15 @@ export default function CartPage() {
 
   // ── Success ──────────────────────────────────────────────────────────────────
   if (step === "success") {
+    const trackUrl = datos.telefono
+      ? `/seguimiento?telefono=${encodeURIComponent(datos.telefono)}`
+      : "/seguimiento";
     return (
       <div
-        className="max-w-lg mx-auto px-[var(--gutter)] text-center"
-        style={{ paddingBlock: "clamp(40px, 7vw, 90px)" }}
+        className="mx-auto px-[var(--gutter)] text-center"
+        style={{ maxWidth: 560, paddingBlock: "clamp(40px, 7vw, 90px)" }}
       >
-        <span
-          className="w-24 h-24 rounded-full mx-auto mb-6 grid place-items-center relative"
-          style={{ background: "rgba(31,170,85,.12)", color: "var(--wa)" }}
-        >
-          <span className="text-5xl">✓</span>
-          <span
-            className="absolute inset-[-10px] rounded-full border-2 border-dashed"
-            style={{ borderColor: "rgba(31,170,85,.3)" }}
-          />
-        </span>
+        <span className="success-badge" aria-hidden="true" />
         <h1
           className="font-extrabold mb-2.5"
           style={{ fontSize: "clamp(34px, 5vw, 52px)", color: "var(--ink)" }}
@@ -270,16 +264,14 @@ export default function CartPage() {
             Seguir comprando
             <BLIcon name="arrow-right" size={16} />
           </Link>
-          {orderId && (
-            <Link
-              href="/seguimiento"
-              className="inline-flex items-center gap-2 font-bold text-[16px] no-underline"
-              style={{ color: "var(--orange-ink)" }}
-            >
-              Rastrear mi pedido
-              <BLIcon name="arrow-right" size={16} />
-            </Link>
-          )}
+          <Link
+            href={trackUrl}
+            className="inline-flex items-center gap-2 font-bold text-[16px] no-underline transition-colors"
+            style={{ color: "var(--orange-ink)" }}
+          >
+            Rastrear mi pedido
+            <BLIcon name="arrow-right" size={16} />
+          </Link>
         </div>
       </div>
     );
@@ -514,9 +506,12 @@ export default function CartPage() {
         {summaryOpen && <div className="mt-2"><OrderSummary /></div>}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
+      <div
+        className="grid bl-grid-2col items-start"
+        style={{ gridTemplateColumns: "1fr 380px", gap: "clamp(24px, 3vw, 44px)" }}
+      >
         {/* ── Left: step content ── */}
-        <div className="lg:col-span-3 flex flex-col gap-5">
+        <div className="flex flex-col gap-5">
 
           {/* ── STEP 1: CARRITO ── */}
           {step === 1 && (
@@ -1164,8 +1159,8 @@ export default function CartPage() {
         </div>
 
         {/* ── Right: sticky order summary (desktop only) ── */}
-        <div className="hidden lg:block lg:col-span-2">
-          <div className="sticky top-24">
+        <div className="hidden lg:block">
+          <div style={{ position: "sticky", top: 96 }}>
             <OrderSummary />
           </div>
         </div>

@@ -97,6 +97,7 @@ export default async function Footer() {
         <FooterCol title="Brownie Lab">
           <FooterLink href="/contact">Nosotros</FooterLink>
           <FooterLink href="/cart">Carrito</FooterLink>
+          <FooterLink href="/seguimiento">Seguimiento</FooterLink>
           <FooterLink href="/privacidad">Privacidad</FooterLink>
           <FooterLink href="/terminos">Términos</FooterLink>
         </FooterCol>
