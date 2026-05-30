@@ -60,6 +60,17 @@ p { margin: 0; text-wrap: pretty; }
 
 img, svg { display: block; }
 
+/* Legal page */
+.legal-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-direction: column; gap: 12px; }
+.legal-list li { position: relative; padding-left: 26px; color: var(--ink-soft); font-size: 17px; line-height: 1.65; }
+.legal-list li::before { content: ""; position: absolute; left: 4px; top: .62em; width: 8px; height: 8px; border-radius: 50%; background: var(--orange); }
+.legal-index-nav { border-left: 1.5px solid var(--hairline); margin: 0; padding: 0; list-style: none; counter-reset: idx; }
+.legal-index-nav li { counter-increment: idx; }
+.legal-index-nav a { display: flex; align-items: baseline; gap: 11px; padding: 9px 0 9px 18px; margin-left: -1.5px; border-left: 1.5px solid transparent; font-size: 14.5px; font-weight: 500; color: var(--ink-soft); line-height: 1.35; text-decoration: none; transition: color .15s, border-color .15s; }
+.legal-index-nav a::before { content: counter(idx, decimal-leading-zero); font-family: ui-monospace, monospace; font-size: 11.5px; font-weight: 700; color: var(--amber); flex: none; }
+.legal-index-nav a:hover, .legal-index-nav a[data-active="true"] { color: var(--ink); border-left-color: var(--orange); }
+.legal-index-nav a:hover::before, .legal-index-nav a[data-active="true"]::before { color: var(--orange-ink); }
+
 /* Responsive grid helpers */
 @media (max-width: 920px) {
   .bl-grid-2col,
