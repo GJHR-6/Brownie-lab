@@ -7,6 +7,7 @@ import {
   Package, MapPin, Clock, Wallet, Phone, User, FileText,
   Home, Store,
 } from "lucide-react";
+import BLIcon from "@/components/BLIcon";
 import { useCartStore } from "@/lib/cartStore";
 import { storeConfig } from "@/config/store";
 import { validarPromocion, crearPedidoPublico, getConfiguracionBanco } from "@/actions/publico";
@@ -229,20 +230,54 @@ export default function CartPage() {
   // ── Success ──────────────────────────────────────────────────────────────────
   if (step === "success") {
     return (
-      <div className="max-w-lg mx-auto px-4 py-24 text-center">
-        <div className="text-7xl mb-6">🎉</div>
-        <h1 className="text-3xl font-bold text-amber-800 mb-3" style={{ fontFamily: "var(--font-playfair)" }}>
+      <div
+        className="max-w-lg mx-auto px-[var(--gutter)] text-center"
+        style={{ paddingBlock: "clamp(40px, 7vw, 90px)" }}
+      >
+        <span
+          className="w-24 h-24 rounded-full mx-auto mb-6 grid place-items-center relative"
+          style={{ background: "rgba(31,170,85,.12)", color: "var(--wa)" }}
+        >
+          <span className="text-5xl">✓</span>
+          <span
+            className="absolute inset-[-10px] rounded-full border-2 border-dashed"
+            style={{ borderColor: "rgba(31,170,85,.3)" }}
+          />
+        </span>
+        <h1
+          className="font-extrabold mb-2.5"
+          style={{ fontSize: "clamp(34px, 5vw, 52px)", color: "var(--ink)" }}
+        >
           ¡Pedido enviado!
         </h1>
-        {orderId && <p className="text-stone-400 text-sm font-mono mb-2">#{orderId.slice(0, 8).toUpperCase()}</p>}
-        <p className="text-stone-500 mb-8">Tu pedido fue enviado por WhatsApp. Te confirmaremos en breve.</p>
-        <div className="flex flex-col items-center gap-3">
-          <Link href="/menu" className="bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors">
+        {orderId && (
+          <span
+            className="inline-block font-mono text-[14px] px-4 py-1.5 rounded-full mb-4"
+            style={{ background: "var(--cream)", color: "var(--ink-soft)", letterSpacing: ".08em" }}
+          >
+            #{orderId.slice(0, 8).toUpperCase()}
+          </span>
+        )}
+        <p className="mb-8" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
+          Tu pedido fue enviado por WhatsApp. Te confirmaremos en breve — recuerda que preparamos con 24h de anticipación.
+        </p>
+        <div className="flex flex-col items-center gap-3.5">
+          <Link
+            href="/menu"
+            className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline"
+            style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+          >
             Seguir comprando
+            <BLIcon name="arrow-right" size={16} />
           </Link>
           {orderId && (
-            <Link href="/seguimiento" className="text-amber-700 hover:underline text-sm">
-              Rastrear mi pedido →
+            <Link
+              href="/seguimiento"
+              className="inline-flex items-center gap-2 font-bold text-[16px] no-underline"
+              style={{ color: "var(--orange-ink)" }}
+            >
+              Rastrear mi pedido
+              <BLIcon name="arrow-right" size={16} />
             </Link>
           )}
         </div>
@@ -253,14 +288,29 @@ export default function CartPage() {
   // ── Empty ────────────────────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-        <div className="text-7xl mb-6">🛒</div>
-        <h1 className="text-3xl font-bold text-amber-800 mb-3" style={{ fontFamily: "var(--font-playfair)" }}>
+      <div
+        className="text-center"
+        style={{ paddingBlock: "clamp(60px, 9vw, 120px)", paddingInline: "var(--gutter)" }}
+      >
+        <span
+          className="w-24 h-24 rounded-full mx-auto mb-7 grid place-items-center"
+          style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
+        >
+          <BLIcon name="cart" size={46} />
+        </span>
+        <h1 className="mb-3" style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--ink)" }}>
           Tu carrito está vacío
         </h1>
-        <p className="text-stone-500 mb-8">Agrega algunas galletas para continuar.</p>
-        <Link href="/menu" className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors">
-          Ver Menú
+        <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
+          Agrega algunas galletas o brownies para continuar.
+        </p>
+        <Link
+          href="/menu"
+          className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline"
+          style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+        >
+          Ver el menú
+          <BLIcon name="arrow-right" size={16} />
         </Link>
       </div>
     );
@@ -268,7 +318,7 @@ export default function CartPage() {
 
   // ── Step indicator ───────────────────────────────────────────────────────────
   const StepIndicator = () => (
-    <div className="flex items-center mb-10">
+    <div className="flex items-center mb-10 flex-wrap gap-2">
       {STEPS.map((s, idx) => {
         const current = typeof step === "number" && step === s.n;
         const done = typeof step === "number" && step > s.n;
@@ -277,15 +327,37 @@ export default function CartPage() {
             <button
               onClick={() => done && setStep(s.n as 1 | 2 | 3)}
               disabled={!done}
-              className={`flex items-center gap-2 text-sm font-semibold transition-colors ${current ? "text-amber-800" : done ? "text-amber-600 hover:underline cursor-pointer" : "text-stone-300 cursor-default"}`}
+              className="flex items-center gap-2.5 font-semibold text-[15px] transition-colors"
+              style={{
+                color: current ? "var(--orange-ink)" : done ? "var(--ink)" : "var(--ink-soft)",
+                cursor: done ? "pointer" : "default",
+              }}
             >
-              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${current ? "bg-amber-800 text-white" : done ? "bg-amber-200 text-amber-800" : "bg-stone-100 text-stone-400"}`}>
+              <span
+                className="w-[30px] h-[30px] rounded-full grid place-items-center text-[14px] font-bold flex-none"
+                style={{
+                  background: current
+                    ? "var(--orange)"
+                    : done
+                    ? "var(--amber)"
+                    : "var(--cream-200)",
+                  color: current ? "#fff" : done ? "var(--choco-900)" : "var(--ink-soft)",
+                }}
+              >
                 {done ? "✓" : s.n}
               </span>
               <span className="hidden sm:inline">{s.label}</span>
             </button>
             {idx < STEPS.length - 1 && (
-              <div className={`w-8 sm:w-14 h-px mx-2 ${done ? "bg-amber-300" : "bg-stone-200"}`} />
+              <div
+                className="mx-2"
+                style={{
+                  width: "clamp(24px, 6vw, 80px)",
+                  height: 2,
+                  background: done ? "var(--amber)" : "var(--hairline)",
+                  borderRadius: 2,
+                }}
+              />
             )}
           </div>
         );
@@ -295,41 +367,87 @@ export default function CartPage() {
 
   // ── Order summary sidebar ────────────────────────────────────────────────────
   const OrderSummary = () => (
-    <div className="bg-amber-50 rounded-2xl p-5 border border-amber-100">
-      <h3 className="font-bold text-stone-800 mb-4 text-xs uppercase tracking-widest">Resumen del pedido</h3>
+    <div
+      className="rounded-[24px] p-6"
+      style={{
+        background: "var(--paper-card)",
+        border: "1px solid var(--hairline)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <h3
+        className="font-bold text-[13px] tracking-[0.14em] uppercase mb-4"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        Resumen del pedido
+      </h3>
       <div className="flex flex-col gap-2.5 mb-4">
-        {items.map(item => (
-          <div key={item.id} className="flex items-center gap-2 text-sm">
-            <span className="text-base leading-none">{item.emoji}</span>
-            <span className="flex-1 text-stone-600 truncate">{item.quantity}× {item.name}</span>
-            <span className="font-medium text-stone-800 shrink-0">{sym}{(item.price * item.quantity).toFixed(2)}</span>
+        {items.map((item) => (
+          <div key={item.id} className="flex items-center gap-2 text-[15px]">
+            <span
+              className="w-5 h-5 rounded-md flex-none text-xs text-center leading-5 font-bold"
+              style={{ background: "var(--cream)", color: "var(--ink-soft)" }}
+            >
+              {item.quantity}
+            </span>
+            <span className="flex-1 truncate" style={{ color: "var(--ink)" }}>
+              {item.name}
+            </span>
+            <span className="font-semibold shrink-0" style={{ color: "var(--ink)" }}>
+              {sym}{(item.price * item.quantity).toFixed(2)}
+            </span>
           </div>
         ))}
       </div>
       {promo && (
-        <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2 mb-3">
+        <div
+          className="flex items-center gap-2 text-[12px] font-semibold rounded-[10px] px-3 py-2 mb-3"
+          style={{ background: "rgba(31,170,85,.1)", color: "#1a7a40" }}
+        >
           <CheckCircle className="w-3.5 h-3.5 shrink-0" />
           <span>Código <span className="font-mono font-bold">{promo.codigo}</span> ({promo.descuento_porcentaje}% dto.)</span>
         </div>
       )}
-      <div className="border-t border-amber-200 pt-3 space-y-1.5">
-        <div className="flex justify-between text-sm text-stone-500">
+      <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "14px 0" }} />
+      <div className="flex flex-col gap-1.5">
+        <div className="flex justify-between text-[15px]" style={{ color: "var(--ink-soft)" }}>
           <span>Subtotal ({itemCount()} art.)</span>
           <span>{sym}{subtotal.toFixed(2)}</span>
         </div>
         {promo && (
-          <div className="flex justify-between text-sm text-green-600">
+          <div className="flex justify-between text-[15px]" style={{ color: "#1a7a40" }}>
             <span>Descuento</span>
             <span>−{sym}{descuento.toFixed(2)}</span>
           </div>
         )}
-        <div className="flex justify-between font-bold text-stone-800 text-base pt-1.5 border-t border-amber-200 mt-1">
-          <span>Total</span>
-          <span className="text-amber-800">{sym}{totalFinal.toFixed(2)} <span className="text-xs font-normal text-stone-400">{storeConfig.currency}</span></span>
-        </div>
+      </div>
+      <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "14px 0" }} />
+      <div className="flex justify-between items-baseline">
+        <span
+          className="font-bold text-[21px]"
+          style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif" }}
+        >
+          Total
+        </span>
+        <span
+          className="font-extrabold text-[26px]"
+          style={{
+            fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+            color: "var(--orange-ink)",
+          }}
+        >
+          {sym}{totalFinal.toFixed(2)}{" "}
+          <small className="text-[12px] font-semibold" style={{ color: "var(--ink-soft)" }}>
+            {storeConfig.currency}
+          </small>
+        </span>
       </div>
       {step !== 1 && (
-        <button onClick={() => setStep(1)} className="mt-4 w-full text-center text-xs text-amber-700 hover:underline">
+        <button
+          onClick={() => setStep(1)}
+          className="block text-center mt-4 w-full text-[14px] font-semibold cursor-pointer border-0 bg-transparent underline"
+          style={{ color: "var(--orange-ink)" }}
+        >
           ← Editar carrito
         </button>
       )}
@@ -337,29 +455,60 @@ export default function CartPage() {
   );
 
   const inputCls = (err?: string) =>
-    `w-full px-3 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 ${err ? "border-red-300 bg-red-50" : "border-stone-200"}`;
+    `w-full focus:outline-none` + (err ? " border-[var(--berry)] bg-[rgba(158,59,70,.04)]" : "");
+
+  const inputStyle: React.CSSProperties = {
+    border: "1.5px solid var(--hairline)",
+    borderRadius: "var(--r-md)",
+    padding: "13px 15px",
+    fontFamily: "inherit",
+    fontSize: 15,
+    color: "var(--ink)",
+    background: "var(--paper)",
+    width: "100%",
+  };
 
   const cardTitle = (icon: React.ReactNode, title: string) => (
-    <div className="flex items-center gap-2 mb-4">
-      <span className="text-amber-700">{icon}</span>
-      <h3 className="font-semibold text-stone-800">{title}</h3>
+    <div className="flex items-center gap-2.5 mb-5">
+      <span
+        className="w-9 h-9 rounded-[10px] grid place-items-center flex-none"
+        style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
+      >
+        {icon}
+      </span>
+      <h2 style={{ fontSize: 22, color: "var(--ink)" }}>{title}</h2>
     </div>
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-12">
+    <div
+      className="mx-auto px-[var(--gutter)]"
+      style={{ maxWidth: "var(--maxw)", paddingBlock: "clamp(36px, 5vw, 64px) clamp(56px, 7vw, 96px)" }}
+    >
       <StepIndicator />
 
       {/* Mobile collapsible summary */}
       <div className="lg:hidden mb-6">
         <button
-          onClick={() => setSummaryOpen(o => !o)}
-          className="w-full flex items-center justify-between bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3"
+          onClick={() => setSummaryOpen((o) => !o)}
+          className="w-full flex items-center justify-between rounded-[16px] px-4 py-3 border cursor-pointer"
+          style={{
+            background: "var(--cream)",
+            border: "1.5px solid var(--amber)",
+          }}
         >
-          <span className="text-sm font-semibold text-amber-800">Ver resumen del pedido</span>
+          <span className="text-[14px] font-semibold" style={{ color: "var(--ink)" }}>
+            Ver resumen del pedido
+          </span>
           <div className="flex items-center gap-2">
-            <span className="font-bold text-amber-800">{sym}{totalFinal.toFixed(2)}</span>
-            {summaryOpen ? <ChevronUp className="w-4 h-4 text-amber-700" /> : <ChevronDown className="w-4 h-4 text-amber-700" />}
+            <span className="font-bold" style={{ color: "var(--orange-ink)" }}>
+              {sym}{totalFinal.toFixed(2)}
+            </span>
+            {summaryOpen ? (
+              <ChevronUp className="w-4 h-4" style={{ color: "var(--orange-ink)" } as React.CSSProperties} />
+            ) : (
+              <ChevronDown className="w-4 h-4" style={{ color: "var(--orange-ink)" } as React.CSSProperties} />
+            )}
           </div>
         </button>
         {summaryOpen && <div className="mt-2"><OrderSummary /></div>}
@@ -370,347 +519,648 @@ export default function CartPage() {
         <div className="lg:col-span-3 flex flex-col gap-5">
 
           {/* ── STEP 1: CARRITO ── */}
-          {step === 1 && <>
-            <h1 className="text-3xl font-bold text-amber-800" style={{ fontFamily: "var(--font-playfair)" }}>Tu Carrito</h1>
+          {step === 1 && (
+            <>
+              <h1 className="font-bold" style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--ink)" }}>
+                Tu carrito
+              </h1>
 
-            <div className="flex flex-col gap-3">
-              {items.map(item => (
-                <div key={item.id} className="bg-white rounded-2xl border border-stone-100 shadow-sm p-4 flex items-center gap-4">
-                  <span className="text-4xl leading-none">{item.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-stone-800 truncate">{item.name}</p>
-                    <p className="text-amber-800 font-bold">
-                      {sym}{(item.price * item.quantity).toFixed(2)}
-                      <span className="text-stone-400 font-normal text-sm ml-1">({sym}{item.price.toFixed(2)} c/u)</span>
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold flex items-center justify-center transition-colors">−</button>
-                    <span className="w-6 text-center font-semibold text-stone-700">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, +1)} className="w-8 h-8 rounded-full bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold flex items-center justify-center transition-colors">+</button>
-                  </div>
-                  <button onClick={() => removeItem(item.id)} className="text-stone-300 hover:text-red-400 transition-colors ml-1" aria-label="Eliminar">
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Promo code */}
-            <div>
-              {promo ? (
-                <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
-                  <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-green-700">Código <span className="font-mono">{promo.codigo}</span> aplicado</p>
-                    <p className="text-xs text-green-600">{promo.descuento_porcentaje}% de descuento</p>
-                  </div>
-                  <button onClick={() => setPromo(null)} className="text-green-400 hover:text-green-600"><X className="w-4 h-4" /></button>
-                </div>
-              ) : (
-                <div>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Tag className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                      <input
-                        type="text" value={promoInput}
-                        onChange={e => { setPromoInput(e.target.value); setPromoError(""); }}
-                        onKeyDown={e => e.key === "Enter" && handleApplyPromo()}
-                        placeholder="Código de descuento"
-                        className="w-full pl-10 pr-3 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 uppercase"
-                      />
+              <div className="flex flex-col gap-3.5">
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 rounded-[16px] p-4"
+                    style={{
+                      background: "var(--paper-card)",
+                      border: "1px solid var(--hairline)",
+                      boxShadow: "var(--shadow-sm)",
+                    }}
+                  >
+                    <div
+                      className="w-[70px] h-[70px] rounded-[12px] flex items-center justify-center text-4xl flex-none"
+                      style={{ background: "var(--cream)" }}
+                    >
+                      {item.emoji}
                     </div>
-                    <button onClick={handleApplyPromo} disabled={promoLoading || !promoInput.trim()}
-                      className="px-4 py-2.5 bg-stone-800 hover:bg-stone-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2">
-                      {promoLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}Aplicar
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="font-bold text-[18px] leading-tight"
+                        style={{
+                          fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {item.name}
+                      </p>
+                      <p className="font-bold text-[16px] mt-0.5" style={{ color: "var(--orange-ink)" }}>
+                        {sym}{(item.price * item.quantity).toFixed(2)}
+                        <small className="ml-1.5 font-medium text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                          ({sym}{item.price.toFixed(2)} c/u)
+                        </small>
+                      </p>
+                    </div>
+                    <div
+                      className="inline-flex items-center overflow-hidden flex-none"
+                      style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}
+                    >
+                      <button
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
+                        style={{ background: "transparent", color: "var(--ink)" }}
+                      >
+                        <BLIcon name="minus" size={16} />
+                      </button>
+                      <span className="w-[26px] text-center font-bold text-[15px]" style={{ color: "var(--ink)" }}>
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.id, +1)}
+                        className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
+                        style={{ background: "transparent", color: "var(--ink)" }}
+                      >
+                        <BLIcon name="plus" size={16} />
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => removeItem(item.id)}
+                      className="w-[34px] h-[34px] rounded-full grid place-items-center border-0 cursor-pointer transition-colors"
+                      style={{ background: "none", color: "var(--ink-soft)" }}
+                      aria-label="Quitar"
+                    >
+                      <BLIcon name="close" size={16} />
                     </button>
                   </div>
-                  {promoError && <p className="text-red-500 text-xs mt-1.5">{promoError}</p>}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-col gap-3">
-              <button onClick={() => setStep(2)}
-                className="w-full bg-amber-800 hover:bg-amber-700 text-white font-semibold py-4 rounded-full text-lg transition-colors">
-                Continuar con mi pedido →
-              </button>
-              <Link href="/menu" className="text-center text-amber-700 hover:underline text-sm py-2">← Seguir comprando</Link>
-            </div>
-          </>}
-
-          {/* ── STEP 2: DATOS Y PAGO ── */}
-          {step === 2 && <>
-            <h2 className="text-2xl font-bold text-amber-800" style={{ fontFamily: "var(--font-playfair)" }}>Datos y método de pago</h2>
-
-            {/* Banner datos guardados */}
-            {savedUser?.nombre && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold text-amber-800 truncate">👋 ¿Eres {savedUser.nombre}?</p>
-                  <p className="text-xs text-stone-500">Tenemos tus datos del pedido anterior guardados.</p>
-                </div>
-                <button
-                  onClick={fillFromSaved}
-                  className="text-xs font-semibold bg-amber-800 text-white px-4 py-2 rounded-full hover:bg-amber-700 transition-colors whitespace-nowrap flex-shrink-0"
-                >
-                  Usar mis datos
-                </button>
-              </div>
-            )}
-
-            {/* Contacto */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              {cardTitle(<User className="w-4 h-4" />, "Datos de contacto")}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="Nombre completo *" error={formErrors.nombre}>
-                  <input type="text" value={datos.nombre}
-                    onChange={e => setDatos(d => ({ ...d, nombre: e.target.value }))}
-                    placeholder="María García"
-                    autoComplete="name"
-                    className={inputCls(formErrors.nombre)}
-                  />
-                </Field>
-                <Field label="Teléfono *" error={formErrors.telefono}>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-                    <input type="tel" value={datos.telefono}
-                      onChange={e => setDatos(d => ({ ...d, telefono: e.target.value }))}
-                      placeholder="9999-9999"
-                      autoComplete="tel"
-                      className={`${inputCls(formErrors.telefono)} pl-10`}
-                    />
-                  </div>
-                </Field>
-              </div>
-            </div>
-
-            {/* Tipo de entrega */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              {cardTitle(<Package className="w-4 h-4" />, "Tipo de entrega")}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {([
-                  { id: "pickup",   icon: <Store className="w-5 h-5" />, label: "Recoger en tienda", desc: "Sin costo adicional" },
-                  { id: "domicilio", icon: <Home className="w-5 h-5" />, label: "A domicilio",       desc: "Coordinar zona y costo" },
-                ] as const).map(opt => (
-                  <button key={opt.id} onClick={() => setDatos(d => ({ ...d, tipo_entrega: opt.id }))}
-                    className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-medium transition-all ${
-                      datos.tipo_entrega === opt.id ? "border-amber-700 bg-amber-50 text-amber-800" : "border-stone-200 text-stone-600 hover:border-stone-300"
-                    }`}>
-                    {opt.icon}
-                    <span>{opt.label}</span>
-                    <span className="text-xs font-normal text-stone-400">{opt.desc}</span>
-                  </button>
                 ))}
               </div>
 
-              {datos.tipo_entrega === "domicilio" && (
-                <div className="mb-4">
-                  <Field label="Dirección de entrega *" error={formErrors.direccion}>
+              {/* Promo code */}
+              <div>
+                {promo ? (
+                  <div
+                    className="flex items-center gap-3 rounded-[16px] px-4 py-3"
+                    style={{ background: "rgba(31,170,85,.08)", border: "1px solid rgba(31,170,85,.2)" }}
+                  >
+                    <CheckCircle className="w-4 h-4 shrink-0" style={{ color: "#1a7a40" } as React.CSSProperties} />
+                    <div className="flex-1">
+                      <p className="text-[14px] font-semibold" style={{ color: "#1a7a40" }}>
+                        Código <span className="font-mono">{promo.codigo}</span> aplicado
+                      </p>
+                      <p className="text-[12px]" style={{ color: "#1a7a40" }}>
+                        {promo.descuento_porcentaje}% de descuento
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setPromo(null)}
+                      className="grid place-items-center border-0 bg-transparent cursor-pointer"
+                      style={{ color: "#1a7a40" }}
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex gap-2.5">
+                      <div className="flex-1 relative flex items-center">
+                        <BLIcon
+                          name="sparkle"
+                          size={18}
+                          className="absolute left-4 pointer-events-none"
+                          style={{ color: "var(--ink-soft)" } as React.CSSProperties}
+                        />
+                        <input
+                          type="text"
+                          value={promoInput}
+                          onChange={(e) => { setPromoInput(e.target.value); setPromoError(""); }}
+                          onKeyDown={(e) => e.key === "Enter" && handleApplyPromo()}
+                          placeholder="Código de descuento"
+                          className="w-full border focus:outline-none uppercase"
+                          style={{
+                            ...inputStyle,
+                            paddingLeft: 44,
+                            letterSpacing: ".04em",
+                          }}
+                          onFocus={(e) => ((e.target as HTMLInputElement).style.borderColor = "var(--orange)")}
+                          onBlur={(e) => ((e.target as HTMLInputElement).style.borderColor = "var(--hairline)")}
+                        />
+                      </div>
+                      <button
+                        onClick={handleApplyPromo}
+                        disabled={promoLoading || !promoInput.trim()}
+                        className="inline-flex items-center gap-2 font-bold text-[15px] px-5 rounded-[16px] text-white border-0 cursor-pointer disabled:opacity-50 transition-colors"
+                        style={{ background: "var(--paper-card)", color: "var(--ink)", boxShadow: "var(--shadow-sm)" }}
+                      >
+                        {promoLoading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                        Aplicar
+                      </button>
+                    </div>
+                    {promoError && (
+                      <p className="text-[12px] mt-1.5" style={{ color: "var(--berry)" }}>
+                        {promoError}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => setStep(2)}
+                  className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-4 rounded-full text-white border-0 cursor-pointer transition-colors"
+                  style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+                >
+                  Continuar con mi pedido
+                  <BLIcon name="arrow-right" size={16} />
+                </button>
+                <Link
+                  href="/menu"
+                  className="block text-center py-2 text-[15px] font-semibold no-underline"
+                  style={{ color: "var(--orange-ink)" }}
+                >
+                  ← Seguir comprando
+                </Link>
+              </div>
+            </>
+          )}
+
+          {/* ── STEP 2: DATOS Y PAGO ── */}
+          {step === 2 && (
+            <>
+              <h1 className="font-bold" style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--ink)" }}>
+                Datos y método de pago
+              </h1>
+
+              {/* Banner datos guardados */}
+              {savedUser?.nombre && (
+                <div
+                  className="flex items-center justify-between gap-3 flex-wrap rounded-[16px] p-4"
+                  style={{ background: "var(--cream)", border: "1.5px solid var(--amber)" }}
+                >
+                  <div className="min-w-0">
+                    <p className="text-[15px] font-bold" style={{ color: "var(--ink)" }}>
+                      👋 ¿Eres {savedUser.nombre}?
+                    </p>
+                    <p className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                      Tenemos tus datos del pedido anterior guardados.
+                    </p>
+                  </div>
+                  <button
+                    onClick={fillFromSaved}
+                    className="text-[13px] font-bold px-4 py-2 rounded-full text-white border-0 cursor-pointer whitespace-nowrap"
+                    style={{ background: "var(--orange)" }}
+                  >
+                    Usar mis datos
+                  </button>
+                </div>
+              )}
+
+              {/* Contacto */}
+              <div
+                className="rounded-[24px] p-[clamp(22px,2.6vw,30px)]"
+                style={{
+                  background: "var(--paper-card)",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                {cardTitle(<User className="w-4 h-4" />, "Datos de contacto")}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Field label="Nombre completo *" error={formErrors.nombre}>
+                    <input
+                      type="text"
+                      value={datos.nombre}
+                      onChange={(e) => setDatos((d) => ({ ...d, nombre: e.target.value }))}
+                      placeholder="María García"
+                      autoComplete="name"
+                      className={inputCls(formErrors.nombre)}
+                      style={inputStyle}
+                      onFocus={(e) => ((e.target as HTMLInputElement).style.borderColor = "var(--orange)")}
+                      onBlur={(e) => ((e.target as HTMLInputElement).style.borderColor = formErrors.nombre ? "var(--berry)" : "var(--hairline)")}
+                    />
+                  </Field>
+                  <Field label="Teléfono *" error={formErrors.telefono}>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-stone-400" />
-                      <textarea value={datos.direccion}
-                        onChange={e => setDatos(d => ({ ...d, direccion: e.target.value }))}
-                        placeholder="Col. Palmira, Calle Principal #123, frente al parque..."
-                        rows={2}
-                        autoComplete="street-address"
-                        className={`${inputCls(formErrors.direccion)} pl-10 resize-none`}
+                      <BLIcon
+                        name="whatsapp"
+                        size={17}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ color: "var(--ink-soft)" } as React.CSSProperties}
+                      />
+                      <input
+                        type="tel"
+                        value={datos.telefono}
+                        onChange={(e) => setDatos((d) => ({ ...d, telefono: e.target.value }))}
+                        placeholder="9999-9999"
+                        autoComplete="tel"
+                        className={inputCls(formErrors.telefono)}
+                        style={{ ...inputStyle, paddingLeft: 42 }}
+                        onFocus={(e) => ((e.target as HTMLInputElement).style.borderColor = "var(--orange)")}
+                        onBlur={(e) => ((e.target as HTMLInputElement).style.borderColor = formErrors.telefono ? "var(--berry)" : "var(--hairline)")}
                       />
                     </div>
                   </Field>
                 </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <Field label="Fecha preferida">
-                  <input type="date" value={datos.fecha_entrega}
-                    min={new Date().toISOString().split("T")[0]}
-                    onChange={e => setDatos(d => ({ ...d, fecha_entrega: e.target.value }))}
-                    className={inputCls()}
-                  />
-                </Field>
-                <Field label="Hora preferida">
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400 pointer-events-none" />
-                    <select value={datos.hora_entrega}
-                      onChange={e => setDatos(d => ({ ...d, hora_entrega: e.target.value }))}
-                      className={`${inputCls()} pl-10 appearance-none bg-white`}>
-                      <option value="">Cualquier hora</option>
-                      {HORAS.map(h => <option key={h} value={h}>{h}</option>)}
-                    </select>
-                  </div>
-                </Field>
-              </div>
-            </div>
-
-            {/* Método de pago */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              {cardTitle(<Wallet className="w-4 h-4" />, "Método de pago")}
-              {formErrors.metodo_pago && <p className="text-red-500 text-xs mb-3">{formErrors.metodo_pago}</p>}
-              <div className="flex flex-col gap-2">
-                {METODOS_PAGO.map(m => (
-                  <button key={m.id} onClick={() => setDatos(d => ({ ...d, metodo_pago: m.id }))}
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 text-left transition-all ${
-                      datos.metodo_pago === m.id ? "border-amber-700 bg-amber-50" : "border-stone-200 hover:border-stone-300"
-                    }`}>
-                    <span className="text-2xl leading-none">{m.icon}</span>
-                    <div className="flex-1">
-                      <p className={`font-semibold text-sm ${datos.metodo_pago === m.id ? "text-amber-800" : "text-stone-800"}`}>{m.label}</p>
-                      <p className="text-xs text-stone-400">{m.desc}</p>
-                    </div>
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${datos.metodo_pago === m.id ? "border-amber-700" : "border-stone-300"}`}>
-                      {datos.metodo_pago === m.id && <div className="w-2.5 h-2.5 rounded-full bg-amber-700" />}
-                    </div>
-                  </button>
-                ))}
               </div>
 
-              {datos.metodo_pago === "transferencia" && (
-                <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-3">Datos para transferencia</p>
-                  <div className="space-y-1.5 text-sm">
-                    <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{banco.banco}</span></p>
-                    <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{banco.titular}</span></p>
-                    <p><span className="text-stone-500">No. de cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{banco.numero}</span></p>
-                  </div>
+              {/* Tipo de entrega */}
+              <div
+                className="rounded-[24px] p-[clamp(22px,2.6vw,30px)]"
+                style={{
+                  background: "var(--paper-card)",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                {cardTitle(<Package className="w-4 h-4" />, "Tipo de entrega")}
+                <div className="grid grid-cols-2 gap-3.5 mb-4">
+                  {(
+                    [
+                      { id: "pickup",    icon: <BLIcon name="pin" size={26} />,   label: "Recoger en tienda", desc: "Sin costo adicional" },
+                      { id: "domicilio", icon: <BLIcon name="truck" size={26} />, label: "A domicilio",       desc: "Coordinar zona y costo" },
+                    ] as const
+                  ).map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setDatos((d) => ({ ...d, tipo_entrega: opt.id }))}
+                      className="flex flex-col items-center gap-2 rounded-[16px] border cursor-pointer transition-all text-center"
+                      style={{
+                        padding: 20,
+                        borderWidth: "1.5px",
+                        background: datos.tipo_entrega === opt.id ? "rgba(217,113,30,.07)" : "var(--paper-card)",
+                        borderColor: datos.tipo_entrega === opt.id ? "var(--orange)" : "var(--hairline)",
+                        boxShadow: datos.tipo_entrega === opt.id ? "0 0 0 3px rgba(217,113,30,.12)" : "none",
+                        color: datos.tipo_entrega === opt.id ? "var(--orange)" : "var(--ink-soft)",
+                      }}
+                    >
+                      {opt.icon}
+                      <strong
+                        style={{
+                          fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                          fontSize: 18,
+                          display: "block",
+                          color: "var(--ink)",
+                        }}
+                      >
+                        {opt.label}
+                      </strong>
+                      <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                        {opt.desc}
+                      </span>
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
 
-            {/* Notas */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              {cardTitle(<FileText className="w-4 h-4" />, "Notas adicionales")}
-              <textarea value={datos.notas}
-                onChange={e => setDatos(d => ({ ...d, notas: e.target.value }))}
-                placeholder="Alergias, preferencias especiales, instrucciones de entrega..."
-                rows={3}
-                className={`${inputCls()} resize-none`}
-              />
-            </div>
+                {datos.tipo_entrega === "domicilio" && (
+                  <div className="mb-4">
+                    <Field label="Dirección de entrega *" error={formErrors.direccion}>
+                      <div className="relative">
+                        <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 pointer-events-none" style={{ color: "var(--ink-soft)" } as React.CSSProperties} />
+                        <textarea
+                          value={datos.direccion}
+                          onChange={(e) => setDatos((d) => ({ ...d, direccion: e.target.value }))}
+                          placeholder="Col. Palmira, Calle Principal #123, frente al parque..."
+                          rows={2}
+                          autoComplete="street-address"
+                          className="resize-none"
+                          style={{ ...inputStyle, paddingLeft: 42 }}
+                        />
+                      </div>
+                    </Field>
+                  </div>
+                )}
 
-            <div className="flex flex-col gap-3">
-              <button onClick={() => validateDatos() && setStep(3)}
-                className="w-full bg-amber-800 hover:bg-amber-700 text-white font-semibold py-4 rounded-full text-lg transition-colors">
-                Revisar pedido →
-              </button>
-              <button onClick={() => setStep(1)} className="text-center text-amber-700 hover:underline text-sm py-2">← Volver al carrito</button>
-            </div>
-          </>}
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Fecha preferida">
+                    <input
+                      type="date"
+                      value={datos.fecha_entrega}
+                      min={new Date().toISOString().split("T")[0]}
+                      onChange={(e) => setDatos((d) => ({ ...d, fecha_entrega: e.target.value }))}
+                      style={inputStyle}
+                    />
+                  </Field>
+                  <Field label="Hora preferida">
+                    <div className="relative">
+                      <BLIcon
+                        name="clock"
+                        size={17}
+                        className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ color: "var(--ink-soft)" } as React.CSSProperties}
+                      />
+                      <select
+                        value={datos.hora_entrega}
+                        onChange={(e) => setDatos((d) => ({ ...d, hora_entrega: e.target.value }))}
+                        className="appearance-none"
+                        style={{ ...inputStyle, paddingLeft: 42 }}
+                      >
+                        <option value="">Cualquier hora</option>
+                        {HORAS.map((h) => (
+                          <option key={h} value={h}>{h}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </Field>
+                </div>
+              </div>
+
+              {/* Método de pago */}
+              <div
+                className="rounded-[24px] p-[clamp(22px,2.6vw,30px)]"
+                style={{
+                  background: "var(--paper-card)",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                {cardTitle(<Wallet className="w-4 h-4" />, "Método de pago")}
+                {formErrors.metodo_pago && (
+                  <p className="text-[12px] mb-3" style={{ color: "var(--berry)" }}>
+                    {formErrors.metodo_pago}
+                  </p>
+                )}
+                <div className="flex flex-col gap-3">
+                  {METODOS_PAGO.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setDatos((d) => ({ ...d, metodo_pago: m.id }))}
+                      className="flex items-center gap-3.5 rounded-[16px] border cursor-pointer transition-all text-left"
+                      style={{
+                        padding: "16px 18px",
+                        borderWidth: "1.5px",
+                        background: datos.metodo_pago === m.id ? "rgba(217,113,30,.07)" : "var(--paper-card)",
+                        borderColor: datos.metodo_pago === m.id ? "var(--orange)" : "var(--hairline)",
+                      }}
+                    >
+                      <span
+                        className="w-10 h-10 rounded-[10px] grid place-items-center flex-none"
+                        style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
+                      >
+                        <span className="text-xl">{m.icon}</span>
+                      </span>
+                      <div className="flex-1">
+                        <strong
+                          className="block text-[17px]"
+                          style={{
+                            fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                            color: "var(--ink)",
+                          }}
+                        >
+                          {m.label}
+                        </strong>
+                        <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>{m.desc}</span>
+                      </div>
+                      <div
+                        className="w-5 h-5 rounded-full grid place-items-center flex-none"
+                        style={{
+                          border: `2px solid ${datos.metodo_pago === m.id ? "var(--orange)" : "var(--hairline)"}`,
+                        }}
+                      >
+                        {datos.metodo_pago === m.id && (
+                          <div className="w-2.5 h-2.5 rounded-full" style={{ background: "var(--orange)" }} />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+
+                {datos.metodo_pago === "transferencia" && (
+                  <div
+                    className="mt-3 rounded-[16px] p-4"
+                    style={{
+                      background: "rgba(42,111,219,.07)",
+                      border: "1px solid rgba(42,111,219,.2)",
+                    }}
+                  >
+                    <p
+                      className="text-[12px] font-bold uppercase tracking-[0.12em] mb-3"
+                      style={{ color: "#2a6fdb" }}
+                    >
+                      Datos para transferencia
+                    </p>
+                    <div className="text-[14px] flex flex-col gap-1.5">
+                      <p>
+                        <span style={{ color: "var(--ink-soft)" }}>Banco:</span>
+                        <strong className="ml-1.5" style={{ color: "var(--ink)" }}>{banco.banco}</strong>
+                      </p>
+                      <p>
+                        <span style={{ color: "var(--ink-soft)" }}>Titular:</span>
+                        <strong className="ml-1.5" style={{ color: "var(--ink)" }}>{banco.titular}</strong>
+                      </p>
+                      <p>
+                        <span style={{ color: "var(--ink-soft)" }}>No. de cuenta:</span>
+                        <strong className="ml-1.5 font-mono" style={{ color: "var(--ink)" }}>{banco.numero}</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Notas */}
+              <div
+                className="rounded-[24px] p-[clamp(22px,2.6vw,30px)]"
+                style={{
+                  background: "var(--paper-card)",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
+              >
+                {cardTitle(<FileText className="w-4 h-4" />, "Notas adicionales")}
+                <textarea
+                  value={datos.notas}
+                  onChange={(e) => setDatos((d) => ({ ...d, notas: e.target.value }))}
+                  placeholder="Alergias, preferencias especiales, instrucciones de entrega…"
+                  rows={3}
+                  className="resize-none"
+                  style={{ ...inputStyle, minHeight: 96 }}
+                />
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={() => validateDatos() && setStep(3)}
+                  className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-4 rounded-full text-white border-0 cursor-pointer"
+                  style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+                >
+                  Revisar pedido
+                  <BLIcon name="arrow-right" size={16} />
+                </button>
+                <button
+                  onClick={() => setStep(1)}
+                  className="block text-center py-2 text-[15px] font-semibold border-0 bg-transparent cursor-pointer"
+                  style={{ color: "var(--orange-ink)" }}
+                >
+                  ← Volver al carrito
+                </button>
+              </div>
+            </>
+          )}
 
           {/* ── STEP 3: CONFIRMACIÓN ── */}
-          {step === 3 && <>
-            <h2 className="text-2xl font-bold text-amber-800" style={{ fontFamily: "var(--font-playfair)" }}>Confirmar pedido</h2>
+          {step === 3 && (
+            <>
+              <h1 className="font-bold" style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--ink)" }}>
+                Confirmar pedido
+              </h1>
 
-            {/* Datos cliente */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-stone-800 text-sm">Datos de contacto</h3>
-                <button onClick={() => setStep(2)} className="text-xs text-amber-700 hover:underline">Editar</button>
-              </div>
-              <p className="font-medium text-stone-800">{datos.nombre}</p>
-              <p className="text-sm text-stone-500">{datos.telefono}</p>
-            </div>
+              {/* Datos cliente */}
+              <ReviewCard title="Datos de contacto" onEdit={() => setStep(2)}>
+                <p className="font-semibold text-[15px]" style={{ color: "var(--ink)" }}>{datos.nombre}</p>
+                <p className="text-[14px] mt-0.5" style={{ color: "var(--ink-soft)" }}>{datos.telefono}</p>
+              </ReviewCard>
 
-            {/* Entrega */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-stone-800 text-sm">Entrega</h3>
-                <button onClick={() => setStep(2)} className="text-xs text-amber-700 hover:underline">Editar</button>
-              </div>
-              <p className="font-medium text-stone-800">
-                {datos.tipo_entrega === "pickup" ? "🏪 Recoger en tienda" : "🏠 A domicilio"}
-              </p>
-              {datos.tipo_entrega === "domicilio" && datos.direccion && (
-                <p className="text-sm text-stone-500 mt-1">{datos.direccion}</p>
-              )}
-              {datos.fecha_entrega && (
-                <p className="text-sm text-stone-500 mt-1">
-                  {new Date(datos.fecha_entrega + "T12:00:00").toLocaleDateString("es-HN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
-                  {datos.hora_entrega && ` — ${datos.hora_entrega}`}
+              {/* Entrega */}
+              <ReviewCard title="Entrega" onEdit={() => setStep(2)}>
+                <p
+                  className="flex items-center gap-2 font-semibold text-[15px]"
+                  style={{ color: "var(--ink)" }}
+                >
+                  <BLIcon
+                    name={datos.tipo_entrega === "pickup" ? "pin" : "truck"}
+                    size={18}
+                    style={{ color: "var(--orange-ink)" } as React.CSSProperties}
+                  />
+                  {datos.tipo_entrega === "pickup" ? "Recoger en tienda" : "A domicilio"}
                 </p>
-              )}
-            </div>
-
-            {/* Pago */}
-            <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold text-stone-800 text-sm">Método de pago</h3>
-                <button onClick={() => setStep(2)} className="text-xs text-amber-700 hover:underline">Editar</button>
-              </div>
-              {(() => {
-                const m = METODOS_PAGO.find(m => m.id === datos.metodo_pago);
-                return m ? (
-                  <p className="font-medium text-stone-800">
-                    <span className="mr-2">{m.icon}</span>{m.label}
-                    <span className="text-stone-400 font-normal text-sm ml-2">— {m.desc}</span>
+                {datos.tipo_entrega === "domicilio" && datos.direccion && (
+                  <p className="text-[14px] mt-1" style={{ color: "var(--ink-soft)" }}>{datos.direccion}</p>
+                )}
+                {datos.fecha_entrega && (
+                  <p className="text-[14px] mt-1" style={{ color: "var(--ink-soft)" }}>
+                    {new Date(datos.fecha_entrega + "T12:00:00").toLocaleDateString("es-HN", {
+                      weekday: "long", year: "numeric", month: "long", day: "numeric",
+                    })}
+                    {datos.hora_entrega && ` — ${datos.hora_entrega}`}
                   </p>
-                ) : null;
-              })()}
-            </div>
+                )}
+              </ReviewCard>
 
-            {/* Notas */}
-            {datos.notas && (
-              <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-stone-800 text-sm">Notas</h3>
-                  <button onClick={() => setStep(2)} className="text-xs text-amber-700 hover:underline">Editar</button>
+              {/* Pago */}
+              <ReviewCard title="Método de pago" onEdit={() => setStep(2)}>
+                {(() => {
+                  const m = METODOS_PAGO.find((m) => m.id === datos.metodo_pago);
+                  return m ? (
+                    <p className="font-semibold text-[15px]" style={{ color: "var(--ink)" }}>
+                      <span className="mr-2">{m.icon}</span>
+                      {m.label}
+                      <span className="ml-2 font-normal text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                        — {m.desc}
+                      </span>
+                    </p>
+                  ) : null;
+                })()}
+              </ReviewCard>
+
+              {/* Notas */}
+              {datos.notas && (
+                <ReviewCard title="Notas" onEdit={() => setStep(2)}>
+                  <p className="text-[14px]" style={{ color: "var(--ink-soft)" }}>{datos.notas}</p>
+                </ReviewCard>
+              )}
+
+              {/* Comprobante — solo transferencia */}
+              {datos.metodo_pago === "transferencia" && (
+                <div
+                  className="rounded-[24px] p-[clamp(22px,2.6vw,30px)]"
+                  style={{
+                    background: "var(--paper-card)",
+                    border: "1px solid var(--hairline)",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  <h3 className="font-semibold text-[17px] mb-1" style={{ color: "var(--ink)" }}>
+                    Comprobante de transferencia
+                  </h3>
+                  <p className="text-[14px] mb-4" style={{ color: "var(--ink-soft)", lineHeight: 1.5 }}>
+                    Si ya realizaste el pago, adjunta el screenshot para agilizar la confirmación.
+                    Si no, igual puedes continuar y enviarlo en el chat de WhatsApp.
+                  </p>
+
+                  <div
+                    className="rounded-[16px] p-4 mb-4"
+                    style={{ background: "rgba(42,111,219,.07)", border: "1px solid rgba(42,111,219,.2)" }}
+                  >
+                    <p className="text-[12px] font-bold uppercase tracking-[0.12em] mb-2.5" style={{ color: "#2a6fdb" }}>
+                      Transferir a
+                    </p>
+                    <div className="text-[14px] flex flex-col gap-1.5">
+                      <p><span style={{ color: "var(--ink-soft)" }}>Banco:</span> <strong className="ml-1.5">{banco.banco}</strong></p>
+                      <p><span style={{ color: "var(--ink-soft)" }}>Titular:</span> <strong className="ml-1.5">{banco.titular}</strong></p>
+                      <p><span style={{ color: "var(--ink-soft)" }}>Cuenta:</span> <strong className="ml-1.5 font-mono">{banco.numero}</strong></p>
+                      <p><span style={{ color: "var(--ink-soft)" }}>Monto:</span> <strong className="ml-1.5">{sym}{totalFinal.toFixed(2)}</strong></p>
+                    </div>
+                  </div>
+
+                  <label
+                    className="flex flex-col items-center gap-2 p-6 rounded-[16px] border-2 border-dashed cursor-pointer transition-colors"
+                    style={{
+                      borderColor: ssFile ? "var(--wa)" : "var(--hairline)",
+                      background: ssFile ? "rgba(31,170,85,.06)" : "transparent",
+                    }}
+                  >
+                    <BLIcon
+                      name="share"
+                      size={30}
+                      style={{ color: ssFile ? "var(--wa)" : "var(--ink-soft)" } as React.CSSProperties}
+                    />
+                    <strong className="text-[15px]" style={{ color: ssFile ? "#1a7a40" : "var(--ink)" }}>
+                      {ssFile ? ssFile.name : "Adjuntar comprobante (opcional)"}
+                    </strong>
+                    <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                      PNG o JPG · toca para subir
+                    </span>
+                    {ssFile && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); setSsFile(null); }}
+                        className="text-[12px] underline border-0 bg-transparent cursor-pointer"
+                        style={{ color: "var(--berry)" }}
+                      >
+                        Quitar
+                      </button>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      onChange={(e) => setSsFile(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                  <p className="text-[13px] text-center mt-3.5" style={{ color: "var(--ink-soft)" }}>
+                    {ssFile
+                      ? "El comprobante se adjuntará al mensaje de WhatsApp."
+                      : "Sin comprobante, te enviaremos los datos de pago por WhatsApp para que los confirmes ahí."}
+                  </p>
                 </div>
-                <p className="text-sm text-stone-600">{datos.notas}</p>
-              </div>
-            )}
+              )}
 
-            {/* SS upload — solo transferencia */}
-            {datos.metodo_pago === "transferencia" && (
-              <div className="bg-white rounded-2xl border border-stone-100 shadow-sm p-5">
-                <h3 className="font-semibold text-stone-800 text-sm mb-1">Comprobante de transferencia</h3>
-                <p className="text-xs text-stone-400 mb-4">
-                  Si ya realizaste el pago, adjunta el screenshot para agilizar la confirmación. Si no, igual puedes continuar y enviarlo en el chat de WhatsApp.
-                </p>
-
-                {/* Datos bancarios recordatorio */}
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl mb-4 text-sm space-y-1">
-                  <p className="text-xs font-bold text-blue-700 uppercase tracking-widest mb-2">Transferir a</p>
-                  <p><span className="text-stone-500">Banco:</span> <span className="font-semibold text-stone-800 ml-1">{banco.banco}</span></p>
-                  <p><span className="text-stone-500">Titular:</span> <span className="font-semibold text-stone-800 ml-1">{banco.titular}</span></p>
-                  <p><span className="text-stone-500">Cuenta:</span> <span className="font-mono font-bold text-stone-900 ml-1">{banco.numero}</span></p>
-                </div>
-
-                <label className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 border-dashed cursor-pointer transition-colors ${
-                  ssFile ? "border-green-400 bg-green-50" : "border-stone-200 hover:border-amber-300 hover:bg-amber-50"
-                }`}>
-                  <span className="text-2xl">{ssFile ? "✅" : "📎"}</span>
-                  <span className={`text-sm font-medium ${ssFile ? "text-green-700" : "text-stone-600"}`}>
-                    {ssFile ? ssFile.name : "Adjuntar comprobante (opcional)"}
-                  </span>
-                  {ssFile && (
-                    <button type="button" onClick={e => { e.preventDefault(); setSsFile(null); }}
-                      className="text-xs text-red-400 hover:text-red-600 underline">
-                      Quitar
-                    </button>
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleConfirm}
+                  disabled={submitting}
+                  className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-4 rounded-full text-white border-0 cursor-pointer disabled:opacity-60 transition-colors"
+                  style={{ background: "var(--choco-900)" }}
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <BLIcon name="whatsapp" size={20} style={{ color: "#58d684" } as React.CSSProperties} />
+                      Confirmar y enviar por WhatsApp
+                    </>
                   )}
-                  <input type="file" accept="image/*" className="sr-only"
-                    onChange={e => setSsFile(e.target.files?.[0] ?? null)} />
-                </label>
-
-                <p className="text-xs text-stone-400 mt-2 text-center">
-                  {ssFile
-                    ? "El comprobante se adjuntará al mensaje de WhatsApp."
-                    : "Sin comprobante, te enviaremos los datos de pago por WhatsApp para que los confirmes ahí."}
-                </p>
+                </button>
+                <button
+                  onClick={() => setStep(2)}
+                  className="block text-center py-2 text-[15px] font-semibold border-0 bg-transparent cursor-pointer"
+                  style={{ color: "var(--orange-ink)" }}
+                >
+                  ← Editar datos
+                </button>
               </div>
-            )}
-
-            <div className="flex flex-col gap-3">
-              <button onClick={handleConfirm} disabled={submitting}
-                className="w-full bg-green-600 hover:bg-green-500 disabled:opacity-60 text-white font-semibold py-4 rounded-full text-lg transition-colors flex items-center justify-center gap-2">
-                {submitting
-                  ? <><Loader2 className="w-5 h-5 animate-spin" />Procesando...</>
-                  : <>💬 Confirmar y enviar por WhatsApp</>
-                }
-              </button>
-              <button onClick={() => setStep(2)} className="text-center text-amber-700 hover:underline text-sm py-2">← Editar datos</button>
-            </div>
-          </>}
+            </>
+          )}
         </div>
 
         {/* ── Right: sticky order summary (desktop only) ── */}
@@ -720,6 +1170,41 @@ export default function CartPage() {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ReviewCard({
+  title,
+  onEdit,
+  children,
+}: {
+  title: string;
+  onEdit: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-[16px] p-[22px_24px]"
+      style={{
+        background: "var(--paper-card)",
+        border: "1px solid var(--hairline)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="font-semibold text-[17px]" style={{ color: "var(--ink)", fontFamily: "inherit" }}>
+          {title}
+        </h3>
+        <button
+          onClick={onEdit}
+          className="text-[14px] font-semibold border-0 bg-transparent cursor-pointer"
+          style={{ color: "var(--orange-ink)" }}
+        >
+          Editar
+        </button>
+      </div>
+      {children}
     </div>
   );
 }

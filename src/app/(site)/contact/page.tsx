@@ -1,184 +1,173 @@
 import type { Metadata } from "next";
 import { storeConfig } from "@/config/store";
+import { getConfiguracion } from "@/lib/data";
+import BLIcon from "@/components/BLIcon";
 
 export const metadata: Metadata = { title: "Nosotros" };
 
-const valores = [
+const VALORES = [
   {
     titulo: "Calidad",
-    descripcion:
-      "Usamos solo los mejores ingredientes. Cada brownie y cada galleta pasa por nuestro estándar antes de llegar a ti.",
-    icon: "✦",
+    desc: "Usamos solo los mejores ingredientes. Cada brownie y cada galleta pasa por nuestro estándar antes de llegar a ti.",
+    icon: "star" as const,
   },
   {
     titulo: "Artesanal",
-    descripcion:
-      "Todo se hace a mano, en pequeños lotes. Sin atajos, sin líneas de producción. Solo recetas y dedicación.",
-    icon: "🤍",
+    desc: "Todo se hace a mano, en pequeños lotes. Sin atajos, sin líneas de producción. Solo recetas y dedicación.",
+    icon: "brownie" as const,
   },
   {
     titulo: "Pasión",
-    descripcion:
-      "Brownie Lab nació de una obsesión. Esa misma energía va en cada hornada, en cada detalle del producto.",
-    icon: "🔥",
+    desc: "Brownie Lab nació de una obsesión. Esa misma energía va en cada hornada, en cada detalle del producto.",
+    icon: "sparkle" as const,
   },
   {
     titulo: "Honestidad",
-    descripcion:
-      "Lo que ves es lo que recibes. Ingredientes reales, precios justos y trato directo con quien hace tus postres.",
-    icon: "🤝",
+    desc: "Lo que ves es lo que recibes. Ingredientes reales, precios justos y trato directo con quien hace tus postres.",
+    icon: "heart" as const,
   },
 ];
 
-export default function NosotrosPage() {
-  const { social, whatsapp, name } = storeConfig;
-
-  const contactLinks = [
-    {
-      label: "WhatsApp",
-      href: `https://wa.me/${whatsapp}`,
-      emoji: "💬",
-      description: "Escríbenos para hacer pedidos o preguntas",
-      color: "bg-green-600 hover:bg-green-500",
-      show: !!whatsapp,
-    },
-    {
-      label: "Instagram",
-      href: social.instagram,
-      emoji: "📸",
-      description: "Síguenos para ver nuestras creaciones del día",
-      color: "bg-gradient-to-r from-purple-600 to-pink-500 hover:from-purple-500 hover:to-pink-400",
-      show: !!social.instagram,
-    },
-    {
-      label: "Facebook",
-      href: social.facebook,
-      emoji: "👍",
-      description: "Únete a nuestra comunidad",
-      color: "bg-blue-600 hover:bg-blue-500",
-      show: !!social.facebook,
-    },
-    {
-      label: "TikTok",
-      href: social.tiktok,
-      emoji: "🎵",
-      description: "Mira el proceso de elaboración",
-      color: "bg-stone-800 hover:bg-stone-700",
-      show: !!social.tiktok,
-    },
-  ].filter((l) => l.show);
+export default async function NosotrosPage() {
+  const config = await getConfiguracion();
+  const whatsapp = config?.whatsapp || storeConfig.whatsapp;
+  const instagram = config?.instagram || storeConfig.social.instagram;
+  const facebook = config?.facebook || storeConfig.social.facebook;
 
   return (
-    <div className="min-h-screen">
-
+    <div>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-700 text-white py-12 md:py-20 px-4 text-center">
-        <p className="text-amber-300 text-xs font-semibold tracking-[0.25em] uppercase mb-4">
-          Quiénes somos
-        </p>
-        <h1
-          className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4"
-          style={{ fontFamily: "var(--font-playfair)" }}
-        >
-          Nosotros
-        </h1>
-        <p className="text-amber-200 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
-          Una pequeña operación con una obsesión enorme: hacer el mejor brownie que hayas probado.
-        </p>
+      <section
+        className="text-center"
+        style={{
+          color: "var(--on-dark)",
+          background:
+            "radial-gradient(120% 90% at 80% 10%, rgba(232,162,58,.30), transparent 55%), linear-gradient(160deg, var(--choco-900) 0%, var(--choco-700) 42%, var(--orange-ink) 100%)",
+          paddingBlock: "clamp(56px, 8vw, 96px)",
+        }}
+      >
+        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+          <span
+            className="inline-flex items-center gap-2 justify-center text-[12px] font-bold tracking-[0.22em] uppercase"
+            style={{ color: "var(--amber)" }}
+          >
+            <BLIcon name="brownie" size={15} />
+            Quiénes somos
+          </span>
+          <h1
+            className="font-extrabold mt-4 mb-4"
+            style={{ fontSize: "clamp(40px, 5.6vw, 72px)", color: "var(--on-dark)" }}
+          >
+            Nosotros
+          </h1>
+          <p style={{ color: "var(--on-dark-soft)", fontSize: "clamp(17px, 1.5vw, 20px)", marginInline: "auto" }}>
+            Una operación pequeña con una obsesión enorme: hornear el mejor brownie que hayas probado.
+          </p>
+        </div>
       </section>
 
       {/* Historia */}
-      <section className="py-12 md:py-20 px-4 bg-amber-50">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          {/* Decorative block */}
-          <div className="flex justify-center md:justify-start">
-            <div className="relative w-64 h-64 md:w-72 md:h-72">
-              <div className="absolute inset-0 bg-amber-800 rounded-3xl rotate-6 opacity-20" />
-              <div className="absolute inset-0 bg-amber-700 rounded-3xl rotate-3 opacity-30" />
-              <div className="relative bg-gradient-to-br from-amber-800 to-amber-600 rounded-3xl w-full h-full flex flex-col items-center justify-center gap-3 shadow-xl">
-                <span className="text-7xl">🍫</span>
-                <p
-                  className="text-white font-bold text-xl tracking-wide"
-                  style={{ fontFamily: "var(--font-playfair)" }}
-                >
-                  {name}
-                </p>
-                <p className="text-amber-200 text-xs tracking-widest uppercase">Hecho a mano</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Texto */}
+      <section style={{ paddingBlock: "clamp(64px, 9vw, 120px)" }}>
+        <div
+          className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-2col"
+          style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".92fr 1.08fr" }}
+        >
+          {/* Media placeholder */}
+          <div
+            className="rounded-[24px]"
+            style={{
+              aspectRatio: "4/5",
+              background:
+                "repeating-linear-gradient(135deg, rgba(116,58,20,.07) 0 10px, rgba(116,58,20,0) 10px 20px), var(--cream)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          />
           <div>
-            <h2
-              className="text-2xl sm:text-3xl md:text-4xl font-bold text-amber-800 mb-6"
-              style={{ fontFamily: "var(--font-playfair)" }}
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
             >
-              Nuestra Historia
+              Nuestra historia
+            </span>
+            <h2 className="mt-3 mb-5" style={{ fontSize: "clamp(30px, 4vw, 46px)" }}>
+              Empezó con una obsesión
             </h2>
-            <p className="text-stone-600 text-lg leading-relaxed mb-4">
-              En Brownie Lab, todo empezó con la obsesión perfecta: el brownie ideal. Mientras
-              perfeccionamos nuestra receta secreta, te invitamos a probar las galletas que
-              nacieron en el camino.
+            <p className="mb-4" style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "50ch" }}>
+              En Brownie Lab todo nació de una sola idea fija: encontrar la receta del brownie
+              perfecto. Mientras la perfeccionábamos, fueron apareciendo galletas que también
+              valía la pena compartir.
             </p>
-            <p className="text-stone-500 leading-relaxed mb-4">
+            <p className="mb-4" style={{ color: "var(--orange-ink)", fontWeight: 600, fontSize: 17 }}>
               Spoiler: también son adictivas.
             </p>
-            <p className="text-stone-500 leading-relaxed">
-              Somos una operación pequeña y honesta. Cada pieza sale de nuestra cocina lista
-              para sorprenderte — hecha con ingredientes reales, recetas propias y sin
-              apuros. La calidad manda.
+            <p style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "50ch" }}>
+              Somos una operación pequeña y honesta. Cada pieza sale de nuestra cocina lista para
+              sorprenderte — hecha con ingredientes reales, recetas propias y sin apuros. La
+              calidad manda.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Misión & Visión */}
-      <section className="py-12 md:py-20 px-4 bg-white">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2
-              className="text-3xl font-bold text-amber-800"
-              style={{ fontFamily: "var(--font-playfair)" }}
+      {/* Misión y visión */}
+      <section style={{ paddingBlock: "clamp(64px, 9vw, 120px)" }}>
+        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+          <div
+            className="text-center"
+            style={{ marginBottom: "clamp(40px, 5vw, 60px)" }}
+          >
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
             >
               Hacia dónde vamos
+            </span>
+            <h2 className="mt-3" style={{ fontSize: "clamp(32px, 4.6vw, 52px)" }}>
+              Misión y visión
             </h2>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Misión */}
-            <div className="bg-amber-50 border border-amber-100 rounded-3xl p-8">
-              <div className="w-12 h-12 bg-amber-800 rounded-2xl flex items-center justify-center text-white text-xl mb-5">
-                🎯
-              </div>
+          <div className="grid gap-6 bl-grid-2col" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <div
+              className="rounded-[24px] p-[clamp(28px,3.4vw,40px)]"
+              style={{ background: "var(--cream)" }}
+            >
+              <span
+                className="w-[54px] h-[54px] rounded-[14px] grid place-items-center mb-5"
+                style={{ background: "rgba(217,113,30,.14)", color: "var(--orange-ink)" }}
+              >
+                <BLIcon name="pin" size={28} />
+              </span>
               <h3
-                className="text-xl font-bold text-amber-800 mb-3"
-                style={{ fontFamily: "var(--font-playfair)" }}
+                className="mb-3"
+                style={{ fontSize: 26, color: "var(--orange-ink)" }}
               >
                 Misión
               </h3>
-              <p className="text-stone-600 leading-relaxed">
-                Ofrecer postres artesanales elaborados con ingredientes de calidad y mucho cuidado,
-                satisfaciendo a quienes buscan algo diferente — honesto, hecho a mano y con sabor
-                que se recuerda.
+              <p style={{ color: "var(--ink-soft)", fontSize: 16, lineHeight: 1.7 }}>
+                Ofrecer postres artesanales hechos con ingredientes de calidad y mucho cuidado,
+                para quienes buscan algo distinto — honesto, hecho a mano y con un sabor que se
+                recuerda.
               </p>
             </div>
-
-            {/* Visión */}
-            <div className="bg-stone-900 rounded-3xl p-8">
-              <div className="w-12 h-12 bg-amber-500 rounded-2xl flex items-center justify-center text-white text-xl mb-5">
-                🌟
-              </div>
+            <div
+              className="rounded-[24px] p-[clamp(28px,3.4vw,40px)]"
+              style={{ background: "var(--choco-900)" }}
+            >
+              <span
+                className="w-[54px] h-[54px] rounded-[14px] grid place-items-center mb-5"
+                style={{ background: "rgba(232,162,58,.18)", color: "var(--amber)" }}
+              >
+                <BLIcon name="sparkle" size={28} />
+              </span>
               <h3
-                className="text-xl font-bold text-amber-400 mb-3"
-                style={{ fontFamily: "var(--font-playfair)" }}
+                className="mb-3"
+                style={{ fontSize: 26, color: "var(--amber)" }}
               >
                 Visión
               </h3>
-              <p className="text-stone-300 leading-relaxed">
-                Ser la referencia en brownies y cookies artesanales, reconocidos por una
-                receta que no se consigue en otro lugar — y por una experiencia que vale la pena
-                repetir.
+              <p style={{ color: "var(--on-dark-soft)", fontSize: 16, lineHeight: 1.7 }}>
+                Ser la referencia en brownies y galletas artesanales, reconocidos por una receta
+                que no se consigue en otro lado — y por una experiencia que vale la pena repetir.
               </p>
             </div>
           </div>
@@ -186,28 +175,44 @@ export default function NosotrosPage() {
       </section>
 
       {/* Valores */}
-      <section className="py-12 md:py-20 px-4 bg-amber-50">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2
-              className="text-3xl font-bold text-amber-800"
-              style={{ fontFamily: "var(--font-playfair)" }}
+      <section style={{ background: "var(--cream)", paddingBlock: "clamp(64px, 9vw, 120px)" }}>
+        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+          <div
+            className="text-center"
+            style={{ marginBottom: "clamp(40px, 5vw, 60px)" }}
+          >
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
             >
               Lo que nos mueve
+            </span>
+            <h2 className="mt-3" style={{ fontSize: "clamp(32px, 4.6vw, 52px)" }}>
+              Los valores detrás de cada hornada
             </h2>
-            <p className="text-stone-500 mt-2">Los valores detrás de cada hornada</p>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            {valores.map((v) => (
+          <div className="grid gap-5 bl-grid-2col" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            {VALORES.map((v) => (
               <div
                 key={v.titulo}
-                className="bg-white border border-amber-100 rounded-2xl p-6 flex gap-4 hover:border-amber-300 hover:shadow-sm transition-all"
+                className="flex gap-4 rounded-[16px] p-[26px_28px]"
+                style={{
+                  background: "var(--paper-card)",
+                  border: "1px solid var(--hairline)",
+                  boxShadow: "var(--shadow-sm)",
+                }}
               >
-                <span className="text-2xl mt-0.5 flex-shrink-0">{v.icon}</span>
+                <span
+                  className="w-[46px] h-[46px] rounded-[12px] grid place-items-center flex-none"
+                  style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
+                >
+                  <BLIcon name={v.icon} size={24} />
+                </span>
                 <div>
-                  <h3 className="font-bold text-amber-800 mb-1">{v.titulo}</h3>
-                  <p className="text-stone-500 text-sm leading-relaxed">{v.descripcion}</p>
+                  <h3 className="mb-1.5" style={{ fontSize: 22 }}>{v.titulo}</h3>
+                  <p style={{ color: "var(--ink-soft)", fontSize: 15, lineHeight: 1.6 }}>
+                    {v.desc}
+                  </p>
                 </div>
               </div>
             ))}
@@ -215,49 +220,115 @@ export default function NosotrosPage() {
         </div>
       </section>
 
-      {/* Contacto */}
-      <section className="py-12 md:py-20 px-4 bg-white">
-        <div className="max-w-xl mx-auto">
-          <div className="text-center mb-10">
-            <h2
-              className="text-3xl font-bold text-amber-800 mb-2"
-              style={{ fontFamily: "var(--font-playfair)" }}
+      {/* Encuéntranos */}
+      <section style={{ paddingBlock: "clamp(64px, 9vw, 120px)" }}>
+        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+          <div
+            className="text-center"
+            style={{ marginBottom: "clamp(40px, 5vw, 60px)" }}
+          >
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
             >
+              Estamos cerca
+            </span>
+            <h2 className="mt-3 mb-3" style={{ fontSize: "clamp(32px, 4.6vw, 52px)" }}>
               Encuéntranos
             </h2>
-            <p className="text-stone-500">
+            <p style={{ color: "var(--ink-soft)", fontSize: 17 }}>
               Para pedidos, preguntas o solo saludarnos.
             </p>
           </div>
 
-          <div className="flex flex-col gap-3">
-            {contactLinks.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${link.color} text-white rounded-2xl p-4 flex items-center gap-4 transition-all hover:scale-[1.02] shadow-sm`}
-              >
-                <span className="text-3xl">{link.emoji}</span>
-                <div>
-                  <p className="font-bold">{link.label}</p>
-                  <p className="text-white/75 text-sm">{link.description}</p>
-                </div>
-                <span className="ml-auto text-white/50 text-lg">→</span>
-              </a>
-            ))}
+          <div
+            className="flex flex-col gap-3.5 mx-auto"
+            style={{ maxWidth: 620 }}
+          >
+            {whatsapp && (
+              <ChannelLink
+                href={`https://wa.me/${whatsapp}`}
+                iconBg="#1faa55"
+                icon="whatsapp"
+                title="WhatsApp"
+                desc="Escríbenos para hacer pedidos o preguntas"
+              />
+            )}
+            {instagram && (
+              <ChannelLink
+                href={instagram}
+                iconBg="linear-gradient(135deg, #b8336a, #e08a3c)"
+                icon="instagram"
+                title="Instagram"
+                desc="Síguenos para ver nuestras creaciones del día"
+              />
+            )}
+            {facebook && (
+              <ChannelLink
+                href={facebook}
+                iconBg="#2566c4"
+                icon="facebook"
+                title="Facebook"
+                desc="Únete a nuestra comunidad"
+              />
+            )}
           </div>
 
-          <div className="mt-10 text-center bg-amber-50 rounded-2xl p-6">
-            <p className="text-stone-600 text-sm leading-relaxed">
-              <span className="font-semibold text-amber-800">{name}</span> es una tienda artesanal.
-              Los pedidos se confirman por WhatsApp y requieren anticipación de 24 horas.
-            </p>
+          <div
+            className="text-center mt-9 mx-auto rounded-[16px] px-7 py-5"
+            style={{ maxWidth: 620, background: "var(--cream)", fontSize: 15, color: "var(--ink-soft)" }}
+          >
+            <strong style={{ color: "var(--orange-ink)" }}>Brownie Lab</strong> es una tienda
+            artesanal. Los pedidos se confirman por WhatsApp y requieren anticipación de 24 horas.
           </div>
         </div>
       </section>
-
     </div>
+  );
+}
+
+function ChannelLink({
+  href,
+  iconBg,
+  icon,
+  title,
+  desc,
+}: {
+  href: string;
+  iconBg: string;
+  icon: "whatsapp" | "instagram" | "facebook";
+  title: string;
+  desc: string;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center gap-4 rounded-[16px] p-5 no-underline transition-all"
+      style={{
+        background: "var(--paper-card)",
+        border: "1px solid var(--hairline)",
+        boxShadow: "var(--shadow-sm)",
+        color: "var(--ink)",
+      }}
+    >
+      <span
+        className="w-12 h-12 rounded-[12px] grid place-items-center flex-none text-white"
+        style={{ background: iconBg }}
+      >
+        <BLIcon name={icon} size={24} />
+      </span>
+      <span className="flex-1">
+        <strong
+          className="block text-[19px]"
+          style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif" }}
+        >
+          {title}
+        </strong>
+        <span className="text-[14px]" style={{ color: "var(--ink-soft)" }}>{desc}</span>
+      </span>
+      <BLIcon name="arrow-right" size={20} style={{ color: "var(--ink-soft)" } as React.CSSProperties} />
+    </a>
   );
 }

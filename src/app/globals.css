@@ -1,22 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fffbeb;
-  --foreground: #292524;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
+  --choco-950: #1c120a;
+  --choco-900: #2a1a0e;
+  --choco-800: #3a2412;
+  --choco-700: #5a2f12;
+  --choco-600: #743a14;
+  --orange: #d9711e;
+  --orange-ink: #b85c12;
+  --amber: #e8a23a;
+  --berry: #9e3b46;
+  --cream: #f7eccf;
+  --cream-200: #efe1c0;
+  --paper: #fbf6ec;
+  --paper-card: #ffffff;
+  --ink: #2a1a0e;
+  --ink-soft: #6b5743;
+  --on-dark: #f6ead4;
+  --on-dark-soft: #cdb79a;
+  --hairline: #e7d8bb;
+  --hairline-dark: rgba(246, 234, 212, 0.16);
+  --shadow-sm: 0 1px 2px rgba(42,26,14,.06), 0 2px 8px rgba(42,26,14,.05);
+  --shadow-md: 0 4px 14px rgba(42,26,14,.10), 0 12px 32px rgba(42,26,14,.08);
+  --shadow-lg: 0 18px 50px rgba(28,18,10,.22);
+  --wa: #1faa55;
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+  --maxw: 1200px;
+  --gutter: clamp(20px, 5vw, 64px);
 }
 
 html {
   scroll-behavior: smooth;
   overscroll-behavior: none;
-  background: #7c2d12;
+  background: var(--choco-950);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  line-height: 1.6;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-playfair), "Playfair Display", Georgia, serif;
+  font-weight: 700;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+  margin: 0;
+  text-wrap: balance;
+}
+
+p { margin: 0; text-wrap: pretty; }
+
+img, svg { display: block; }
+
+/* Responsive grid helpers */
+@media (max-width: 920px) {
+  .bl-grid-2col,
+  .bl-grid-hero,
+  .bl-grid-4col { grid-template-columns: 1fr !important; }
+  .bl-grid-4col { grid-template-columns: 1fr 1fr !important; }
+}
+
+@media (max-width: 640px) {
+  .bl-grid-4col { grid-template-columns: 1fr !important; }
+  .bl-grid-3col { grid-template-columns: 1fr !important; }
+}
+
+@media (min-width: 641px) and (max-width: 920px) {
+  .bl-grid-3col { grid-template-columns: repeat(2, 1fr) !important; }
 }
