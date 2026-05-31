@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import BLIcon from "@/components/BLIcon";
 
 interface BannerBarProps {
   mensaje: string;
@@ -23,14 +24,21 @@ export default function BannerBar({ mensaje, bannerId }: BannerBarProps) {
   if (!visible) return null;
 
   return (
-    <div className="bg-amber-600 text-white text-sm py-2 px-4 flex items-center gap-3">
-      <div className="flex-1 text-center font-medium">{mensaje}</div>
+    <div
+      className="relative flex items-center justify-center gap-2.5 py-2.5 px-12 text-sm font-semibold text-white"
+      style={{ background: "var(--orange)" }}
+    >
+      <BLIcon name="truck" size={18} />
+      <span>{mensaje}</span>
       <button
         onClick={dismiss}
         aria-label="Cerrar"
-        className="text-amber-200 hover:text-white transition-colors flex-shrink-0 text-base leading-none"
+        className="absolute right-3.5 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full grid place-items-center cursor-pointer border-0"
+        style={{ background: "rgba(255,255,255,.18)" }}
+        onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,.32)")}
+        onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "rgba(255,255,255,.18)")}
       >
-        ✕
+        <BLIcon name="close" size={13} />
       </button>
     </div>
   );

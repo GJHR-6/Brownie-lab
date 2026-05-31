@@ -5,7 +5,7 @@ import { useWishlistStore } from "@/lib/wishlistStore";
 import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
 import { useState, useEffect } from "react";
-import { Heart, Share2, Check } from "lucide-react";
+import BLIcon from "@/components/BLIcon";
 import type { Producto } from "@/types/database";
 
 export default function ProductCard({ product }: { product: Producto }) {
@@ -16,7 +16,6 @@ export default function ProductCard({ product }: { product: Producto }) {
 
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
-  const [shared, setShared] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -25,114 +24,167 @@ export default function ProductCard({ product }: { product: Producto }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
-  const handleAdd = () => {
+  function handleAdd() {
     for (let i = 0; i < qty; i++) {
       addItem({ id: product.id, name: product.nombre, price: Number(product.precio), emoji: product.emoji ?? "🍪" });
     }
     setAdded(true);
     setQty(1);
     setTimeout(() => setAdded(false), 1200);
-  };
-
-  const handleShare = async () => {
-    const url = `${window.location.origin}/menu`;
-    const text = `¡Mira esto en Brownie Lab! ${product.nombre} — L.${Number(product.precio).toFixed(2)}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: product.nombre, text, url });
-      } else {
-        await navigator.clipboard.writeText(`${text} ${url}`);
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      }
-    } catch { /* user cancelled */ }
-  };
+  }
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow relative group">
-      {/* Wishlist button */}
-      {mounted && (
-        <button
-          onClick={() => toggleWishlist(product.id)}
-          aria-label={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
-          className="absolute top-3 right-3 z-10 p-1.5 rounded-full bg-white/90 shadow-sm transition-colors"
-        >
-          <Heart
-            className={`w-4 h-4 transition-colors ${isFav ? "fill-red-500 text-red-500" : "text-stone-300"}`}
-          />
-        </button>
-      )}
-
-      {/* Image */}
-      <div className="bg-amber-50 h-36 sm:h-44 flex items-center justify-center overflow-hidden">
+    <article
+      className="flex flex-col overflow-hidden transition-all duration-200 relative"
+      style={{
+        background: "var(--paper-card)",
+        borderRadius: "var(--r-lg)",
+        border: "1px solid var(--hairline)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+      onMouseOver={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-md)";
+      }}
+      onMouseOut={(e) => {
+        (e.currentTarget as HTMLElement).style.transform = "";
+        (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-sm)";
+      }}
+    >
+      {/* Media */}
+      <div className="relative" style={{ aspectRatio: "4/3" }}>
         {product.imagen_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={product.imagen_url} alt={product.nombre} className="w-full h-full object-cover" />
+          <img
+            src={product.imagen_url}
+            alt={product.nombre}
+            className="w-full h-full object-cover"
+          />
         ) : (
-          <span className="text-6xl">{product.emoji ?? "🍪"}</span>
+          <div
+            className="w-full h-full grid place-items-center text-5xl"
+            style={{
+              background:
+                "repeating-linear-gradient(135deg, rgba(116,58,20,.07) 0 10px, rgba(116,58,20,0) 10px 20px), var(--cream)",
+            }}
+          >
+            {product.emoji ?? "🍪"}
+          </div>
+        )}
+
+        {/* Wishlist button */}
+        {mounted && (
+          <button
+            onClick={() => toggleWishlist(product.id)}
+            aria-label={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
+            className="absolute top-3 right-3 w-[38px] h-[38px] rounded-full grid place-items-center cursor-pointer transition-colors border"
+            style={{
+              background: "var(--paper-card)",
+              borderColor: isFav ? "var(--berry)" : "var(--hairline)",
+              color: isFav ? "var(--berry)" : "var(--ink-soft)",
+            }}
+          >
+            <BLIcon name="heart" size={16} />
+          </button>
         )}
       </div>
 
-      <div className="p-4 flex flex-col flex-1">
-        {/* Name + price */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-semibold text-stone-800 text-base leading-tight">{product.nombre}</h3>
-          <span className="text-amber-800 font-bold text-base whitespace-nowrap">
+      {/* Body */}
+      <div
+        className="flex flex-col gap-2.5 flex-1"
+        style={{ padding: "18px 20px 20px" }}
+      >
+        <div className="flex justify-between items-baseline gap-3">
+          <h3
+            className="font-bold"
+            style={{
+              fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+              fontSize: 21,
+              color: "var(--ink)",
+            }}
+          >
+            {product.nombre}
+          </h3>
+          <span
+            className="font-bold text-[18px] whitespace-nowrap"
+            style={{ color: "var(--orange-ink)" }}
+          >
             {storeConfig.currencySymbol}{Number(product.precio).toFixed(2)}
           </span>
         </div>
 
-        {/* Description */}
-        <p className="text-stone-500 text-sm leading-relaxed flex-1 mb-3">{product.descripcion}</p>
+        <p className="text-[14px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+          {product.descripcion}
+        </p>
 
-        {/* Category + share */}
-        <div className="flex items-center justify-between mb-3">
-          <span className="text-xs bg-amber-100 text-amber-800 rounded-full px-2 py-0.5 capitalize">
-            {product.categoria}
-          </span>
-          <button
-            onClick={handleShare}
-            aria-label="Compartir"
-            className="flex items-center gap-1 text-xs text-stone-400 hover:text-amber-700 transition-colors"
-          >
-            {shared ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Share2 className="w-3.5 h-3.5" />}
-            {shared ? "Copiado" : "Compartir"}
-          </button>
-        </div>
+        {/* Footer */}
+        <div className="flex items-center gap-2.5 mt-auto pt-1.5">
+          {product.disponible ? (
+            <>
+              {/* Stepper */}
+              <div
+                className="inline-flex items-center overflow-hidden"
+                style={{
+                  border: "1.5px solid var(--hairline)",
+                  borderRadius: "var(--r-pill)",
+                }}
+              >
+                <button
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  className="w-[38px] h-[38px] grid place-items-center cursor-pointer border-0 transition-colors"
+                  style={{ background: "transparent", color: "var(--ink)" }}
+                  onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
+                  onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                  aria-label="Menos"
+                >
+                  <BLIcon name="minus" size={16} />
+                </button>
+                <span
+                  className="text-center font-bold text-[15px]"
+                  style={{ minWidth: 26, color: "var(--ink)" }}
+                >
+                  {qty}
+                </span>
+                <button
+                  onClick={() => setQty((q) => q + 1)}
+                  className="w-[38px] h-[38px] grid place-items-center cursor-pointer border-0 transition-colors"
+                  style={{ background: "transparent", color: "var(--ink)" }}
+                  onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
+                  onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                  aria-label="Más"
+                >
+                  <BLIcon name="plus" size={16} />
+                </button>
+              </div>
 
-        {/* Qty + add to cart */}
-        {product.disponible ? (
-          <div className="flex gap-2 items-center">
-            <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden flex-shrink-0">
+              {/* Add button */}
               <button
-                onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-50 transition-colors font-bold"
+                onClick={handleAdd}
+                className="flex-1 inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full transition-all cursor-pointer border-0 text-white"
+                style={{
+                  background: added ? "var(--wa)" : "var(--orange)",
+                  boxShadow: added ? "none" : "0 6px 18px rgba(217,113,30,.32)",
+                }}
               >
-                −
+                {added ? "✓ Agregado" : "Agregar"}
               </button>
-              <span className="w-8 text-center text-sm font-semibold text-stone-700">{qty}</span>
-              <button
-                onClick={() => setQty((q) => q + 1)}
-                className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-50 transition-colors font-bold"
-              >
-                +
-              </button>
-            </div>
+            </>
+          ) : (
             <button
-              onClick={handleAdd}
-              className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${
-                added ? "bg-green-500 text-white" : "bg-amber-800 hover:bg-amber-700 text-white"
-              }`}
+              disabled
+              className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full cursor-not-allowed border-0"
+              style={{
+                background: "var(--cream-200)",
+                color: "var(--ink-soft)",
+                opacity: 0.7,
+              }}
             >
-              {added ? "✓ Agregado" : `Agregar${qty > 1 ? ` (${qty})` : ""}`}
+              <BLIcon name="clock" size={16} />
+              No disponible
             </button>
-          </div>
-        ) : (
-          <button disabled className="w-full py-2 rounded-xl text-sm font-semibold bg-stone-200 text-stone-400 cursor-not-allowed">
-            No disponible
-          </button>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </article>
   );
 }

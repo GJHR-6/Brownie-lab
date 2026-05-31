@@ -13,10 +13,10 @@ export default async function SiteLayout({
 
   return (
     <>
-      <Navbar />
       {activeBanner && (
         <BannerBar mensaje={activeBanner.mensaje} bannerId={activeBanner.id} />
       )}
+      <Navbar />
       <main className="flex-1">{children}</main>
       <Footer />
     </>

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { storeConfig } from "@/config/store";
 import { useCartStore } from "@/lib/cartStore";
+import BLIcon from "@/components/BLIcon";
 
 type BaseId = "brownie" | "galleta";
 
@@ -339,195 +340,290 @@ export default function PersonalizaPage() {
   }
 
   return (
-    <div className="min-h-screen bg-amber-50 pb-24 lg:pb-0">
+    <>
       {/* Header */}
-      <div className="bg-gradient-to-br from-amber-900 to-amber-700 text-white py-10 md:py-14 px-4 text-center">
-        <p className="text-amber-300 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-          Interactivo
-        </p>
-        <h1
-          className="text-3xl sm:text-4xl md:text-5xl font-bold mb-3"
-          style={{ fontFamily: "var(--font-playfair)" }}
-        >
-          Arma tu postre
-        </h1>
-        <p className="text-amber-200 text-base md:text-lg max-w-md mx-auto">
-          Elige la base y los toppings. Lo que ves es lo que pides.
-        </p>
-      </div>
+      <section
+        className="text-center"
+        style={{
+          color: "var(--on-dark)",
+          background:
+            "radial-gradient(110% 120% at 85% -10%, rgba(232,162,58,.25), transparent 55%), linear-gradient(150deg, var(--choco-900) 0%, var(--choco-700) 100%)",
+          paddingBlock: "clamp(48px, 7vw, 76px)",
+        }}
+      >
+        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+          <span
+            className="inline-flex items-center gap-2 justify-center text-[12px] font-bold tracking-[0.22em] uppercase"
+            style={{ color: "var(--amber)" }}
+          >
+            <BLIcon name="sparkle" size={15} />
+            Interactivo
+          </span>
+          <h1
+            className="font-extrabold mt-4 mb-3"
+            style={{ fontSize: "clamp(40px, 6vw, 68px)", color: "var(--on-dark)" }}
+          >
+            Arma tu postre
+          </h1>
+          <p style={{ color: "var(--on-dark-soft)", fontSize: "clamp(16px, 1.4vw, 19px)", maxWidth: "44ch", marginInline: "auto" }}>
+            Elige la base, agrégale los toppings que quieras y míralo cobrar forma. Lo que ves es lo que pides.
+          </p>
+        </div>
+      </section>
 
-      <div className="max-w-5xl mx-auto px-4 py-8 md:py-12">
-        <div className="flex flex-col lg:grid lg:grid-cols-2 lg:gap-10 lg:items-start">
+      {/* Builder */}
+      <div
+        className="mx-auto px-[var(--gutter)] grid items-start gap-[clamp(28px,4vw,56px)] pb-24 lg:pb-0 bl-grid-2col"
+        style={{
+          maxWidth: "var(--maxw)",
+          gridTemplateColumns: "1.05fr .95fr",
+          paddingBlock: "clamp(48px, 6vw, 80px)",
+        }}
+      >
+        {/* Preview — sticky on desktop */}
+        <div className="lg:sticky lg:top-24">
+          <div
+            className="rounded-[24px] p-[30px]"
+            style={{
+              background: "var(--paper-card)",
+              border: "1px solid var(--hairline)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          >
+            {/* Dessert visual */}
+            <div className="w-full max-w-[300px] mx-auto aspect-square">
+              {base === "brownie" ? (
+                <BrownieSVG selected={selected} />
+              ) : (
+                <GalletaSVG selected={selected} />
+              )}
+            </div>
 
-          {/* Visual — arriba en móvil, sticky en desktop */}
-          <div className="lg:sticky lg:top-24">
-            {/* Base selector */}
-            <div className="flex gap-3 mb-4 md:mb-6">
-              {BASES.map((b) => (
+            {/* Lleva */}
+            <div className="text-center mt-2">
+              <p
+                className="text-[11px] font-bold tracking-[0.2em] uppercase"
+                style={{ color: "var(--ink-soft)" }}
+              >
+                Lleva
+              </p>
+              <p className="mt-1 text-[15px]" style={{ color: "var(--ink)", minHeight: 22 }}>
+                {selected.size === 0
+                  ? `Solo ${base === "brownie" ? "brownie" : "galleta"} base`
+                  : selectedToppings.map((t) => t.name).join(" · ")}
+              </p>
+            </div>
+
+            <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "22px 0" }} />
+
+            {/* Quantity */}
+            <div className="flex items-center justify-center gap-4">
+              <span
+                className="text-[11px] font-bold tracking-[0.16em] uppercase"
+                style={{ color: "var(--ink-soft)" }}
+              >
+                Cantidad
+              </span>
+              <div
+                className="inline-flex items-center overflow-hidden"
+                style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}
+              >
                 <button
-                  key={b.id}
-                  onClick={() => setBase(b.id)}
-                  className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all active:scale-95 ${
-                    base === b.id
-                      ? "bg-amber-800 text-white border-amber-800"
-                      : "bg-white text-amber-800 border-amber-200 hover:border-amber-400"
-                  }`}
+                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
+                  style={{ background: "transparent", color: "var(--ink)" }}
+                  onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
+                  onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
                 >
-                  {b.name}
+                  <BLIcon name="minus" size={16} />
                 </button>
-              ))}
-            </div>
-
-            {/* Product visual */}
-            <div className="bg-white rounded-3xl p-4 md:p-8 shadow-lg border border-amber-100">
-              <div className="w-full max-w-[160px] sm:max-w-[220px] md:max-w-xs mx-auto aspect-square">
-                {base === "brownie" ? (
-                  <BrownieSVG selected={selected} />
-                ) : (
-                  <GalletaSVG selected={selected} />
-                )}
-              </div>
-
-              {/* Toppings seleccionados */}
-              <div className="mt-4 md:mt-6 text-center">
-                <p className="text-xs text-stone-400 uppercase tracking-widest mb-2">Lleva</p>
-                {selected.size === 0 ? (
-                  <p className="text-stone-400 text-sm">
-                    Solo {base === "brownie" ? "brownie" : "galleta"} base
-                  </p>
-                ) : (
-                  <div className="flex flex-wrap justify-center gap-1.5 md:gap-2">
-                    {selectedToppings.map((t) => (
-                      <span
-                        key={t.id}
-                        className="text-xs bg-amber-100 text-amber-800 px-3 py-1 rounded-full font-medium"
-                      >
-                        {t.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-4 pt-4 border-t border-amber-100">
-                {/* Quantity selector */}
-                <div className="flex items-center justify-center gap-4 mb-4">
-                  <p className="text-xs text-stone-400 uppercase tracking-widest">Cantidad</p>
-                  <div className="flex items-center border border-stone-200 rounded-xl overflow-hidden">
-                    <button
-                      onClick={() => setQty(q => Math.max(1, q - 1))}
-                      className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors font-bold text-lg"
-                    >
-                      −
-                    </button>
-                    <span className="w-10 text-center text-base font-bold text-stone-800">{qty}</span>
-                    <button
-                      onClick={() => setQty(q => Math.min(50, q + 1))}
-                      className="w-10 h-10 flex items-center justify-center text-stone-500 hover:bg-stone-100 transition-colors font-bold text-lg"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <p className="text-xs text-stone-400 uppercase tracking-widest mb-1">
-                    Total estimado{qty > 1 && <span className="normal-case ml-1 text-stone-400">({qty} × {storeConfig.currencySymbol}{unitPrice})</span>}
-                  </p>
-                  <p className="text-2xl font-bold text-amber-800">
-                    {storeConfig.currencySymbol}{totalPrice}
-                  </p>
-                </div>
+                <span className="w-[26px] text-center font-bold text-[15px]" style={{ color: "var(--ink)" }}>
+                  {qty}
+                </span>
+                <button
+                  onClick={() => setQty((q) => Math.min(50, q + 1))}
+                  className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
+                  style={{ background: "transparent", color: "var(--ink)" }}
+                  onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
+                  onMouseOut={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                >
+                  <BLIcon name="plus" size={16} />
+                </button>
               </div>
             </div>
 
-            {/* Botón agregar al carrito — solo visible en desktop aquí */}
+            {/* Total */}
+            <div className="text-center mt-5">
+              <p
+                className="text-[11px] font-bold tracking-[0.16em] uppercase"
+                style={{ color: "var(--ink-soft)" }}
+              >
+                Total estimado
+              </p>
+              <p
+                className="font-extrabold mt-1"
+                style={{
+                  fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                  fontSize: "clamp(36px, 5vw, 48px)",
+                  color: "var(--orange-ink)",
+                  lineHeight: 1.1,
+                }}
+              >
+                {storeConfig.currencySymbol}{totalPrice}
+              </p>
+            </div>
+
+            {/* Add to cart */}
             <button
               onClick={handleAddToCart}
-              className="hidden lg:flex mt-4 w-full items-center justify-center gap-2 bg-amber-800 hover:bg-amber-700 text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full mt-5 inline-flex items-center justify-center gap-2 font-bold text-[15px] py-3.5 rounded-full text-white border-0 cursor-pointer transition-colors"
+              style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
             >
-              <span>🛒</span>
-              <span>Agregar al carrito{qty > 1 ? ` (${qty})` : ""}</span>
+              <BLIcon name="cart" size={18} />
+              Agregar al carrito{qty > 1 ? ` (${qty})` : ""}
             </button>
-          </div>
-
-          {/* Toppings — debajo del visual en móvil */}
-          <div className="mt-8 lg:mt-0">
-            <h2 className="text-lg md:text-xl font-bold text-amber-800 mb-1">Elige tus toppings</h2>
-            <p className="text-stone-500 text-sm mb-4 md:mb-6">
-              Toca cada uno para agregarlo o quitarlo de tu postre.
-            </p>
-
-            <div className="grid grid-cols-2 gap-2 md:gap-3">
-              {TOPPINGS.map((topping) => {
-                const isOn = selected.has(topping.id);
-                return (
-                  <button
-                    key={topping.id}
-                    onClick={() => toggleTopping(topping.id)}
-                    className={`relative flex items-center gap-2 md:gap-3 p-3 md:p-4 rounded-2xl border-2 text-left transition-all active:scale-95 ${
-                      isOn
-                        ? "border-amber-600 bg-amber-50 shadow-md"
-                        : "border-stone-200 bg-white hover:border-amber-300"
-                    }`}
-                  >
-                    <span
-                      className="w-7 h-7 md:w-8 md:h-8 rounded-full flex-shrink-0 border-2 border-white shadow"
-                      style={{ backgroundColor: topping.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className={`text-xs md:text-sm font-medium leading-tight block ${isOn ? "text-amber-800" : "text-stone-600"}`}>
-                        {topping.name}
-                      </span>
-                      <span className="text-xs text-amber-600 font-medium">
-                        +{storeConfig.currencySymbol}{topping.price}
-                      </span>
-                    </div>
-                    {isOn && (
-                      <span className="absolute top-2 right-2 w-4 h-4 bg-amber-600 rounded-full flex items-center justify-center text-white text-[10px] font-bold">
-                        ✓
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-
-            {selected.size > 0 && (
-              <button
-                onClick={() => setSelected(new Set())}
-                className="mt-4 text-sm text-stone-400 hover:text-stone-600 underline underline-offset-2 transition-colors"
-              >
-                Limpiar selección
-              </button>
-            )}
           </div>
         </div>
 
-        <div className="mt-8 md:mt-10 text-center">
-          <Link href="/menu" className="text-sm text-amber-700 hover:underline">
-            ← Ver menú completo
-          </Link>
+        {/* Options */}
+        <div>
+          {/* Base selector */}
+          <div className="grid gap-3 mb-5" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            {BASES.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => setBase(b.id)}
+                className="flex flex-col items-start gap-0.5 rounded-[16px] border cursor-pointer transition-all text-left"
+                style={{
+                  padding: "16px 20px",
+                  borderWidth: "1.5px",
+                  background: base === b.id ? "var(--choco-900)" : "var(--paper-card)",
+                  borderColor: base === b.id ? "var(--choco-900)" : "var(--hairline)",
+                }}
+              >
+                <strong
+                  className="text-[19px]"
+                  style={{
+                    fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                    color: base === b.id ? "var(--on-dark)" : "var(--ink)",
+                  }}
+                >
+                  {b.name}
+                </strong>
+                <span className="text-[13px]" style={{ color: base === b.id ? "var(--on-dark-soft)" : "var(--ink-soft)" }}>
+                  {b.description}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* Toppings */}
+          <h2
+            className="font-bold mb-1.5"
+            style={{ fontSize: "clamp(22px, 2.6vw, 28px)", color: "var(--ink)" }}
+          >
+            Elige tus toppings
+          </h2>
+          <p className="mb-5 text-[15px]" style={{ color: "var(--ink-soft)" }}>
+            Toca cada uno para agregarlo o quitarlo de tu postre.
+          </p>
+
+          <div className="grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            {TOPPINGS.map((topping) => {
+              const isOn = selected.has(topping.id);
+              return (
+                <button
+                  key={topping.id}
+                  onClick={() => toggleTopping(topping.id)}
+                  className="relative flex items-center gap-3 rounded-[16px] border cursor-pointer transition-all text-left"
+                  style={{
+                    padding: "14px 16px",
+                    borderWidth: "1.5px",
+                    background: "var(--paper-card)",
+                    borderColor: isOn ? "var(--orange)" : "var(--hairline)",
+                    boxShadow: isOn ? "0 0 0 3px rgba(217,113,30,.14)" : "none",
+                  }}
+                  onMouseOver={(e) => {
+                    if (!isOn) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--orange)";
+                  }}
+                  onMouseOut={(e) => {
+                    if (!isOn) (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--hairline)";
+                  }}
+                >
+                  <span
+                    className="w-[30px] h-[30px] rounded-full flex-none shadow"
+                    style={{ background: topping.color, boxShadow: "inset 0 0 0 1px rgba(0,0,0,.08)" }}
+                  />
+                  <span className="flex-1 min-w-0">
+                    <span className="block font-semibold text-[15px] leading-tight" style={{ color: "var(--ink)" }}>
+                      {topping.name}
+                    </span>
+                    <span className="text-[13px] font-bold" style={{ color: "var(--orange-ink)" }}>
+                      +{storeConfig.currencySymbol}{topping.price}
+                    </span>
+                  </span>
+                  {isOn && (
+                    <span
+                      className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full grid place-items-center"
+                      style={{ background: "var(--orange)", color: "#fff" }}
+                    >
+                      <span className="text-[10px] font-bold">✓</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          {selected.size > 0 && (
+            <button
+              onClick={() => setSelected(new Set())}
+              className="mt-4 text-[14px] underline cursor-pointer border-0 bg-transparent"
+              style={{ color: "var(--ink-soft)" }}
+            >
+              Limpiar selección
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Botón fijo en la parte inferior — solo móvil */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-4 bg-amber-50/90 backdrop-blur-sm border-t border-amber-100">
+      {/* Back link */}
+      <div className="text-center pb-16">
+        <Link
+          href="/menu"
+          className="inline-flex items-center gap-2 font-bold text-[15px] no-underline transition-colors"
+          style={{ color: "var(--orange-ink)" }}
+        >
+          <BLIcon name="arrow-right" size={16} className="rotate-180" />
+          Ver menú completo
+        </Link>
+      </div>
+
+      {/* Mobile sticky add button */}
+      <div
+        className="lg:hidden fixed bottom-0 left-0 right-0 p-4"
+        style={{
+          background: "rgba(251,246,236,.92)",
+          backdropFilter: "blur(10px)",
+          borderTop: "1px solid var(--hairline)",
+        }}
+      >
         <button
           onClick={handleAddToCart}
-          className="flex w-full items-center justify-center gap-2 bg-amber-800 hover:bg-amber-700 text-white font-semibold py-3.5 rounded-xl transition-colors"
+          className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-4 rounded-full text-white border-0 cursor-pointer transition-colors"
+          style={{ background: "var(--orange)" }}
         >
-          <span>🛒</span>
-          <span>Agregar al carrito{qty > 1 ? ` (${qty})` : ""}</span>
+          <BLIcon name="cart" size={18} />
+          Agregar al carrito{qty > 1 ? ` (${qty})` : ""}
         </button>
       </div>
 
-      <style jsx>{`
+      <style>{`
         @keyframes popIn {
           from { transform: scale(0); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
       `}</style>
-    </div>
+    </>
   );
 }

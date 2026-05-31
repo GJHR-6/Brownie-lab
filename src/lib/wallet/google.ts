@@ -21,6 +21,7 @@
  */
 
 import type { ClienteFidelizacion } from '@/actions/fidelizacion';
+import { sanitizeText } from '@/lib/sanitize';
 
 const ISSUER_ID    = process.env.GOOGLE_WALLET_ISSUER_ID ?? '';
 const SA_EMAIL     = process.env.GOOGLE_WALLET_SA_EMAIL  ?? '';
@@ -45,7 +46,7 @@ export async function generarGoogleWalletUrl(cliente: ClienteFidelizacion): Prom
     classId,
     state:       'ACTIVE',
     accountId:   cliente.telefono,
-    accountName: cliente.nombre || 'Cliente Brownie Lab',
+    accountName: sanitizeText(cliente.nombre, 80) || 'Cliente Brownie Lab',
 
     loyaltyPoints: {
       balance: { int: cliente.compras_actuales },

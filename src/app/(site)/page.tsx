@@ -2,9 +2,10 @@ import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import AnimateIn from "@/components/AnimateIn";
 import LoyaltySection from "@/components/LoyaltySection";
+import BLIcon from "@/components/BLIcon";
+import GiftIntro from "@/components/GiftIntro";
 import { storeConfig } from "@/config/store";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
-import { getTestimoniosPublicos } from "@/actions/testimonios";
 
 export const revalidate = 3600;
 
@@ -17,15 +18,15 @@ function getDaysLeft(fechaInicio: string, duracionDias: number): number {
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+const SEC: React.CSSProperties = { paddingBlock: "clamp(64px, 9vw, 120px)" };
+
 export default async function Home() {
-  const [productos, especiales, config, testimonios] = await Promise.all([
+  const [productos, especiales, config] = await Promise.all([
     getProductosPublicos(),
     getEspecialesActivos(),
     getConfiguracion(),
-    getTestimoniosPublicos(),
   ]);
   const whatsapp = config?.whatsapp || storeConfig.whatsapp;
-
   const featured = productos.slice(0, 3);
   const activeSpecials = especiales.filter(
     (e) => getDaysLeft(e.fecha_inicio, e.duracion_dias) > 0
@@ -33,206 +34,384 @@ export default async function Home() {
 
   return (
     <div>
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-amber-900 via-amber-800 to-amber-600 text-white py-16 md:py-28 px-4">
-        <div className="max-w-3xl mx-auto text-center">
-          <p className="text-amber-300 text-xs font-semibold tracking-[0.25em] uppercase mb-4">
-            Hecho a mano · Con obsesión
-          </p>
-          <h1
-            className="text-4xl sm:text-5xl md:text-6xl font-bold mb-6 leading-tight"
-            style={{ fontFamily: "var(--font-playfair)" }}
-          >
-            {storeConfig.name}
-          </h1>
-          <p className="text-amber-100 text-base sm:text-xl mb-10 leading-relaxed max-w-2xl mx-auto">
-            Todo empezó con la obsesión perfecta: el brownie ideal. Mientras perfeccionamos
-            nuestra receta secreta, te invitamos a probar las galletas que nacieron en el camino.
-            <span className="text-amber-300 font-medium"> Spoiler: también son adictivas.</span>
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/menu"
-              className="bg-white text-amber-800 font-semibold px-8 py-3 rounded-full hover:bg-amber-50 transition-colors"
+      <GiftIntro />
+      {/* ── Hero ──────────────────────────────────────────────────────── */}
+      <section
+        className="relative overflow-hidden"
+        style={{
+          color: "var(--on-dark)",
+          background:
+            "radial-gradient(120% 90% at 80% 10%, rgba(232,162,58,.30), transparent 55%), linear-gradient(160deg, var(--choco-900) 0%, var(--choco-700) 42%, var(--orange-ink) 100%)",
+        }}
+      >
+        <div
+          className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-hero"
+          style={{
+            maxWidth: "var(--maxw)",
+            gridTemplateColumns: "1.05fr .95fr",
+            paddingBlock: "clamp(56px, 8vw, 104px)",
+          }}
+        >
+          {/* Copy */}
+          <div>
+            <span
+              className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--amber)" }}
             >
-              Ver Menú
-            </Link>
-            <Link
-              href="/personaliza"
-              className="border-2 border-amber-300 text-amber-300 font-semibold px-8 py-3 rounded-full hover:bg-amber-300/10 transition-colors"
+              <BLIcon name="sparkle" size={15} style={{ color: "var(--amber)" } as React.CSSProperties} />
+              Hecho a mano · con obsesión
+            </span>
+            <h1
+              className="font-extrabold mt-4 mb-5"
+              style={{ fontSize: "clamp(40px, 5.6vw, 72px)", color: "var(--on-dark)" }}
             >
-              Arma tu postre ✦
-            </Link>
+              El brownie<br />perfecto existe.
+            </h1>
+            <p style={{ fontSize: "clamp(17px, 1.5vw, 20px)", color: "var(--on-dark-soft)", maxWidth: "50ch" }}>
+              Empezamos con una obsesión: encontrar la receta ideal. En el camino nacieron
+              galletas que también te van a enamorar.{" "}
+              <span style={{ color: "var(--amber)", fontWeight: 600 }}>
+                Spoiler: son adictivas.
+              </span>
+            </p>
+            <div className="flex flex-wrap gap-3.5 mt-8">
+              <Link
+                href="/menu"
+                className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+                style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+              >
+                Ver el menú
+                <BLIcon name="arrow-right" size={16} />
+              </Link>
+              <Link
+                href="/personaliza"
+                className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full no-underline transition-colors border"
+                style={{
+                  color: "var(--on-dark)",
+                  borderColor: "rgba(246,234,212,.4)",
+                  background: "transparent",
+                }}
+              >
+                Arma tu postre
+                <BLIcon name="sparkle" size={16} />
+              </Link>
+            </div>
+          </div>
+
+          {/* Media */}
+          <div className="relative">
+            <div
+              className="w-full rounded-[24px]"
+              style={{
+                aspectRatio: "1/1",
+                background:
+                  "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
+                boxShadow: "var(--shadow-lg)",
+              }}
+            />
+            {/* Floating chip 1 */}
+            <div
+              className="absolute top-4 -left-3 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
+              style={{ color: "var(--ink)", boxShadow: "var(--shadow-md)" }}
+            >
+              <BLIcon name="leaf" size={16} style={{ color: "var(--orange)" } as React.CSSProperties} />
+              Ingredientes reales
+            </div>
+            {/* Floating chip 2 */}
+            <div
+              className="absolute bottom-6 -right-2 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
+              style={{ color: "var(--ink)", boxShadow: "var(--shadow-md)" }}
+            >
+              <BLIcon name="heart" size={16} style={{ color: "var(--berry)" } as React.CSSProperties} />
+              +500 pedidos felices
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Capricho del Chef */}
+      {/* ── Capricho del Chef ─────────────────────────────────────────── */}
       {activeSpecials.length > 0 && (
         <AnimateIn>
-        <section className="py-12 md:py-20 px-4 bg-stone-900 text-white">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="text-amber-400 text-xs font-semibold tracking-[0.2em] uppercase mb-3">
-                Edición limitada
-              </p>
-              <h2
-                className="text-3xl md:text-4xl font-bold mb-3"
-                style={{ fontFamily: "var(--font-playfair)" }}
-              >
-                Capricho del Chef
-              </h2>
-              <p className="text-stone-400 max-w-lg mx-auto">
-                Nuevas recetas, cosas que no son comunes en nuestro menú. Nuestra forma de
-                poner las cosas experimentalmente — antes de que desaparezcan.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {activeSpecials.map((item) => {
-                const daysLeft = getDaysLeft(item.fecha_inicio, item.duracion_dias);
-                return (
-                  <div
-                    key={item.id}
-                    className="bg-stone-800 border border-stone-700 rounded-2xl p-6 flex flex-col gap-4 hover:border-amber-500/50 transition-colors"
+          <section style={{ background: "var(--choco-900)", color: "var(--on-dark)", paddingBlock: "clamp(64px, 9vw, 120px)" }}>
+            <div
+              className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col"
+              style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".9fr 1.1fr" }}
+            >
+              {/* Media placeholder */}
+              <div
+                className="rounded-[24px]"
+                style={{
+                  aspectRatio: "4/5",
+                  background:
+                    "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
+                }}
+              />
+              {/* Copy */}
+              <div>
+                <span
+                  className="text-[12px] font-bold tracking-[0.22em] uppercase"
+                  style={{ color: "var(--amber)" }}
+                >
+                  Edición limitada
+                </span>
+                <h2
+                  className="font-bold mt-4 mb-4"
+                  style={{ fontSize: "clamp(34px, 5vw, 52px)" }}
+                >
+                  {activeSpecials[0].nombre}
+                </h2>
+                <p style={{ color: "var(--on-dark-soft)", fontSize: 17, maxWidth: "46ch" }}>
+                  {activeSpecials[0].descripcion}
+                </p>
+                <div className="flex items-center flex-wrap gap-4 mt-7">
+                  <span
+                    className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full"
+                    style={{ background: "rgba(232,162,58,.15)", color: "var(--amber)" }}
                   >
-                    <div className="text-4xl">{item.emoji}</div>
-                    <div>
-                      <h3 className="font-bold text-lg mb-1">{item.nombre}</h3>
-                      <p className="text-stone-400 text-sm leading-relaxed">{item.descripcion}</p>
-                    </div>
-                    <div className="flex items-center justify-between mt-auto pt-2 border-t border-stone-700">
-                      <span className="text-amber-400 text-xs font-medium">
-                        ⏳ Quedan {daysLeft} {daysLeft === 1 ? "día" : "días"}
-                      </span>
-                      <a
-                        href={`https://wa.me/${whatsapp}?text=Hola! Me interesa el ${item.nombre} del Capricho del Chef`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs bg-amber-600 hover:bg-amber-500 transition-colors px-4 py-1.5 rounded-full font-medium"
-                      >
-                        Pedir
-                      </a>
-                    </div>
-                  </div>
-                );
-              })}
+                    Solo esta semana
+                  </span>
+                  <span
+                    className="inline-flex items-center gap-2 font-bold text-[15px]"
+                    style={{ color: "var(--amber)" }}
+                  >
+                    <BLIcon name="clock" size={18} />
+                    Quedan {getDaysLeft(activeSpecials[0].fecha_inicio, activeSpecials[0].duracion_dias)} días
+                  </span>
+                </div>
+                <div className="mt-5">
+                  <a
+                    href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Me interesa el ${activeSpecials[0].nombre} del Capricho del Chef`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+                    style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+                  >
+                    Pedir ahora
+                    <BLIcon name="arrow-right" size={16} />
+                  </a>
+                </div>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         </AnimateIn>
       )}
 
-      {/* Productos destacados */}
+      {/* ── Favoritos del momento ─────────────────────────────────────── */}
       {featured.length > 0 && (
         <AnimateIn delay={100}>
-        <section className="py-12 md:py-20 px-4">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <h2
-                className="text-3xl md:text-4xl font-bold text-amber-800 mb-3"
-                style={{ fontFamily: "var(--font-playfair)" }}
-              >
-                Favoritos del Momento
-              </h2>
-              <p className="text-stone-500">Los más pedidos de la semana</p>
-            </div>
+          <section style={{ ...SEC }}>
+            <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+              <div className="text-center" style={{ marginBottom: "clamp(40px, 5vw, 60px)", maxWidth: "60ch", marginInline: "auto" }}>
+                <span
+                  className="text-[12px] font-bold tracking-[0.22em] uppercase"
+                  style={{ color: "var(--orange)" }}
+                >
+                  Los más pedidos
+                </span>
+                <h2 className="mt-3" style={{ fontSize: "clamp(32px, 4.6vw, 52px)" }}>
+                  Favoritos del momento
+                </h2>
+                <p className="mt-3" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
+                  Todo hecho a mano. Pedidos con 24h de anticipación.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 mb-10">
-              {featured.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
-
-            <div className="text-center">
-              <Link
-                href="/menu"
-                className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors"
+              <div
+                className="grid gap-6 bl-grid-3col"
+                style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
               >
-                Ver todo el menú →
-              </Link>
+                {featured.map((p) => (
+                  <ProductCard key={p.id} product={p} />
+                ))}
+              </div>
+
+              <div className="text-center mt-12">
+                <Link
+                  href="/menu"
+                  className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full no-underline transition-colors"
+                  style={{
+                    background: "var(--paper-card)",
+                    color: "var(--ink)",
+                    boxShadow: "var(--shadow-sm)",
+                  }}
+                >
+                  Ver todo el menú
+                  <BLIcon name="arrow-right" size={16} />
+                </Link>
+              </div>
             </div>
-          </div>
-        </section>
+          </section>
         </AnimateIn>
       )}
 
-      {/* Testimonios */}
-      {testimonios.length > 0 && (
-        <AnimateIn delay={150}>
-        <section className="py-12 md:py-20 px-4 bg-stone-50">
-          <div className="max-w-5xl mx-auto">
-            <div className="text-center mb-12">
-              <p className="text-amber-600 text-xs font-semibold tracking-widest uppercase mb-3">Lo que dicen</p>
-              <h2 className="text-3xl md:text-4xl font-bold text-amber-800" style={{ fontFamily: "var(--font-playfair)" }}>
-                Nuestros clientes
-              </h2>
+      {/* ── Arma tu postre ────────────────────────────────────────────── */}
+      <section style={{ background: "var(--cream)", ...SEC }}>
+        <div
+          className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-2col"
+          style={{ maxWidth: "var(--maxw)", gridTemplateColumns: "1fr 1fr" }}
+        >
+          <div>
+            <span
+              className="inline-flex items-center gap-1.5 text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
+            >
+              <BLIcon name="sparkle" size={14} />
+              Nuevo
+            </span>
+            <h2 className="mt-3 mb-4" style={{ fontSize: "clamp(32px, 4.4vw, 50px)" }}>
+              Arma tu postre ideal
+            </h2>
+            <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "42ch" }}>
+              Elige la base y agrégale los toppings que quieras. Míralo antes de pedirlo.
+            </p>
+            <div className="flex flex-wrap gap-2.5 mb-8">
+              {["Pecanas", "Chispas de chocolate", "Arándanos", "Caramelo", "Coco rallado", "Sal de mar", "Almendras", "Frambuesas"].map(
+                (t) => (
+                  <span
+                    key={t}
+                    className="inline-flex items-center gap-1.5 text-[14px] font-semibold px-4 py-2 rounded-full border"
+                    style={{
+                      background: "var(--paper-card)",
+                      borderColor: "var(--hairline)",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full"
+                      style={{ background: "var(--orange)" }}
+                    />
+                    {t}
+                  </span>
+                )
+              )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5">
-              {testimonios.map((t) => (
-                <div key={t.id} className="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col gap-3">
-                  <p className="text-amber-500 text-sm">{'⭐'.repeat(t.estrellas)}</p>
-                  <p className="text-stone-600 text-sm leading-relaxed flex-1">&ldquo;{t.texto}&rdquo;</p>
-                  <p className="font-semibold text-stone-800 text-sm">— {t.autor}</p>
+            <Link
+              href="/personaliza"
+              className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+              style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+            >
+              Personalizar ahora
+              <BLIcon name="arrow-right" size={16} />
+            </Link>
+          </div>
+          {/* Media placeholder */}
+          <div
+            className="rounded-[24px]"
+            style={{
+              aspectRatio: "1/1",
+              background:
+                "repeating-linear-gradient(135deg, rgba(116,58,20,.07) 0 10px, rgba(116,58,20,0) 10px 20px), var(--cream-200)",
+              boxShadow: "var(--shadow-md)",
+            }}
+          />
+        </div>
+      </section>
+
+      {/* ── Club Brownie Lab ──────────────────────────────────────────── */}
+      <section
+        id="club"
+        style={{
+          background: "var(--choco-900)",
+          color: "var(--on-dark)",
+          ...SEC,
+        }}
+      >
+        <div
+          className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-2col"
+          style={{ maxWidth: "var(--maxw)", gridTemplateColumns: "1fr 1fr" }}
+        >
+          {/* Copy */}
+          <div>
+            <span
+              className="w-14 h-14 rounded-[14px] grid place-items-center mb-5"
+              style={{ background: "rgba(232,162,58,.15)", color: "var(--amber)" }}
+            >
+              <BLIcon name="brownie" size={30} />
+            </span>
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--amber)" }}
+            >
+              Club de fidelización
+            </span>
+            <h2 className="mt-3 mb-4" style={{ fontSize: "clamp(32px, 4.4vw, 48px)" }}>
+              Club Brownie Lab
+            </h2>
+            <p style={{ color: "var(--on-dark-soft)", fontSize: 17, maxWidth: "42ch" }}>
+              Acumula un sello con cada compra. Al llegar a 10, tu brownie va por la casa.
+            </p>
+            {/* Demo stamps */}
+            <div
+              className="grid gap-3 mt-7"
+              style={{ gridTemplateColumns: "repeat(5, 1fr)", maxWidth: 360 }}
+            >
+              {Array.from({ length: 10 }, (_, i) => (
+                <div
+                  key={i}
+                  className="aspect-square rounded-full grid place-items-center"
+                  style={
+                    i < 4
+                      ? {
+                          border: "1.5px solid var(--amber)",
+                          background: "rgba(232,162,58,.16)",
+                          color: "var(--amber)",
+                        }
+                      : {
+                          border: "1.5px dashed rgba(246,234,212,.3)",
+                          color: "rgba(246,234,212,.3)",
+                        }
+                  }
+                >
+                  {i < 4 && <BLIcon name="brownie" size={20} />}
                 </div>
               ))}
             </div>
           </div>
-        </section>
-        </AnimateIn>
-      )}
 
-      {/* Club de fidelización */}
-      <section className="py-12 md:py-20 px-4 bg-stone-50 border-y border-stone-100">
-        <div className="max-w-md mx-auto">
-          <LoyaltySection />
+          {/* Card */}
+          <div
+            className="rounded-[24px] p-8"
+            style={{
+              background: "var(--paper-card)",
+              boxShadow: "var(--shadow-lg)",
+              borderTop: "5px solid var(--orange)",
+            }}
+          >
+            <LoyaltySection />
+          </div>
         </div>
       </section>
 
-      {/* Arma tu postre CTA */}
-      <section className="py-10 md:py-16 px-4 bg-amber-50 border-y border-amber-100">
-        <div className="max-w-2xl mx-auto text-center">
-          <p className="text-amber-600 text-xs font-semibold tracking-widest uppercase mb-3">Nuevo</p>
-          <h2
-            className="text-3xl font-bold text-amber-800 mb-4"
-            style={{ fontFamily: "var(--font-playfair)" }}
+      {/* ── Contacto ──────────────────────────────────────────────────── */}
+      <section className="text-center" style={{ ...SEC }}>
+        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+          <span
+            className="text-[12px] font-bold tracking-[0.22em] uppercase"
+            style={{ color: "var(--orange)" }}
           >
-            Arma tu postre ideal
-          </h2>
-          <p className="text-stone-500 mb-8">
-            Elige la base y agrégale los toppings que quieras. Míralo antes de pedirlo.
-          </p>
-          <Link
-            href="/personaliza"
-            className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors"
-          >
-            Personalizar ahora ✦
-          </Link>
-        </div>
-      </section>
-
-      {/* CTA WhatsApp */}
-      <section className="bg-amber-800 text-white py-10 md:py-16 px-4">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2
-            className="text-3xl font-bold mb-4"
-            style={{ fontFamily: "var(--font-playfair)" }}
-          >
+            Estamos para ayudarte
+          </span>
+          <h2 className="mt-3 mb-3" style={{ fontSize: "clamp(30px, 4vw, 44px)" }}>
             ¿Tienes alguna pregunta?
           </h2>
-          <p className="text-amber-200 mb-8 text-lg">
+          <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
             Escríbenos por WhatsApp, con gusto te atendemos.
           </p>
-          <a
-            href={`https://wa.me/${whatsapp}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-green-500 hover:bg-green-400 text-white font-semibold px-8 py-3 rounded-full transition-colors"
-          >
-            💬 Escribir por WhatsApp
-          </a>
+          {whatsapp && (
+            <a
+              href={`https://wa.me/${whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+              style={{ background: "var(--choco-900)" }}
+            >
+              <BLIcon name="whatsapp" size={20} style={{ color: "#58d684" } as React.CSSProperties} />
+              Escribir por WhatsApp
+            </a>
+          )}
         </div>
       </section>
     </div>
   );
 }
+

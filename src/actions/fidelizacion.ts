@@ -3,6 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { actualizarGoogleWalletObject } from '@/lib/wallet/google';
+import { sanitizePhone, sanitizeText } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -49,7 +50,7 @@ export async function buscarCliente(
   telefono: string
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion; cupones: CuponFidelizacion[] }>> {
   try {
-    const tel = normalizarTelefono(telefono);
+    const tel = normalizarTelefono(sanitizePhone(telefono));
     if (tel.length < 7) return { success: false, error: 'Número de teléfono inválido.' };
 
     const supabase = await createSupabaseServerClient();
@@ -92,8 +93,9 @@ export async function registrarCompra(
   nombre?: string
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion; cuponGenerado: CuponFidelizacion | null }>> {
   try {
-    const tel = normalizarTelefono(telefono);
+    const tel = normalizarTelefono(sanitizePhone(telefono));
     if (!tel) return { success: false, error: 'Teléfono inválido.' };
+    const nombreLimpio = sanitizeText(nombre, 80);
 
     const supabase = createSupabaseServiceClient();
 
@@ -113,7 +115,7 @@ export async function registrarCompra(
       .upsert(
         {
           telefono: tel,
-          nombre: nombre ?? actual?.nombre ?? '',
+          nombre: nombreLimpio || actual?.nombre || '',
           compras_actuales: llego10 ? 0 : comprasActuales + 1,
           compras_totales: (actual?.compras_totales ?? 0) + 1,
         },
