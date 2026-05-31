@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Playfair_Display, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { storeConfig } from "@/config/store";
-import GiftIntro from "@/components/GiftIntro";
 
 const playfair = Playfair_Display({
   subsets: ["latin"],
@@ -36,7 +35,6 @@ export default function RootLayout({
           fontFamily: "var(--font-dm-sans, 'DM Sans'), system-ui, -apple-system, sans-serif",
         }}
       >
-        <GiftIntro />
         {children}
       </body>
     </html>
