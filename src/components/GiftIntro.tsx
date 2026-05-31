@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import BLIcon from "@/components/BLIcon";
 
 const KEY = "bl_gift_opened_v1";
+let _introShown = false; // guards against React 18 Strict Mode double-effect
 type Phase = "idle" | "visible" | "opening" | "welcome" | "done" | "gone";
 
 function overlayClass(phase: Phase) {
@@ -18,11 +19,14 @@ export default function GiftIntro() {
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
-    let seen = false;
-    try { seen = localStorage.getItem(KEY) === "1"; } catch {}
-    if (!seen) {
-      setPhase("visible");
-      document.body.style.overflow = "hidden";
+    if (!_introShown) {
+      let seen = false;
+      try { seen = localStorage.getItem(KEY) === "1"; } catch {}
+      if (!seen) {
+        _introShown = true;
+        setPhase("visible");
+        document.body.style.overflow = "hidden";
+      }
     }
     return () => timers.current.forEach(clearTimeout);
   }, []);
