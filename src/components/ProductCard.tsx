@@ -18,6 +18,8 @@ export default function ProductCard({ product }: { product: Producto }) {
   const [qty, setQty] = useState(1);
   const [mounted, setMounted] = useState(false);
 
+  const agotado = product.disponible && product.stock === 0;
+
   useEffect(() => {
     setMounted(true);
     addRecent(product);
@@ -52,7 +54,13 @@ export default function ProductCard({ product }: { product: Producto }) {
       }}
     >
       {/* Media */}
-      <div className="relative" style={{ aspectRatio: "4/3" }}>
+      <div
+        className="relative"
+        style={{
+          aspectRatio: "4/3",
+          ...(agotado && { filter: "grayscale(0.65)", opacity: 0.82 }),
+        }}
+      >
         {product.imagen_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -70,6 +78,29 @@ export default function ProductCard({ product }: { product: Producto }) {
           >
             {product.emoji ?? "🍪"}
           </div>
+        )}
+
+        {/* Agotado overlay */}
+        {agotado && (
+          <>
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "repeating-linear-gradient(135deg, rgba(180,160,140,.18) 0 10px, transparent 10px 20px)",
+              }}
+            />
+            <span
+              className="absolute top-3 left-3 text-[13px] font-semibold px-3 py-1 rounded-full"
+              style={{
+                background: "rgba(40,30,20,.82)",
+                color: "#fff",
+                backdropFilter: "blur(4px)",
+              }}
+            >
+              Agotado hoy
+            </span>
+          </>
         )}
 
         {/* Wishlist button */}
@@ -117,9 +148,29 @@ export default function ProductCard({ product }: { product: Producto }) {
           {product.descripcion}
         </p>
 
+        {agotado && (
+          <p className="text-[13px] font-medium" style={{ color: "var(--ink-soft)" }}>
+            Vuelve mañana.
+          </p>
+        )}
+
         {/* Footer */}
         <div className="flex items-center gap-2.5 mt-auto pt-1.5">
-          {product.disponible ? (
+          {agotado ? (
+            <button
+              disabled
+              className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full cursor-not-allowed border"
+              style={{
+                background: "var(--paper-card)",
+                color: "var(--ink-soft)",
+                borderColor: "var(--hairline)",
+                opacity: 0.75,
+              }}
+            >
+              <BLIcon name="clock" size={16} />
+              Avísame cuando vuelva
+            </button>
+          ) : product.disponible ? (
             <>
               {/* Stepper */}
               <div
