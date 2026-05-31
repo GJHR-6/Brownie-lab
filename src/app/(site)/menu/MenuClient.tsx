@@ -4,6 +4,13 @@ import { useState } from "react";
 import ProductCard from "@/components/ProductCard";
 import BLIcon from "@/components/BLIcon";
 import type { Producto, Categoria } from "@/types/database";
+import type { BLIconName } from "@/components/BLIcon";
+
+function catIcon(slug: string): BLIconName {
+  if (slug.includes("galleta") || slug.includes("cookie")) return "mark";
+  if (slug.includes("especial") || slug.includes("limited") || slug.includes("chef")) return "sparkle";
+  return "brownie";
+}
 
 export default function MenuClient({
   productos,
@@ -176,7 +183,7 @@ export default function MenuClient({
                   className="w-[46px] h-[46px] rounded-[12px] grid place-items-center flex-none"
                   style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
                 >
-                  <BLIcon name="brownie" size={24} />
+                  <BLIcon name={catIcon(category)} size={24} />
                 </span>
                 <h2
                   className="font-bold"
