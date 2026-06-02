@@ -18,14 +18,13 @@ interface Topping {
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const BROWNIE_VARIANTS: Variant[] = [
-  { id: "clasico",   name: "Clásico",         desc: "Denso y húmedo",        price: 40 },
-  { id: "triple",    name: "Triple Chocolate", desc: "Extra intenso",         price: 48 },
-  { id: "redvelvet", name: "Red Velvet",       desc: "Terciopelo rojo",       price: 45 },
+  { id: "clasico", name: "Clásico",  desc: "Denso y húmedo",   price: 40 },
+  { id: "nuez",    name: "Con Nuez", desc: "Con nuez tostada", price: 45 },
 ];
 const GALLETA_VARIANTS: Variant[] = [
-  { id: "mantequilla", name: "Mantequilla",  desc: "Clásica y dorada",      price: 30 },
-  { id: "avena",       name: "Avena y Miel", desc: "Natural y suave",       price: 30 },
-  { id: "chocochips",  name: "Choco Chips",  desc: "Con chispas incluidas", price: 35 },
+  { id: "mocca",     name: "Mocca",               desc: "Café y chocolate",      price: 35 },
+  { id: "chispas",   name: "Chispas de Chocolate", desc: "Con chispas incluidas", price: 35 },
+  { id: "redvelvet", name: "Red Velvet",           desc: "Terciopelo rojo",       price: 35 },
 ];
 
 const TOPPINGS: Topping[] = [
@@ -252,7 +251,7 @@ function GalletaSVG({ selected }: { selected: Set<string> }) {
 export default function PersonalizaPage() {
   const [base, setBase] = useState<MainBase>("brownie");
   const [brownieVariant, setBrownieVariant] = useState("clasico");
-  const [galletaVariant, setGalletaVariant] = useState("mantequilla");
+  const [galletaVariant, setGalletaVariant] = useState("mocca");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [qty, setQty] = useState(1);
   const addItem = useCartStore(s => s.addItem);
@@ -440,7 +439,7 @@ export default function PersonalizaPage() {
           </div>
 
           {/* Sub-base variants */}
-          <div className="bl-pers-subbases grid gap-2.5 mb-6" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+          <div className="bl-pers-subbases grid gap-2.5 mb-6" style={{ gridTemplateColumns: `repeat(${activeVariants.length}, 1fr)` }}>
             {activeVariants.map(v => (
               <button
                 key={v.id}
