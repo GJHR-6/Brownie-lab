@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Loader2, Upload } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/client';
+import { subirImagenGaleria, eliminarImagenGaleria } from '@/actions/galeria';
 
 interface FileInfo {
   name: string;
@@ -32,9 +32,9 @@ export default function GaleriaClient({ files }: { files: FileInfo[] }) {
     e.stopPropagation();
     if (!confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
     setDeletingName(name);
-    const supabase = createSupabaseBrowserClient();
-    await supabase.storage.from('product-images').remove([name]);
+    const result = await eliminarImagenGaleria(name);
     setDeletingName(null);
+    if (!result.success) setUploadError(result.error ?? 'Error al eliminar');
     startTransition(() => { router.refresh(); });
   }
 
@@ -43,20 +43,12 @@ export default function GaleriaClient({ files }: { files: FileInfo[] }) {
     if (!fileList || fileList.length === 0) return;
     setUploading(true);
     setUploadError(null);
-    const supabase = createSupabaseBrowserClient();
 
-    const results = await Promise.allSettled(
-      Array.from(fileList).map(async (file) => {
-        const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-        const fileName = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-        const { error } = await supabase.storage.from('product-images').upload(fileName, file, { upsert: false });
-        if (error) throw new Error(error.message);
-      })
-    );
+    const formData = new FormData();
+    Array.from(fileList).forEach(f => formData.append('files', f));
+    const result = await subirImagenGaleria(null, formData);
 
-    const errors = results.filter(r => r.status === 'rejected') as PromiseRejectedResult[];
-    if (errors.length > 0) setUploadError(`${errors.length} archivo(s) no se pudieron subir.`);
-
+    if (!result.success) setUploadError(result.error ?? 'Error al subir');
     setUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
     startTransition(() => { router.refresh(); });

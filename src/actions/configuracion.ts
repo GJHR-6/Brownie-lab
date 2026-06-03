@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { ActionResult } from '@/types/actions';
 
 async function requireAdmin() {
@@ -42,15 +43,17 @@ export async function updateConfiguracion(
     const banco_titular = (formData.get('banco_titular') as string ?? '').trim();
     const banco_numero  = (formData.get('banco_numero') as string ?? '').trim();
 
-    // File uploads helper
+    // Service client bypasses RLS for server-side uploads (already admin-verified above)
+    const serviceClient = createSupabaseServiceClient();
+
     async function uploadFile(fieldName: string, storageName: string): Promise<string | null | undefined> {
       const file = formData.get(fieldName) as File | null;
       if (!file || file.size === 0) return undefined;
       const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
       const fileName = `${storageName}.${ext}`;
-      const { error } = await supabase.storage.from('product-images').upload(fileName, file, { upsert: true });
+      const { error } = await serviceClient.storage.from('product-images').upload(fileName, file, { upsert: true });
       if (error) throw new Error(`Error subiendo ${fieldName}: ${error.message}`);
-      return supabase.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
+      return serviceClient.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
     }
 
     const logo_url                  = await uploadFile('logo', 'logo');
