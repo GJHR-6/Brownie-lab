@@ -5,6 +5,30 @@ import { Loader2 } from 'lucide-react';
 import { createProducto, updateProducto } from '@/actions/productos';
 import type { Producto, Categoria } from '@/types/database';
 
+const T = {
+  inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
+  btnPrimary: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer' as const, background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' },
+  btnGhost: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer' as const, background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' },
+};
+
+function fg(label: React.ReactNode, field: React.ReactNode) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{label}</label>
+      {field}
+    </div>
+  );
+}
+
+function inpFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = 'var(--orange)';
+  e.target.style.background = '#fff';
+}
+function inpBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = 'var(--hairline)';
+  e.target.style.background = 'var(--paper)';
+}
+
 interface ProductoFormProps {
   productoInicial?: Producto;
   categorias: Categoria[];
@@ -14,167 +38,90 @@ interface ProductoFormProps {
 
 export default function ProductoForm({ productoInicial, categorias, onSuccess, onCancel }: ProductoFormProps) {
   const isEditing = !!productoInicial;
-
-  // bind evaluado solo en mount — form se desmonta al cerrar modal
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const action = useMemo(
-    () => isEditing ? updateProducto.bind(null, productoInicial!.id) : createProducto,
-    []
-  );
-
+  const action = useMemo(() => isEditing ? updateProducto.bind(null, productoInicial!.id) : createProducto, []);
   const [state, formAction, isPending] = useActionState(action, null);
 
-  useEffect(() => {
-    if (state?.success) onSuccess();
-  }, [state, onSuccess]);
+  useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
   return (
-    <form action={formAction} className="px-6 py-5 space-y-4">
-      {isEditing && (
-        <input type="hidden" name="imagen_url_actual" value={productoInicial.imagen_url ?? ''} />
-      )}
+    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 24 }}>
+      {isEditing && <input type="hidden" name="imagen_url_actual" value={productoInicial.imagen_url ?? ''} />}
 
       {state?.success === false && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
+        <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>
           {state.error}
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">
-          Nombre <span className="text-red-500">*</span>
-        </label>
-        <input
-          name="nombre"
-          required
-          disabled={isPending}
-          defaultValue={productoInicial?.nombre}
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
+      {fg(<>Nombre <span style={{ color: 'var(--berry)' }}>*</span></>,
+        <input name="nombre" required disabled={isPending} defaultValue={productoInicial?.nombre}
           placeholder="Brownie de Nutella"
-        />
-      </div>
+          style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+          onFocus={inpFocus} onBlur={inpBlur} />
+      )}
 
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Descripción</label>
-        <textarea
-          name="descripcion"
-          rows={2}
-          disabled={isPending}
-          defaultValue={productoInicial?.descripcion ?? ''}
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 resize-none"
-        />
-      </div>
+      {fg('Descripción',
+        <textarea name="descripcion" rows={2} disabled={isPending} defaultValue={productoInicial?.descripcion ?? ''}
+          style={{ ...T.inp, resize: 'vertical', minHeight: 80, lineHeight: 1.6, opacity: isPending ? 0.6 : 1 }}
+          onFocus={inpFocus} onBlur={inpBlur} />
+      )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">
-            Precio HNL <span className="text-red-500">*</span>
-          </label>
-          <input
-            name="precio"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            disabled={isPending}
-            defaultValue={productoInicial?.precio}
-            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">
-            Stock <span className="text-red-500">*</span>
-          </label>
-          <input
-            name="stock"
-            type="number"
-            min="0"
-            required
-            disabled={isPending}
-            defaultValue={productoInicial?.stock}
-            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Categoría</label>
-          <select
-            name="categoria"
-            disabled={isPending}
-            defaultValue={productoInicial?.categoria ?? 'clasicas'}
-            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 bg-white"
-          >
-            {categorias.map((c) => (
-              <option key={c.slug} value={c.slug}>{c.nombre}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Emoji</label>
-          <input
-            name="emoji"
-            maxLength={4}
-            disabled={isPending}
-            defaultValue={productoInicial?.emoji ?? ''}
-            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-          />
-        </div>
-      </div>
-
-      {/* Disponibilidad programada */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Disponible desde</label>
-          <input name="disponible_desde" type="date" disabled={isPending}
-            defaultValue={productoInicial?.disponible_desde ?? ''}
-            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-stone-700 mb-1.5">Disponible hasta</label>
-          <input name="disponible_hasta" type="date" disabled={isPending}
-            defaultValue={productoInicial?.disponible_hasta ?? ''}
-            className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
-        </div>
-      </div>
-      <p className="text-xs text-stone-400 -mt-2">Deja vacío para disponibilidad siempre activa.</p>
-
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">
-          {isEditing ? 'Cambiar imagen (opcional)' : 'Imagen del producto'}
-        </label>
-        {isEditing && productoInicial.imagen_url && (
-          <div className="mb-2 w-16 h-16 rounded-lg overflow-hidden border border-stone-200">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={productoInicial.imagen_url} alt="actual" className="w-full h-full object-cover" />
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {fg(<>Precio HNL <span style={{ color: 'var(--berry)' }}>*</span></>,
+          <input name="precio" type="number" step="0.01" min="0.01" required disabled={isPending} defaultValue={productoInicial?.precio}
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         )}
-        <input
-          name="imagen"
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          disabled={isPending}
-          className="w-full text-sm text-stone-500 file:mr-3 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-amber-100 file:text-amber-800 hover:file:bg-amber-200 transition-colors disabled:opacity-60"
-        />
-        <p className="text-xs text-stone-400 mt-1">PNG, JPG o WebP · Máx. 5 MB</p>
+        {fg(<>Stock <span style={{ color: 'var(--berry)' }}>*</span></>,
+          <input name="stock" type="number" min="0" required disabled={isPending} defaultValue={productoInicial?.stock}
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
+        )}
       </div>
 
-      <div className="flex gap-3 pt-1">
-        <button
-          type="button"
-          onClick={onCancel}
-          disabled={isPending}
-          className="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-60"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          disabled={isPending}
-          className="flex-1 bg-amber-700 hover:bg-amber-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-        >
-          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {fg('Categoría',
+          <select name="categoria" disabled={isPending} defaultValue={productoInicial?.categoria ?? 'clasicas'}
+            style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur}>
+            {categorias.map(c => <option key={c.slug} value={c.slug}>{c.nombre}</option>)}
+          </select>
+        )}
+        {fg('Emoji',
+          <input name="emoji" maxLength={4} disabled={isPending} defaultValue={productoInicial?.emoji ?? ''}
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
+        )}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {fg('Disponible desde',
+          <input name="disponible_desde" type="date" disabled={isPending} defaultValue={productoInicial?.disponible_desde ?? ''}
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
+        )}
+        {fg('Disponible hasta',
+          <input name="disponible_hasta" type="date" disabled={isPending} defaultValue={productoInicial?.disponible_hasta ?? ''}
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
+        )}
+      </div>
+      <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: -12 }}>Deja vacío para disponibilidad siempre activa.</p>
+
+      {fg(
+        isEditing ? 'Cambiar imagen (opcional)' : 'Imagen del producto',
+        <div>
+          {isEditing && productoInicial.imagen_url && (
+            <div style={{ marginBottom: 8, width: 56, height: 56, borderRadius: 11, overflow: 'hidden', border: '1px solid var(--hairline)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={productoInicial.imagen_url} alt="actual" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            </div>
+          )}
+          <input name="imagen" type="file" accept="image/png,image/jpeg,image/webp" disabled={isPending}
+            style={{ width: '100%', fontSize: 13, color: 'var(--ink-soft)' }} />
+          <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>PNG, JPG o WebP · Máx. 5 MB</p>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', gap: 10, paddingTop: 4, borderTop: '1px solid var(--hairline)', marginTop: 4 }}>
+        <button type="button" onClick={onCancel} disabled={isPending} style={{ ...T.btnGhost, flex: 1, justifyContent: 'center' }}>Cancelar</button>
+        <button type="submit" disabled={isPending} style={{ ...T.btnPrimary, flex: 1, justifyContent: 'center', opacity: isPending ? 0.7 : 1 }}>
+          {isPending && <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />}
           {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Guardar producto'}
         </button>
       </div>

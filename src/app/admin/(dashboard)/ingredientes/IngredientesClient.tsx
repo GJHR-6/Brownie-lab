@@ -11,253 +11,151 @@ const PRECIO_VENTA_BAJO = 55;
 const PRECIO_VENTA_ALTO = 60;
 const PORCIONES_POR_BANDEJA = 9;
 
-// ── Form ──────────────────────────────────────────────────────────────────────
+const T = {
+  th: { textAlign: 'left' as const, fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--ink-soft)', padding: '14px 22px', borderBottom: '1px solid var(--hairline)', whiteSpace: 'nowrap' as const, background: 'var(--paper)' },
+  td: { padding: '14px 22px', fontSize: 14, color: 'var(--ink)', verticalAlign: 'middle' as const, borderBottom: '1px solid var(--hairline)' },
+  inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
+  btnPrimary: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer' as const, background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' },
+  btnGhost: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer' as const, background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' },
+};
 
-function IngredienteForm({
-  inicial,
-  onSuccess,
-  onCancel,
-}: {
-  inicial?: Ingrediente;
-  onSuccess: () => void;
-  onCancel: () => void;
-}) {
+function inpFocus(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff';
+}
+function inpBlur(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)';
+}
+
+function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingrediente; onSuccess: () => void; onCancel: () => void }) {
   const isEdit = !!inicial;
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const boundAction = useMemo(
-    () => isEdit ? updateIngrediente.bind(null, inicial.id) : createIngrediente,
-    []
-  );
-
+  const boundAction = useMemo(() => isEdit ? updateIngrediente.bind(null, inicial.id) : createIngrediente, []);
   const [state, formAction, pending] = useActionState(boundAction, null);
-
-  useEffect(() => {
-    if (state?.success) onSuccess();
-  }, [state, onSuccess]);
+  useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
   return (
-    <form action={formAction} className="px-6 py-4 space-y-4">
+    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 24 }}>
       {state && !state.success && (
-        <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{state.error}</p>
+        <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>{state.error}</div>
       )}
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="col-span-2">
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Nombre *</label>
-          <input
-            name="nombre"
-            defaultValue={inicial?.nombre}
-            required
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Nombre <span style={{ color: 'var(--berry)' }}>*</span></label>
+          <input name="nombre" defaultValue={inicial?.nombre} required
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div className="col-span-2">
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Descripción del paquete</label>
-          <input
-            name="descripcion_paquete"
-            defaultValue={inicial?.descripcion_paquete ?? ''}
-            placeholder="Ej: Bolsa 1800g, Cartón 30 unidades"
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Descripción del paquete</label>
+          <input name="descripcion_paquete" defaultValue={inicial?.descripcion_paquete ?? ''} placeholder="Bolsa 1800g, Cartón 30 unidades"
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Unidad de medida *</label>
-          <select
-            name="unidad"
-            defaultValue={inicial?.unidad ?? 'g'}
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          >
-            {UNIDADES.map((u) => <option key={u} value={u}>{u}</option>)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Unidad <span style={{ color: 'var(--berry)' }}>*</span></label>
+          <select name="unidad" defaultValue={inicial?.unidad ?? 'g'}
+            style={{ ...T.inp, appearance: 'auto', opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur}>
+            {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Tamaño del paquete *</label>
-          <input
-            name="tamano_paquete"
-            type="number"
-            step="0.01"
-            min="0.01"
-            defaultValue={inicial?.tamano_paquete}
-            required
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Tamaño paquete <span style={{ color: 'var(--berry)' }}>*</span></label>
+          <input name="tamano_paquete" type="number" step="0.01" min="0.01" required defaultValue={inicial?.tamano_paquete}
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Costo del paquete (L.) *</label>
-          <input
-            name="costo_paquete"
-            type="number"
-            step="0.01"
-            min="0"
-            defaultValue={inicial?.costo_paquete}
-            required
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Costo paquete (L.) <span style={{ color: 'var(--berry)' }}>*</span></label>
+          <input name="costo_paquete" type="number" step="0.01" min="0" required defaultValue={inicial?.costo_paquete}
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Stock (paquetes)</label>
-          <input
-            name="stock_paquetes"
-            type="number"
-            step="0.5"
-            min="0"
-            defaultValue={inicial?.stock_paquetes ?? 0}
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Stock (paquetes)</label>
+          <input name="stock_paquetes" type="number" step="0.5" min="0" defaultValue={inicial?.stock_paquetes ?? 0}
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Cantidad por bandeja</label>
-          <input
-            name="cantidad_por_bandeja"
-            type="number"
-            step="0.01"
-            min="0"
-            defaultValue={inicial?.cantidad_por_bandeja ?? ''}
-            placeholder="En la misma unidad"
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Cant. por bandeja</label>
+          <input name="cantidad_por_bandeja" type="number" step="0.01" min="0" defaultValue={inicial?.cantidad_por_bandeja ?? ''} placeholder="En la misma unidad"
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Costo por bandeja (L.)</label>
-          <input
-            name="costo_por_bandeja"
-            type="number"
-            step="0.01"
-            min="0"
-            defaultValue={inicial?.costo_por_bandeja ?? ''}
-            placeholder="Calculado o manual"
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-          />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Costo por bandeja (L.)</label>
+          <input name="costo_por_bandeja" type="number" step="0.01" min="0" defaultValue={inicial?.costo_por_bandeja ?? ''} placeholder="Calculado o manual"
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
-        <div className="col-span-2 flex gap-4 items-center">
-          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              name="es_topping"
-              value="true"
-              defaultChecked={inicial?.es_topping ?? false}
-              className="rounded accent-amber-500"
-            />
+        <div style={{ gridColumn: '1/-1', display: 'flex', gap: 20, alignItems: 'center' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--ink)', cursor: 'pointer' }}>
+            <input type="checkbox" name="es_topping" value="true" defaultChecked={inicial?.es_topping ?? false}
+              style={{ accentColor: 'var(--orange)', width: 16, height: 16 }} />
             Es topping
           </label>
-          <label className="flex items-center gap-2 text-sm text-stone-700 cursor-pointer select-none">
-            <input
-              type="checkbox"
-              name="activo"
-              value="true"
-              defaultChecked={inicial?.activo ?? true}
-              className="rounded accent-amber-500"
-            />
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--ink)', cursor: 'pointer' }}>
+            <input type="checkbox" name="activo" value="true" defaultChecked={inicial?.activo ?? true}
+              style={{ accentColor: 'var(--orange)', width: 16, height: 16 }} />
             Activo
           </label>
         </div>
 
-        <div className="col-span-2">
-          <label className="block text-xs font-semibold text-stone-600 mb-1">Notas</label>
-          <textarea
-            name="notas"
-            rows={2}
-            defaultValue={inicial?.notas ?? ''}
-            className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 resize-none"
-          />
+        <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 7 }}>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
+          <textarea name="notas" rows={2} defaultValue={inicial?.notas ?? ''}
+            style={{ ...T.inp, resize: 'vertical', minHeight: 72, lineHeight: 1.6, opacity: pending ? 0.6 : 1 }}
+            onFocus={inpFocus} onBlur={inpBlur} />
         </div>
       </div>
 
-      <div className="flex gap-2 pt-2">
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex-1 bg-amber-700 hover:bg-amber-600 disabled:opacity-60 text-white py-2 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2"
-        >
-          {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+      <div style={{ display: 'flex', gap: 10, paddingTop: 4, borderTop: '1px solid var(--hairline)', marginTop: 4 }}>
+        <button type="button" onClick={onCancel} disabled={pending} style={{ ...T.btnGhost, flex: 1, justifyContent: 'center' }}>Cancelar</button>
+        <button type="submit" disabled={pending} style={{ ...T.btnPrimary, flex: 1, justifyContent: 'center', opacity: pending ? 0.7 : 1 }}>
+          {pending && <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />}
           {isEdit ? 'Guardar cambios' : 'Crear ingrediente'}
-        </button>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="px-4 py-2 rounded-xl text-sm text-stone-600 hover:bg-stone-100 transition-colors"
-        >
-          Cancelar
         </button>
       </div>
     </form>
   );
 }
 
-// ── Summary cards ─────────────────────────────────────────────────────────────
-
 function ResumenCostos({ ingredientes }: { ingredientes: Ingrediente[] }) {
-  const totalBandeja = ingredientes
-    .filter((i) => i.activo && i.costo_por_bandeja !== null)
-    .reduce((sum, i) => sum + (i.costo_por_bandeja ?? 0), 0);
-
+  const totalBandeja = ingredientes.filter(i => i.activo && i.costo_por_bandeja !== null).reduce((s, i) => s + (i.costo_por_bandeja ?? 0), 0);
   const costoPorUnidad = totalBandeja / PORCIONES_POR_BANDEJA;
   const margenBajo = PRECIO_VENTA_BAJO - costoPorUnidad;
   const margenAlto = PRECIO_VENTA_ALTO - costoPorUnidad;
 
   const cards = [
-    {
-      label: 'Costo por bandeja',
-      value: `L. ${totalBandeja.toFixed(2)}`,
-      sub: `${PORCIONES_POR_BANDEJA} porciones`,
-      icon: FlaskConical,
-      color: 'bg-blue-50 text-blue-600',
-    },
-    {
-      label: 'Costo por unidad',
-      value: `L. ${costoPorUnidad.toFixed(2)}`,
-      sub: 'ingredientes solamente',
-      icon: Package,
-      color: 'bg-amber-50 text-amber-600',
-    },
-    {
-      label: `Margen a L. ${PRECIO_VENTA_BAJO}`,
-      value: `L. ${margenBajo.toFixed(2)}`,
-      sub: `${((margenBajo / PRECIO_VENTA_BAJO) * 100).toFixed(0)}% de margen`,
-      icon: TrendingUp,
-      color: margenBajo > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600',
-    },
-    {
-      label: `Margen a L. ${PRECIO_VENTA_ALTO}`,
-      value: `L. ${margenAlto.toFixed(2)}`,
-      sub: `${((margenAlto / PRECIO_VENTA_ALTO) * 100).toFixed(0)}% de margen`,
-      icon: ShoppingBag,
-      color: margenAlto > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600',
-    },
+    { label: 'Costo por bandeja', value: `L. ${totalBandeja.toFixed(2)}`, sub: `${PORCIONES_POR_BANDEJA} porciones`, icon: FlaskConical, bg: 'rgba(47,111,219,.12)', color: '#2f6fdb' },
+    { label: 'Costo por unidad', value: `L. ${costoPorUnidad.toFixed(2)}`, sub: 'ingredientes solamente', icon: Package, bg: 'rgba(217,113,30,.13)', color: 'var(--orange-ink)' },
+    { label: `Margen a L. ${PRECIO_VENTA_BAJO}`, value: `L. ${margenBajo.toFixed(2)}`, sub: `${((margenBajo / PRECIO_VENTA_BAJO) * 100).toFixed(0)}% de margen`, icon: TrendingUp, bg: margenBajo > 0 ? 'rgba(31,138,91,.12)' : 'rgba(158,59,70,.12)', color: margenBajo > 0 ? 'var(--green)' : 'var(--berry)' },
+    { label: `Margen a L. ${PRECIO_VENTA_ALTO}`, value: `L. ${margenAlto.toFixed(2)}`, sub: `${((margenAlto / PRECIO_VENTA_ALTO) * 100).toFixed(0)}% de margen`, icon: ShoppingBag, bg: margenAlto > 0 ? 'rgba(31,138,91,.12)' : 'rgba(158,59,70,.12)', color: margenAlto > 0 ? 'var(--green)' : 'var(--berry)' },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-      {cards.map(({ label, value, sub, icon: Icon, color }) => (
-        <div key={label} className="bg-white rounded-2xl border border-stone-200 p-4">
-          <div className={`inline-flex items-center justify-center w-8 h-8 rounded-lg mb-2 ${color}`}>
-            <Icon className="w-4 h-4" />
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 24 }} className="grid-cols-2 lg:grid-cols-4">
+      {cards.map(({ label, value, sub, icon: Icon, bg, color }) => (
+        <div key={label} style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', padding: '18px 20px', boxShadow: 'var(--shadow-sm)', display: 'flex', gap: 14, alignItems: 'center' }}>
+          <span style={{ width: 44, height: 44, borderRadius: 12, display: 'grid', placeItems: 'center', flexShrink: 0, background: bg, color }}>
+            <Icon style={{ width: 22, height: 22 }} />
+          </span>
+          <div>
+            <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: 'var(--ink)', lineHeight: 1, margin: 0 }}>{value}</p>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', fontWeight: 500, marginTop: 4 }}>{label}</p>
+            <p style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 2 }}>{sub}</p>
           </div>
-          <p className="text-xs text-stone-500 font-medium">{label}</p>
-          <p className="text-lg font-bold text-stone-800 mt-0.5">{value}</p>
-          <p className="text-xs text-stone-400 mt-0.5">{sub}</p>
         </div>
       ))}
     </div>
   );
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-
 type Filtro = 'todos' | 'base' | 'toppings';
 
-interface Props { initialIngredientes: Ingrediente[] }
-
-export default function IngredientesClient({ initialIngredientes }: Props) {
+export default function IngredientesClient({ initialIngredientes }: { initialIngredientes: Ingrediente[] }) {
   const router = useRouter();
   type ModalState = { open: false } | { open: true; modo: 'crear' } | { open: true; modo: 'editar'; ingrediente: Ingrediente };
 
@@ -266,14 +164,8 @@ export default function IngredientesClient({ initialIngredientes }: Props) {
   const [filtro, setFiltro] = useState<Filtro>('todos');
   const [isPending, startTransition] = useTransition();
 
-  const refresh = useCallback(() => {
-    startTransition(() => { router.refresh(); });
-  }, [router]);
-
-  const handleSuccess = useCallback(() => {
-    setModal({ open: false });
-    refresh();
-  }, [refresh]);
+  const refresh = useCallback(() => { startTransition(() => { router.refresh(); }); }, [router]);
+  const handleSuccess = useCallback(() => { setModal({ open: false }); refresh(); }, [refresh]);
 
   async function handleDelete(id: string, nombre: string) {
     if (!confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
@@ -283,144 +175,119 @@ export default function IngredientesClient({ initialIngredientes }: Props) {
     refresh();
   }
 
-  const filtered = initialIngredientes.filter((i) => {
+  const filtered = initialIngredientes.filter(i => {
     if (filtro === 'base') return !i.es_topping;
     if (filtro === 'toppings') return i.es_topping;
     return true;
   });
 
+  const FILTROS: { key: Filtro; label: string }[] = [
+    { key: 'todos', label: 'Todos' },
+    { key: 'base', label: 'Receta base' },
+    { key: 'toppings', label: 'Toppings' },
+  ];
+
   return (
-    <div className="p-4 sm:p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+    <div className="px-6 md:px-10 py-8 pb-16 max-w-[1500px] w-full">
+      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Ingredientes</h1>
-          <p className="text-stone-500 text-sm mt-0.5">
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Ingredientes</h1>
+          <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
             {initialIngredientes.length} ingredientes registrados
-            {isPending && <span className="ml-2 text-amber-600">Actualizando…</span>}
+            {isPending && <span style={{ marginLeft: 8, color: 'var(--orange-ink)' }}>Actualizando…</span>}
           </p>
         </div>
-        <button
-          onClick={() => setModal({ open: true, modo: 'crear' })}
-          className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo ingrediente
+        <button onClick={() => setModal({ open: true, modo: 'crear' })} style={T.btnPrimary}>
+          <Plus style={{ width: 17, height: 17 }} />Nuevo ingrediente
         </button>
       </div>
 
-      {/* Resumen costos */}
       <ResumenCostos ingredientes={initialIngredientes} />
 
-      {/* Filtro tabs */}
-      <div className="flex gap-1 mb-4">
-        {(['todos', 'base', 'toppings'] as Filtro[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFiltro(f)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors capitalize ${
-              filtro === f
-                ? 'bg-amber-700 text-white'
-                : 'text-stone-500 hover:text-stone-800 hover:bg-stone-100'
-            }`}
-          >
-            {f === 'todos' ? 'Todos' : f === 'base' ? 'Receta base' : 'Toppings'}
+      {/* Filter tabs */}
+      <div style={{ display: 'inline-flex', background: 'var(--cream-200)', borderRadius: 'var(--r-pill)', padding: 4, gap: 2, marginBottom: 18 }}>
+        {FILTROS.map(f => (
+          <button key={f.key} onClick={() => setFiltro(f.key)}
+            style={{ border: 0, fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 13, color: filtro === f.key ? 'var(--ink)' : 'var(--ink-soft)', padding: '7px 16px', borderRadius: 'var(--r-pill)', cursor: 'pointer', background: filtro === f.key ? 'var(--paper-card)' : 'none', boxShadow: filtro === f.key ? 'var(--shadow-sm)' : 'none', transition: '.15s' }}>
+            {f.label}
           </button>
         ))}
       </div>
 
-      {/* Tabla */}
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+      {/* Table */}
+      <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
-              <tr className="border-b border-stone-100 bg-stone-50 text-stone-600">
-                <th className="text-left px-4 py-3 font-semibold">Ingrediente</th>
-                <th className="text-left px-4 py-3 font-semibold">Paquete</th>
-                <th className="text-right px-4 py-3 font-semibold">Costo pkg.</th>
-                <th className="text-right px-4 py-3 font-semibold">Costo/unidad</th>
-                <th className="text-right px-4 py-3 font-semibold">Costo/bandeja</th>
-                <th className="text-right px-4 py-3 font-semibold">Stock</th>
-                <th className="text-center px-4 py-3 font-semibold">Tipo</th>
-                <th className="text-right px-4 py-3 font-semibold">Acciones</th>
+              <tr>
+                <th style={T.th}>Ingrediente</th>
+                <th style={T.th}>Paquete</th>
+                <th style={{ ...T.th, textAlign: 'right' }}>Costo pkg.</th>
+                <th style={{ ...T.th, textAlign: 'right' }}>Costo/unidad</th>
+                <th style={{ ...T.th, textAlign: 'right' }}>Costo/bandeja</th>
+                <th style={{ ...T.th, textAlign: 'right' }}>Stock</th>
+                <th style={{ ...T.th, textAlign: 'center' }}>Tipo</th>
+                <th style={{ ...T.th, textAlign: 'right' }}>Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100">
+            <tbody>
               {filtered.map((i) => (
-                <tr key={i.id} className={`hover:bg-stone-50/70 transition-colors ${!i.activo ? 'opacity-50' : ''}`}>
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-stone-800">{i.nombre}</p>
-                    {i.notas && <p className="text-xs text-stone-400 max-w-[200px] truncate">{i.notas}</p>}
+                <tr key={i.id}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--paper)')}
+                  onMouseLeave={e => (e.currentTarget.style.background = '')}
+                  style={{ transition: 'background .12s', opacity: !i.activo ? 0.5 : 1 }}>
+                  <td style={T.td}>
+                    <p style={{ fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{i.nombre}</p>
+                    {i.notas && <p style={{ fontSize: 12, color: 'var(--ink-soft)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{i.notas}</p>}
                   </td>
-
-                  <td className="px-4 py-3 text-stone-500">
+                  <td style={{ ...T.td, color: 'var(--ink-soft)' }}>
                     {i.descripcion_paquete ?? '—'}
                     {i.cantidad_por_bandeja !== null && (
-                      <p className="text-xs text-stone-400">{i.cantidad_por_bandeja} {i.unidad} por bandeja</p>
+                      <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>{i.cantidad_por_bandeja} {i.unidad} por bandeja</p>
                     )}
                   </td>
-
-                  <td className="px-4 py-3 text-right font-medium text-stone-700">
-                    L. {i.costo_paquete.toFixed(2)}
+                  <td style={{ ...T.td, textAlign: 'right', fontWeight: 600 }}>L. {i.costo_paquete.toFixed(2)}</td>
+                  <td style={{ ...T.td, textAlign: 'right', fontSize: 12, color: 'var(--ink-soft)', fontFamily: 'ui-monospace,monospace' }}>
+                    {i.costo_por_unidad != null ? `L. ${Number(i.costo_por_unidad).toFixed(4)}/${i.unidad}` : '—'}
                   </td>
-
-                  <td className="px-4 py-3 text-right text-stone-500 text-xs">
-                    {i.costo_por_unidad != null
-                      ? `L. ${Number(i.costo_por_unidad).toFixed(4)}/${i.unidad}`
-                      : '—'}
-                  </td>
-
-                  <td className="px-4 py-3 text-right">
+                  <td style={{ ...T.td, textAlign: 'right' }}>
                     {i.costo_por_bandeja != null ? (
-                      <span className="font-semibold text-amber-700">L. {Number(i.costo_por_bandeja).toFixed(2)}</span>
-                    ) : (
-                      <span className="text-stone-300">—</span>
-                    )}
+                      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--orange-ink)' }}>
+                        L. {Number(i.costo_por_bandeja).toFixed(2)}
+                      </span>
+                    ) : <span style={{ color: 'var(--hairline)' }}>—</span>}
                   </td>
-
-                  <td className="px-4 py-3 text-right">
-                    <span className={i.stock_paquetes === 0 ? 'text-red-500 font-bold' : i.stock_paquetes <= 2 ? 'text-amber-500 font-semibold' : 'text-stone-600'}>
+                  <td style={{ ...T.td, textAlign: 'right' }}>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, color: i.stock_paquetes === 0 ? 'var(--berry)' : i.stock_paquetes <= 2 ? '#b14a12' : 'var(--ink)' }}>
                       {i.stock_paquetes}
                     </span>
                   </td>
-
-                  <td className="px-4 py-3 text-center">
-                    <span className={`inline-block text-xs rounded-full px-2.5 py-0.5 font-medium ${
-                      i.es_topping
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-amber-100 text-amber-800'
-                    }`}>
+                  <td style={{ ...T.td, textAlign: 'center' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 'var(--r-pill)', background: i.es_topping ? '#ece8f8' : 'var(--cream-200)', color: i.es_topping ? '#6b46c1' : 'var(--orange-ink)' }}>
                       {i.es_topping ? 'Topping' : 'Base'}
                     </span>
                   </td>
-
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-3">
-                      <button
-                        onClick={() => setModal({ open: true, modo: 'editar', ingrediente: i })}
-                        aria-label="Editar"
-                        className="text-stone-300 hover:text-amber-600 transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
+                  <td style={{ ...T.td, textAlign: 'right' }}>
+                    <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                      <button onClick={() => setModal({ open: true, modo: 'editar', ingrediente: i })}
+                        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s' }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange-ink)'; e.currentTarget.style.borderColor = 'var(--orange)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
+                        <Pencil style={{ width: 15, height: 15 }} />
                       </button>
-                      <button
-                        onClick={() => handleDelete(i.id, i.nombre)}
-                        disabled={deletingId === i.id}
-                        aria-label="Eliminar"
-                        className="text-stone-300 hover:text-red-500 transition-colors disabled:opacity-50"
-                      >
-                        {deletingId === i.id
-                          ? <Loader2 className="w-4 h-4 animate-spin" />
-                          : <Trash2 className="w-4 h-4" />}
+                      <button onClick={() => handleDelete(i.id, i.nombre)} disabled={deletingId === i.id}
+                        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === i.id ? 0.5 : 1 }}
+                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--berry)'; e.currentTarget.style.borderColor = 'var(--berry)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
+                        {deletingId === i.id ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: 15, height: 15 }} />}
                       </button>
                     </div>
                   </td>
                 </tr>
               ))}
-
               {filtered.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center text-stone-400">
+                  <td colSpan={8} style={{ ...T.td, textAlign: 'center', padding: '48px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
                     No hay ingredientes en esta categoría.
                   </td>
                 </tr>
@@ -428,32 +295,26 @@ export default function IngredientesClient({ initialIngredientes }: Props) {
             </tbody>
           </table>
         </div>
-
-        {/* Nota empaques */}
-        <div className="border-t border-stone-100 px-4 py-3 bg-amber-50/50">
-          <p className="text-xs text-amber-700">
+        {/* Note about packaging */}
+        <div style={{ borderTop: '1px solid var(--hairline)', padding: '12px 22px', background: 'var(--cream)' }}>
+          <p style={{ fontSize: 12, color: 'var(--orange-ink)', margin: 0 }}>
             <strong>Nota:</strong> el costo de empaques no está incluido en el resumen. Estimado: ~L17 por bandeja (L1.90/unidad).
           </p>
         </div>
       </div>
 
-      {/* Modal crear / editar */}
+      {/* Modal */}
       {modal.open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setModal({ open: false }); }}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 sticky top-0 bg-white">
-              <h2 className="text-lg font-bold text-stone-800">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) setModal({ open: false }); }}>
+          <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', position: 'sticky', top: 0 }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>
                 {modal.modo === 'crear' ? 'Nuevo ingrediente' : 'Editar ingrediente'}
-              </h2>
-              <button
-                onClick={() => setModal({ open: false })}
-                className="text-stone-400 hover:text-stone-600 transition-colors"
-                aria-label="Cerrar"
-              >
-                <X className="w-5 h-5" />
+              </h3>
+              <button onClick={() => setModal({ open: false })}
+                style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
+                <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
             <IngredienteForm
