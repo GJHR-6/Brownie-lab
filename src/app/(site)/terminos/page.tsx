@@ -56,8 +56,8 @@ export default function TerminosPage() {
       {/* Legal body */}
       <section style={{ paddingBlock: "clamp(48px, 6vw, 80px) clamp(64px, 9vw, 120px)" }}>
         <div
-          className="mx-auto px-[var(--gutter)] grid gap-[clamp(40px,6vw,88px)] items-start"
-          style={{ maxWidth: "var(--maxw)", gridTemplateColumns: "248px 1fr" }}
+          className="mx-auto px-[var(--gutter)] grid gap-[clamp(40px,6vw,88px)] items-start lg:grid-cols-[248px_1fr]"
+          style={{ maxWidth: "var(--maxw)" }}
         >
           <div className="hidden lg:block">
             <LegalIndex sections={SECTIONS} />

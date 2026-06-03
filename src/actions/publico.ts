@@ -2,6 +2,7 @@
 
 import { headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
@@ -169,6 +170,65 @@ export async function crearPedidoPublico(
 
     if (error) return { success: false, error: error.message };
     return { success: true, data: { id: data.id } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+// ── Subir comprobante de pago ─────────────────────────────────────────────────
+
+export async function subirComprobante(
+  pedidoId: string,
+  formData: FormData
+): Promise<ActionResult<{ url: string }>> {
+  const ip = getIpFromHeaders(await headers());
+  if (!rateLimit(`comprobante:${ip}`, 5, 60 * 60 * 1000)) {
+    return { success: false, error: 'Demasiados intentos.' };
+  }
+
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pedidoId)) {
+    return { success: false, error: 'ID de pedido inválido.' };
+  }
+
+  const file = formData.get('comprobante') as File | null;
+  if (!file || file.size === 0) return { success: false, error: 'Archivo requerido.' };
+  if (file.size > 10 * 1024 * 1024) return { success: false, error: 'Archivo muy grande (máx. 10 MB).' };
+  if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
+    return { success: false, error: 'Solo imágenes (PNG, JPG, WEBP).' };
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+
+    const { data: pedido } = await supabase
+      .from('pedidos')
+      .select('id, comprobante_url')
+      .eq('id', pedidoId)
+      .single();
+
+    if (!pedido) return { success: false, error: 'Pedido no encontrado.' };
+    if (pedido.comprobante_url) return { success: true, data: { url: pedido.comprobante_url } };
+
+    const service = createSupabaseServiceClient();
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `comprobantes/${pedidoId}.${ext}`;
+
+    const { error: uploadError } = await service.storage
+      .from('product-images')
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) return { success: false, error: `Error al subir: ${uploadError.message}` };
+
+    const { data: { publicUrl } } = service.storage.from('product-images').getPublicUrl(path);
+
+    const { error: dbError } = await supabase
+      .from('pedidos')
+      .update({ comprobante_url: publicUrl })
+      .eq('id', pedidoId);
+
+    if (dbError) return { success: false, error: dbError.message };
+
+    return { success: true, data: { url: publicUrl } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }

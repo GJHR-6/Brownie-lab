@@ -42,6 +42,7 @@ export interface Pedido {
   items: PedidoItem[] | null;
   total: number;
   estado: EstadoPedido;
+  comprobante_url?: string | null;
   created_at: string;
   updated_at: string;
 }
