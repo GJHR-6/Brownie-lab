@@ -72,16 +72,26 @@ export default async function NosotrosPage() {
           className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-2col"
           style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".92fr 1.08fr" }}
         >
-          {/* Media placeholder */}
-          <div
-            className="rounded-[24px]"
-            style={{
-              aspectRatio: "4/5",
-              background:
-                "repeating-linear-gradient(135deg, rgba(116,58,20,.07) 0 10px, rgba(116,58,20,0) 10px 20px), var(--cream)",
-              boxShadow: "var(--shadow-md)",
-            }}
-          />
+          {/* Media — imagen desde admin o placeholder */}
+          {config?.nosotros_imagen_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={config.nosotros_imagen_url}
+              alt="Nuestra historia"
+              className="rounded-[24px] w-full object-cover"
+              style={{ aspectRatio: '4/5', boxShadow: 'var(--shadow-md)' }}
+            />
+          ) : (
+            <div
+              className="rounded-[24px]"
+              style={{
+                aspectRatio: '4/5',
+                background:
+                  'repeating-linear-gradient(135deg, rgba(116,58,20,.07) 0 10px, rgba(116,58,20,0) 10px 20px), var(--cream)',
+                boxShadow: 'var(--shadow-md)',
+              }}
+            />
+          )}
           <div>
             <span
               className="text-[12px] font-bold tracking-[0.22em] uppercase"

@@ -42,20 +42,20 @@ export async function updateConfiguracion(
     const banco_titular = (formData.get('banco_titular') as string ?? '').trim();
     const banco_numero  = (formData.get('banco_numero') as string ?? '').trim();
 
-    // Logo upload
-    const logoFile = formData.get('logo') as File | null;
-    let logo_url: string | null | undefined = undefined;
-
-    if (logoFile && logoFile.size > 0) {
-      const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? 'png';
-      const fileName = `logo.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(fileName, logoFile, { upsert: true });
-      if (uploadErr) return { success: false, error: `Error subiendo logo: ${uploadErr.message}` };
-      const { data: { publicUrl } } = supabase.storage.from('product-images').getPublicUrl(fileName);
-      logo_url = publicUrl;
+    // File uploads helper
+    async function uploadFile(fieldName: string, storageName: string): Promise<string | null | undefined> {
+      const file = formData.get(fieldName) as File | null;
+      if (!file || file.size === 0) return undefined;
+      const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const fileName = `${storageName}.${ext}`;
+      const { error } = await supabase.storage.from('product-images').upload(fileName, file, { upsert: true });
+      if (error) throw new Error(`Error subiendo ${fieldName}: ${error.message}`);
+      return supabase.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
     }
+
+    const logo_url           = await uploadFile('logo', 'logo');
+    const hero_imagen_url    = await uploadFile('hero_imagen', 'hero-inicio');
+    const nosotros_imagen_url = await uploadFile('nosotros_imagen', 'nosotros-historia');
 
     const payload: Record<string, unknown> = {
       id: 1, nombre, whatsapp, correo, ubicacion,
@@ -64,7 +64,9 @@ export async function updateConfiguracion(
       aviso_barra_superior, mensaje_bienvenida,
       tagline, descripcion, banco_nombre, banco_titular, banco_numero,
     };
-    if (logo_url !== undefined) payload.logo_url = logo_url;
+    if (logo_url !== undefined)            payload.logo_url = logo_url;
+    if (hero_imagen_url !== undefined)     payload.hero_imagen_url = hero_imagen_url;
+    if (nosotros_imagen_url !== undefined) payload.nosotros_imagen_url = nosotros_imagen_url;
 
     const { error } = await supabase.from('configuracion').upsert(payload);
     if (error) return { success: false, error: error.message };

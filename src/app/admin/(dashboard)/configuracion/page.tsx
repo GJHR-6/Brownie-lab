@@ -20,6 +20,8 @@ const DEFAULT_CONFIG: Configuracion = {
   aviso_barra_superior: '',
   mensaje_bienvenida: '',
   logo_url: null,
+  hero_imagen_url: null,
+  nosotros_imagen_url: null,
   banco_nombre: '',
   banco_titular: '',
   banco_numero: '',

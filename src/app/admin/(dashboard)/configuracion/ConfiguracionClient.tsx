@@ -48,21 +48,61 @@ function Inp(props: React.InputHTMLAttributes<HTMLInputElement> & { style?: Reac
   );
 }
 
+function ImageUploadTile({
+  inputRef, preview, onPreview, fieldName, label, accept, aspect,
+}: {
+  inputRef: React.RefObject<HTMLInputElement>;
+  preview: string | null;
+  onPreview: (url: string) => void;
+  fieldName: string;
+  label: string;
+  accept?: string;
+  aspect?: string;
+}) {
+  return (
+    <>
+      <input ref={inputRef} name={fieldName} type="file" accept={accept ?? 'image/png,image/jpeg,image/webp'}
+        onChange={e => { const f = e.target.files?.[0]; if (f) onPreview(URL.createObjectURL(f)); }}
+        style={{ display: 'none' }} />
+      <button type="button" onClick={() => inputRef.current?.click()}
+        style={{
+          width: '100%', aspectRatio: aspect ?? '16/9', borderRadius: 'var(--r-md)',
+          border: '1.6px dashed var(--hairline)',
+          background: `repeating-linear-gradient(135deg,rgba(116,58,20,.06) 0 9px,rgba(116,58,20,0) 9px 18px),var(--cream)`,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 8, cursor: 'pointer', overflow: 'hidden', padding: 0, position: 'relative', transition: '.14s',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--orange)'; }}
+        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; }}
+      >
+        {preview
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={preview} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+          : <>
+              <Upload style={{ width: 22, height: 22, color: 'var(--orange-ink)' }} />
+              <span style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', color: 'var(--ink-soft)' }}>{label}</span>
+            </>
+        }
+      </button>
+    </>
+  );
+}
+
 export default function ConfiguracionClient({ config }: { config: Configuracion }) {
   const [state, formAction, isPending] = useActionState(updateConfiguracion, null);
   const [formKey, setFormKey] = useState(0);
-  const [logoPreview, setLogoPreview] = useState<string | null>(config.logo_url ?? null);
-  const logoRef = useRef<HTMLInputElement>(null);
-
-  function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setLogoPreview(URL.createObjectURL(file));
-  }
+  const [logoPreview, setLogoPreview]   = useState<string | null>(config.logo_url ?? null);
+  const [heroPreview, setHeroPreview]   = useState<string | null>(config.hero_imagen_url ?? null);
+  const [nosotrosPreview, setNosotrosPreview] = useState<string | null>(config.nosotros_imagen_url ?? null);
+  const logoRef     = useRef<HTMLInputElement>(null);
+  const heroRef     = useRef<HTMLInputElement>(null);
+  const nosotrosRef = useRef<HTMLInputElement>(null);
 
   function handleDiscard() {
     setFormKey(k => k + 1);
     setLogoPreview(config.logo_url ?? null);
+    setHeroPreview(config.hero_imagen_url ?? null);
+    setNosotrosPreview(config.nosotros_imagen_url ?? null);
   }
 
   return (
@@ -164,31 +204,39 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
 
             {/* Logo y marca */}
             <FCard title="Logo y marca" sub="Imagen que aparece en el encabezado.">
-              <input ref={logoRef} name="logo" type="file" accept="image/png,image/svg+xml,image/webp"
-                onChange={handleLogoChange} style={{ display: 'none' }} />
-              <button type="button" onClick={() => logoRef.current?.click()}
-                style={{
-                  aspectRatio: '16/9', width: '100%', borderRadius: 'var(--r-md)',
-                  border: '1.6px dashed var(--hairline)',
-                  background: `repeating-linear-gradient(135deg,rgba(116,58,20,.06) 0 9px,rgba(116,58,20,0) 9px 18px),var(--cream)`,
-                  display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                  gap: 8, cursor: 'pointer', overflow: 'hidden', padding: 0, position: 'relative', transition: '.14s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--orange)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--hairline)'; }}
-              >
-                {logoPreview ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={logoPreview} alt="logo" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 12 }} />
-                ) : (
-                  <>
-                    <Upload style={{ width: 22, height: 22, color: 'var(--orange-ink)' }} />
-                    <span style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', color: 'var(--ink-soft)' }}>
-                      subir logo (PNG/SVG)
-                    </span>
-                  </>
-                )}
-              </button>
+              <ImageUploadTile
+                inputRef={logoRef as React.RefObject<HTMLInputElement>}
+                preview={logoPreview}
+                onPreview={setLogoPreview}
+                fieldName="logo"
+                label="subir logo (PNG/SVG)"
+                accept="image/png,image/svg+xml,image/webp"
+                aspect="16/9"
+              />
+            </FCard>
+
+            {/* Imágenes del sitio */}
+            <FCard title="Imágenes del sitio" sub="Fotos que aparecen en las secciones principales.">
+              <Field label="Imagen de inicio (hero)">
+                <ImageUploadTile
+                  inputRef={heroRef as React.RefObject<HTMLInputElement>}
+                  preview={heroPreview}
+                  onPreview={setHeroPreview}
+                  fieldName="hero_imagen"
+                  label="subir imagen inicio"
+                  aspect="1/1"
+                />
+              </Field>
+              <Field label="Imagen de Nosotros">
+                <ImageUploadTile
+                  inputRef={nosotrosRef as React.RefObject<HTMLInputElement>}
+                  preview={nosotrosPreview}
+                  onPreview={setNosotrosPreview}
+                  fieldName="nosotros_imagen"
+                  label="subir imagen nosotros"
+                  aspect="4/5"
+                />
+              </Field>
             </FCard>
 
           </div>

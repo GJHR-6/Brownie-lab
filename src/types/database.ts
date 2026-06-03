@@ -86,6 +86,8 @@ export interface Configuracion {
   aviso_barra_superior: string;
   mensaje_bienvenida: string;
   logo_url: string | null;
+  hero_imagen_url: string | null;
+  nosotros_imagen_url: string | null;
   banco_nombre: string;
   banco_titular: string;
   banco_numero: string;
