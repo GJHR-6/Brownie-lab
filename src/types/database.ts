@@ -88,6 +88,7 @@ export interface Configuracion {
   logo_url: string | null;
   hero_imagen_url: string | null;
   nosotros_imagen_url: string | null;
+  personalizador_imagen_url: string | null;
   banco_nombre: string;
   banco_titular: string;
   banco_numero: string;

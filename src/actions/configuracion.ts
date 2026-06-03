@@ -53,9 +53,10 @@ export async function updateConfiguracion(
       return supabase.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
     }
 
-    const logo_url           = await uploadFile('logo', 'logo');
-    const hero_imagen_url    = await uploadFile('hero_imagen', 'hero-inicio');
-    const nosotros_imagen_url = await uploadFile('nosotros_imagen', 'nosotros-historia');
+    const logo_url                  = await uploadFile('logo', 'logo');
+    const hero_imagen_url           = await uploadFile('hero_imagen', 'hero-inicio');
+    const nosotros_imagen_url       = await uploadFile('nosotros_imagen', 'nosotros-historia');
+    const personalizador_imagen_url = await uploadFile('personalizador_imagen', 'personalizador-postre');
 
     const payload: Record<string, unknown> = {
       id: 1, nombre, whatsapp, correo, ubicacion,
@@ -64,9 +65,10 @@ export async function updateConfiguracion(
       aviso_barra_superior, mensaje_bienvenida,
       tagline, descripcion, banco_nombre, banco_titular, banco_numero,
     };
-    if (logo_url !== undefined)            payload.logo_url = logo_url;
-    if (hero_imagen_url !== undefined)     payload.hero_imagen_url = hero_imagen_url;
-    if (nosotros_imagen_url !== undefined) payload.nosotros_imagen_url = nosotros_imagen_url;
+    if (logo_url !== undefined)                  payload.logo_url = logo_url;
+    if (hero_imagen_url !== undefined)           payload.hero_imagen_url = hero_imagen_url;
+    if (nosotros_imagen_url !== undefined)       payload.nosotros_imagen_url = nosotros_imagen_url;
+    if (personalizador_imagen_url !== undefined) payload.personalizador_imagen_url = personalizador_imagen_url;
 
     const { error } = await supabase.from('configuracion').upsert(payload);
     if (error) return { success: false, error: error.message };

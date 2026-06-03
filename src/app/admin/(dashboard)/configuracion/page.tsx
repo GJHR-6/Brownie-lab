@@ -22,6 +22,7 @@ const DEFAULT_CONFIG: Configuracion = {
   logo_url: null,
   hero_imagen_url: null,
   nosotros_imagen_url: null,
+  personalizador_imagen_url: null,
   banco_nombre: '',
   banco_titular: '',
   banco_numero: '',
