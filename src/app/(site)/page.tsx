@@ -147,15 +147,25 @@ export default async function Home() {
               className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col"
               style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".9fr 1.1fr" }}
             >
-              {/* Media placeholder */}
-              <div
-                className="rounded-[24px]"
-                style={{
-                  aspectRatio: "4/5",
-                  background:
-                    "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
-                }}
-              />
+              {/* Media — imagen del especial activo */}
+              {activeSpecials[0].imagen_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={activeSpecials[0].imagen_url}
+                  alt={activeSpecials[0].nombre}
+                  className="rounded-[24px] w-full object-cover"
+                  style={{ aspectRatio: "4/5" }}
+                />
+              ) : (
+                <div
+                  className="rounded-[24px]"
+                  style={{
+                    aspectRatio: "4/5",
+                    background:
+                      "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
+                  }}
+                />
+              )}
               {/* Copy */}
               <div>
                 <span

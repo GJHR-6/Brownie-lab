@@ -91,21 +91,12 @@ function ImageUploadTile({
 export default function ConfiguracionClient({ config }: { config: Configuracion }) {
   const [state, formAction, isPending] = useActionState(updateConfiguracion, null);
   const [formKey, setFormKey] = useState(0);
-  const [logoPreview, setLogoPreview]             = useState<string | null>(config.logo_url ?? null);
-  const [heroPreview, setHeroPreview]             = useState<string | null>(config.hero_imagen_url ?? null);
-  const [nosotrosPreview, setNosotrosPreview]     = useState<string | null>(config.nosotros_imagen_url ?? null);
-  const [personalizadorPreview, setPersonalizadorPreview] = useState<string | null>(config.personalizador_imagen_url ?? null);
-  const logoRef         = useRef<HTMLInputElement>(null);
-  const heroRef         = useRef<HTMLInputElement>(null);
-  const nosotrosRef     = useRef<HTMLInputElement>(null);
-  const personalizadorRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(config.logo_url ?? null);
+  const logoRef = useRef<HTMLInputElement>(null);
 
   function handleDiscard() {
     setFormKey(k => k + 1);
     setLogoPreview(config.logo_url ?? null);
-    setHeroPreview(config.hero_imagen_url ?? null);
-    setNosotrosPreview(config.nosotros_imagen_url ?? null);
-    setPersonalizadorPreview(config.personalizador_imagen_url ?? null);
   }
 
   return (
@@ -218,39 +209,14 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
               />
             </FCard>
 
-            {/* Imágenes del sitio */}
-            <FCard title="Imágenes del sitio" sub="Fotos que aparecen en las secciones principales.">
-              <Field label="Imagen de inicio (hero)">
-                <ImageUploadTile
-                  inputRef={heroRef as React.RefObject<HTMLInputElement>}
-                  preview={heroPreview}
-                  onPreview={setHeroPreview}
-                  fieldName="hero_imagen"
-                  label="subir imagen inicio"
-                  aspect="1/1"
-                />
-              </Field>
-              <Field label="Imagen de Nosotros">
-                <ImageUploadTile
-                  inputRef={nosotrosRef as React.RefObject<HTMLInputElement>}
-                  preview={nosotrosPreview}
-                  onPreview={setNosotrosPreview}
-                  fieldName="nosotros_imagen"
-                  label="subir imagen nosotros"
-                  aspect="4/5"
-                />
-              </Field>
-              <Field label="Imagen del personalizador">
-                <ImageUploadTile
-                  inputRef={personalizadorRef as React.RefObject<HTMLInputElement>}
-                  preview={personalizadorPreview}
-                  onPreview={setPersonalizadorPreview}
-                  fieldName="personalizador_imagen"
-                  label="subir imagen postre"
-                  aspect="1/1"
-                />
-              </Field>
-            </FCard>
+            {/* Imágenes del sitio → gestionadas en Galería */}
+            <div style={{ background: 'var(--cream)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3.5" y="4.5" width="17" height="15" rx="2.2"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="M4 17l4.5-4.5 3.5 3.5 3-3 5 5"/></svg>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>
+                Las imágenes del sitio (hero, nosotros, personalizador) se gestionan en{' '}
+                <a href="/admin/galeria" style={{ color: 'var(--orange-ink)', fontWeight: 700 }}>Galería</a>.
+              </p>
+            </div>
 
           </div>
         </div>

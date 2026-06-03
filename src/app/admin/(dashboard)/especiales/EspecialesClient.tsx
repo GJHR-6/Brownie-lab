@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
+import { useState, useCallback, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, X, Upload } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
-import { createEspecial, toggleEspecial, deleteEspecial } from '@/actions/especiales';
+import { createEspecial, toggleEspecial, deleteEspecial, updateEspecialImagen } from '@/actions/especiales';
 import type { Especial } from '@/types/database';
 import ToggleSwitch from '@/components/admin/ToggleSwitch';
 
@@ -25,8 +25,16 @@ function getDiasRestantes(fechaInicio: string, duracionDias: number): number {
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+function inpFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff';
+}
+function inpBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
+  e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)';
+}
+
 function EspecialForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
   const [state, formAction, isPending] = useActionState(createEspecial, null);
+  const [preview, setPreview] = useState<string | null>(null);
   const today = new Date().toISOString().split('T')[0];
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
@@ -35,42 +43,59 @@ function EspecialForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
       {state?.success === false && (
         <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>{state.error}</div>
       )}
+
+      {/* Imagen */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Imagen <span style={{ color: 'var(--ink-soft)', fontWeight: 500 }}>(opcional)</span></label>
+        <label
+          style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', padding: '12px 14px', border: '1.5px dashed var(--hairline)', borderRadius: 'var(--r-md)', background: 'var(--paper)', transition: '.14s' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLLabelElement).style.borderColor = 'var(--orange)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLLabelElement).style.borderColor = 'var(--hairline)'; }}
+        >
+          <input type="file" name="imagen" accept="image/png,image/jpeg,image/webp" style={{ display: 'none' }}
+            onChange={e => { const f = e.target.files?.[0]; if (f) setPreview(URL.createObjectURL(f)); }} />
+          {preview ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={preview} alt="preview" style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--cream)', display: 'grid', placeItems: 'center', color: 'var(--orange-ink)', flexShrink: 0 }}>
+              <Upload style={{ width: 20, height: 20 }} />
+            </div>
+          )}
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{preview ? 'Imagen seleccionada' : 'Subir imagen'}</p>
+            <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>PNG, JPG o WebP · Máx. 5 MB</p>
+          </div>
+        </label>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Nombre <span style={{ color: 'var(--berry)' }}>*</span></label>
         <input name="nombre" required disabled={isPending} placeholder="Brownie de Matcha"
-          style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
-          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
-          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+          style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Descripción <span style={{ color: 'var(--berry)' }}>*</span></label>
         <textarea name="descripcion" required rows={2} disabled={isPending}
           placeholder="Brownie experimental con matcha japonés y frambuesa."
           style={{ ...T.inp, resize: 'vertical', minHeight: 80, lineHeight: 1.6, opacity: isPending ? 0.6 : 1 }}
-          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
-          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+          onFocus={inpFocus} onBlur={inpBlur} />
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Emoji</label>
           <input name="emoji" maxLength={4} disabled={isPending} defaultValue="🍪"
-            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
-            onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
-            onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Fecha inicio</label>
           <input name="fecha_inicio" type="date" disabled={isPending} defaultValue={today}
-            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
-            onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
-            onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Días <span style={{ color: 'var(--berry)' }}>*</span></label>
           <input name="duracion_dias" type="number" min="1" required disabled={isPending} defaultValue={7}
-            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
-            onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
-            onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+            style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, paddingTop: 4, borderTop: '1px solid var(--hairline)', marginTop: 4 }}>
@@ -81,6 +106,47 @@ function EspecialForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
         </button>
       </div>
     </form>
+  );
+}
+
+/* ── Inline image upload for existing especials ── */
+function ImagenUploader({ especial, onDone }: { especial: Especial; onDone: () => void }) {
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    const fd = new FormData();
+    fd.append('imagen', file);
+    const result = await updateEspecialImagen(especial.id, fd);
+    setUploading(false);
+    if (result.success) onDone();
+    else setError(result.error ?? 'Error');
+  }
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp"
+        onChange={handleChange} style={{ display: 'none' }} />
+      <button
+        onClick={() => inputRef.current?.click()}
+        disabled={uploading}
+        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s' }}
+        onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange-ink)'; e.currentTarget.style.borderColor = 'var(--orange)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}
+        title="Cambiar imagen"
+      >
+        {uploading
+          ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} />
+          : <Upload style={{ width: 15, height: 15 }} />
+        }
+      </button>
+      {error && <p style={{ fontSize: 11, color: 'var(--berry)', maxWidth: 120 }}>{error}</p>}
+    </div>
   );
 }
 
@@ -145,17 +211,28 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
                     onMouseEnter={ev => (ev.currentTarget.style.background = 'var(--paper)')}
                     onMouseLeave={ev => (ev.currentTarget.style.background = '')}
                     style={{ transition: 'background .12s' }}>
+
+                    {/* Especial cell: thumb + name + desc */}
                     <td style={T.td}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <span style={{ fontSize: 26 }}>{e.emoji}</span>
+                        {/* Thumbnail / emoji */}
+                        <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, overflow: 'hidden', background: 'var(--cream)', display: 'grid', placeItems: 'center', color: 'var(--orange-ink)', fontSize: 22 }}>
+                          {e.imagen_url
+                            // eslint-disable-next-line @next/next/no-img-element
+                            ? <img src={e.imagen_url} alt={e.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            : e.emoji
+                          }
+                        </div>
                         <div>
                           <p style={{ fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{e.nombre}</p>
                           <p style={{ fontSize: 12, color: 'var(--ink-soft)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{e.descripcion}</p>
                         </div>
                       </div>
                     </td>
+
                     <td style={{ ...T.td, color: 'var(--ink-soft)' }}>{e.fecha_inicio}</td>
                     <td style={{ ...T.td, textAlign: 'center', color: 'var(--ink-soft)' }}>{e.duracion_dias} días</td>
+
                     <td style={{ ...T.td, textAlign: 'center' }}>
                       {expirado ? (
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 'var(--r-pill)', background: '#e4ded3', color: '#6b5743' }}>Expirado</span>
@@ -165,16 +242,23 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
                         </span>
                       )}
                     </td>
+
                     <td style={{ ...T.td, textAlign: 'center' }}>
                       <ToggleSwitch checked={e.activo} onChange={() => handleToggle(e.id, e.activo)} disabled={togglingId === e.id} />
                     </td>
+
                     <td style={{ ...T.td, textAlign: 'right' }}>
-                      <button onClick={() => handleDelete(e.id, e.nombre)} disabled={deletingId === e.id}
-                        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === e.id ? 0.5 : 1 }}
-                        onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--berry)'; ev.currentTarget.style.borderColor = 'var(--berry)'; }}
-                        onMouseLeave={ev => { ev.currentTarget.style.color = 'var(--ink-soft)'; ev.currentTarget.style.borderColor = 'var(--hairline)'; }}>
-                        {deletingId === e.id ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: 15, height: 15 }} />}
-                      </button>
+                      <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
+                        {/* Upload image button */}
+                        <ImagenUploader especial={e} onDone={refresh} />
+                        {/* Delete */}
+                        <button onClick={() => handleDelete(e.id, e.nombre)} disabled={deletingId === e.id}
+                          style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === e.id ? 0.5 : 1 }}
+                          onMouseEnter={ev => { ev.currentTarget.style.color = 'var(--berry)'; ev.currentTarget.style.borderColor = 'var(--berry)'; }}
+                          onMouseLeave={ev => { ev.currentTarget.style.color = 'var(--ink-soft)'; ev.currentTarget.style.borderColor = 'var(--hairline)'; }}>
+                          {deletingId === e.id ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: 15, height: 15 }} />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -194,7 +278,7 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
       {isModalOpen && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={e => { if (e.target === e.currentTarget) setIsModalOpen(false); }}>
-          <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)' }}>
               <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>Nuevo especial del chef</h3>
               <button onClick={() => setIsModalOpen(false)} style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
