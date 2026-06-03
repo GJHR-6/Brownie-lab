@@ -295,7 +295,7 @@ type Estado =
   | { tipo: 'found'; cliente: ClienteFidelizacion; cupones: CuponFidelizacion[] }
   | { tipo: 'error'; mensaje: string };
 
-export default function LoyaltySection() {
+export default function LoyaltySection({ onClienteFound }: { onClienteFound?: (sellos: number) => void } = {}) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'idle' });
   const [telefono, setTelefono] = useState('');
   const [plataforma, setPlataforma] = useState<Plataforma>('desktop');
@@ -314,6 +314,7 @@ export default function LoyaltySection() {
       const result = await buscarCliente(telefono);
       if (result.success) {
         setEstado({ tipo: 'found', cliente: result.data.cliente, cupones: result.data.cupones });
+        onClienteFound?.(result.data.cliente.compras_actuales);
       } else {
         setEstado({ tipo: 'error', mensaje: result.error });
       }
@@ -323,6 +324,7 @@ export default function LoyaltySection() {
   function handleReset() {
     setEstado({ tipo: 'idle' });
     setTelefono('');
+    onClienteFound?.(4);
   }
 
   return (

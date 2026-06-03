@@ -1,7 +1,7 @@
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import AnimateIn from "@/components/AnimateIn";
-import LoyaltySection from "@/components/LoyaltySection";
+import ClubSection from "@/components/ClubSection";
 import BLIcon from "@/components/BLIcon";
 import GiftIntro from "@/components/GiftIntro";
 import { storeConfig } from "@/config/store";
@@ -100,15 +100,25 @@ export default async function Home() {
 
           {/* Media */}
           <div className="relative">
-            <div
-              className="w-full rounded-[24px]"
-              style={{
-                aspectRatio: "1/1",
-                background:
-                  "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
-                boxShadow: "var(--shadow-lg)",
-              }}
-            />
+            {config?.hero_imagen_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={config.hero_imagen_url}
+                alt="Brownie Lab"
+                className="w-full rounded-[24px] object-cover"
+                style={{ aspectRatio: "1/1", boxShadow: "var(--shadow-lg)" }}
+              />
+            ) : (
+              <div
+                className="w-full rounded-[24px]"
+                style={{
+                  aspectRatio: "1/1",
+                  background:
+                    "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
+                  boxShadow: "var(--shadow-lg)",
+                }}
+              />
+            )}
             {/* Floating chip 1 */}
             <div
               className="absolute top-4 -left-3 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
@@ -308,79 +318,7 @@ export default async function Home() {
       </section>
 
       {/* ── Club Brownie Lab ──────────────────────────────────────────── */}
-      <section
-        id="club"
-        style={{
-          background: "var(--choco-900)",
-          color: "var(--on-dark)",
-          ...SEC,
-        }}
-      >
-        <div
-          className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-2col"
-          style={{ maxWidth: "var(--maxw)", gridTemplateColumns: "1fr 1fr" }}
-        >
-          {/* Copy */}
-          <div>
-            <span
-              className="w-14 h-14 rounded-[14px] grid place-items-center mb-5"
-              style={{ background: "rgba(232,162,58,.15)", color: "var(--amber)" }}
-            >
-              <BLIcon name="brownie" size={30} />
-            </span>
-            <span
-              className="text-[12px] font-bold tracking-[0.22em] uppercase"
-              style={{ color: "var(--amber)" }}
-            >
-              Club de fidelización
-            </span>
-            <h2 className="mt-3 mb-4" style={{ fontSize: "clamp(32px, 4.4vw, 48px)" }}>
-              Club Brownie Lab
-            </h2>
-            <p style={{ color: "var(--on-dark-soft)", fontSize: 17, maxWidth: "42ch" }}>
-              Acumula un sello con cada compra. Al llegar a 10, tu brownie va por la casa.
-            </p>
-            {/* Demo stamps */}
-            <div
-              className="grid gap-3 mt-7"
-              style={{ gridTemplateColumns: "repeat(5, 1fr)", maxWidth: 360 }}
-            >
-              {Array.from({ length: 10 }, (_, i) => (
-                <div
-                  key={i}
-                  className="aspect-square rounded-full grid place-items-center"
-                  style={
-                    i < 4
-                      ? {
-                          border: "1.5px solid var(--amber)",
-                          background: "rgba(232,162,58,.16)",
-                          color: "var(--amber)",
-                        }
-                      : {
-                          border: "1.5px dashed rgba(246,234,212,.3)",
-                          color: "rgba(246,234,212,.3)",
-                        }
-                  }
-                >
-                  {i < 4 && <BLIcon name="brownie" size={20} />}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Card */}
-          <div
-            className="rounded-[24px] p-8"
-            style={{
-              background: "var(--paper-card)",
-              boxShadow: "var(--shadow-lg)",
-              borderTop: "5px solid var(--orange)",
-            }}
-          >
-            <LoyaltySection />
-          </div>
-        </div>
-      </section>
+      <ClubSection />
 
       {/* ── Contacto ──────────────────────────────────────────────────── */}
       <section className="text-center" style={{ ...SEC }}>
