@@ -1,302 +1,123 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { storeConfig } from "@/config/store";
 import { useCartStore } from "@/lib/cartStore";
 import BLIcon from "@/components/BLIcon";
+import {
+  brownieDefs,
+  toppingArt,
+  toppingIconStable,
+  order as toppingOrder,
+  spots,
+  chunkSpots,
+} from "@/lib/brownieArt";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type MainBase = "brownie" | "galleta";
-interface Variant { id: string; name: string; desc: string; price: number; }
-interface Topping {
-  id: string; name: string; price: number; color: string; dur: string;
-  shape: "circle" | "drop" | "chip" | "shard" | "blob";
-  positions: { x: number; y: number; r: number; rotate?: number }[];
-}
+interface Variant { id: string; name: string; desc: string; price: number; img: string; }
+interface ToppingDef { name: string; price: number; }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const BROWNIE_VARIANTS: Variant[] = [
-  { id: "clasico",   name: "Clásico",         desc: "Denso y húmedo",        price: 40 },
-  { id: "triple",    name: "Triple Chocolate", desc: "Extra intenso",         price: 48 },
-  { id: "redvelvet", name: "Red Velvet",       desc: "Terciopelo rojo",       price: 45 },
+  { id: "clasico",  name: "Clásico",  desc: "Denso y húmedo",     price: 40, img: "/art/brownie-clasico.png" },
+  { id: "con-nuez", name: "Con Nuez", desc: "Con nuez tostada",   price: 45, img: "/art/brownie-nuez.svg" },
 ];
 const GALLETA_VARIANTS: Variant[] = [
-  { id: "mantequilla", name: "Mantequilla",  desc: "Clásica y dorada",      price: 30 },
-  { id: "avena",       name: "Avena y Miel", desc: "Natural y suave",       price: 30 },
-  { id: "chocochips",  name: "Choco Chips",  desc: "Con chispas incluidas", price: 35 },
+  { id: "clasica",    name: "Clásica",    desc: "Mantequilla horneada", price: 35, img: "/art/galleta-clasica.svg" },
+  { id: "mocca",      name: "Mocca",      desc: "Café y chocolate",     price: 35, img: "/art/galleta-mocca.svg" },
+  { id: "red-velvet", name: "Red Velvet", desc: "Terciopelo rojo",      price: 35, img: "/art/galleta-redvelvet.svg" },
 ];
 
-const TOPPINGS: Topping[] = [
-  { id: "pecanas",    name: "Pecanas",             price: 10, color: "#92400e", dur: "2.3s", shape: "blob",
-    positions: [{x:28,y:25,r:11,rotate:20},{x:68,y:38,r:10,rotate:-15},{x:45,y:65,r:11,rotate:35},{x:20,y:72,r:9,rotate:-30},{x:78,y:70,r:10,rotate:10}] },
-  { id: "chispas",   name: "Chispas de Chocolate", price: 8,  color: "#1c0a00", dur: "2.6s", shape: "drop",
-    positions: [{x:22,y:30,r:7},{x:50,y:20,r:6},{x:75,y:32,r:7},{x:35,y:55,r:6},{x:65,y:60,r:7},{x:20,y:68,r:6},{x:80,y:72,r:7},{x:48,y:78,r:6}] },
-  { id: "arandanos",  name: "Arándanos",           price: 10, color: "#4c1d95", dur: "1.9s", shape: "circle",
-    positions: [{x:30,y:28,r:9},{x:65,y:25,r:8},{x:48,y:50,r:9},{x:22,y:65,r:8},{x:75,y:68,r:9}] },
-  { id: "caramelo",   name: "Caramelo",            price: 6,  color: "#d97706", dur: "2.8s", shape: "shard",
-    positions: [{x:50,y:20,r:30,rotate:0},{x:50,y:50,r:40,rotate:15}] },
-  { id: "coco",       name: "Coco Rallado",        price: 5,  color: "#fef3c7", dur: "2.1s", shape: "shard",
-    positions: [{x:25,y:25,r:14,rotate:30},{x:70,y:30,r:13,rotate:-20},{x:35,y:60,r:15,rotate:45},{x:72,y:65,r:13,rotate:10},{x:50,y:78,r:14,rotate:-35}] },
-  { id: "sal",        name: "Sal de Mar",          price: 3,  color: "#f0fdf4", dur: "3.2s", shape: "chip",
-    positions: [{x:20,y:25,r:4},{x:55,y:18,r:3},{x:78,y:35,r:4},{x:30,y:58,r:3},{x:65,y:55,r:4},{x:18,y:72,r:3},{x:82,y:70,r:4},{x:48,y:82,r:3},{x:40,y:38,r:3},{x:70,y:80,r:4}] },
-  { id: "almendras",  name: "Almendras",           price: 10, color: "#c8a86b", dur: "2.5s", shape: "blob",
-    positions: [{x:30,y:30,r:13,rotate:40},{x:68,y:28,r:12,rotate:-25},{x:22,y:68,r:13,rotate:15},{x:72,y:68,r:12,rotate:-40}] },
-  { id: "frambuesas", name: "Frambuesas",          price: 12, color: "#e11d48", dur: "2.0s", shape: "circle",
-    positions: [{x:28,y:32,r:11},{x:68,y:28,r:10},{x:45,y:60,r:11},{x:18,y:70,r:10},{x:78,y:72,r:11}] },
+const TOPPINGS: ToppingDef[] = [
+  { name: "Nueces",               price: 10 },
+  { name: "Chispas de Chocolate", price: 8  },
+  { name: "M&M's",                price: 10 },
+  { name: "Marshmallows",         price: 6  },
+  { name: "Coco Rallado",         price: 5  },
+  { name: "Sal de Mar",           price: 3  },
+  { name: "Almendras",            price: 10 },
+  { name: "Oreo Crumbs",          price: 10 },
+  { name: "Fresas",               price: 12 },
 ];
-
-// ── Topping SVG shape (for dessert preview) ───────────────────────────────────
-function ToppingShape({ t, pos }: { t: Topping; pos: Topping["positions"][0] }) {
-  const { x: cx, y: cy, r, rotate: rot = 0 } = pos;
-  if (t.shape === "circle") return (
-    <g>
-      <circle cx={cx} cy={cy} r={r} fill={t.color} opacity="0.92" />
-      <circle cx={cx - r*0.25} cy={cy - r*0.25} r={r*0.2} fill="white" opacity="0.3" />
-    </g>
-  );
-  if (t.shape === "drop") return (
-    <g transform={`translate(${cx} ${cy})`}>
-      <path d={`M0,-${r} C${r*.8},-${r*.2} ${r*.6},${r*.6} 0,${r} C-${r*.6},${r*.6} -${r*.8},-${r*.2} 0,-${r}Z`} fill={t.color} opacity="0.95" />
-    </g>
-  );
-  if (t.shape === "chip") return (
-    <rect x={cx-r} y={cy-r*.6} width={r*2} height={r*1.2} rx={r*.3} fill={t.color} opacity="0.85" transform={`rotate(${rot} ${cx} ${cy})`} />
-  );
-  if (t.shape === "shard") return (
-    <g transform={`translate(${cx} ${cy}) rotate(${rot})`}>
-      <path d={`M0,-${r*.15} L${r*.5},0 L0,${r*.15} L-${r*.5},0 Z`} fill={t.color} opacity="0.75" />
-    </g>
-  );
-  return (
-    <g transform={`translate(${cx} ${cy}) rotate(${rot})`}>
-      <ellipse cx={0} cy={0} rx={r} ry={r*.6} fill={t.color} opacity="0.9" />
-      <ellipse cx={r*.15} cy={-r*.1} rx={r*.3} ry={r*.2} fill="white" opacity="0.2" />
-    </g>
-  );
-}
-
-// ── Illustrated topping icons (card swatch) ───────────────────────────────────
-function ToppingIcon({ id, on, dur }: { id: string; on: boolean; dur: string }) {
-  const anim: React.CSSProperties = {
-    display: "block", width: "100%", height: "100%",
-    animation: `${on ? "toppingWiggle" : "toppingFloat"} ${dur} ease-in-out infinite`,
-  };
-  if (id === "pecanas") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <ellipse cx="16" cy="17" rx="8" ry="11" fill="#8b5e3c" transform="rotate(-12 16 17)"/>
-      <ellipse cx="16" cy="16" rx="5.5" ry="8.5" fill="#7a4a22" transform="rotate(-12 16 16)"/>
-      <path d="M13 7 Q16 17 13.5 25" stroke="#5a2d0c" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-      <ellipse cx="14" cy="13" rx="3.5" ry="5" fill="#b07840" opacity="0.35" transform="rotate(-12 14 13)"/>
-    </svg>
-  );
-  if (id === "chispas") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <path d="M16 4 C21 4 26 10 26 17 C26 23 21 28 16 28 C11 28 6 23 6 17 C6 10 11 4 16 4Z" fill="#1c0a00"/>
-      <path d="M16 4 C19 7 20 12 18 16" stroke="#3d1a00" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-      <ellipse cx="12" cy="12" rx="3" ry="2" fill="#4a2000" opacity="0.55" transform="rotate(-25 12 12)"/>
-      <circle cx="21" cy="14" r="1.5" fill="#3d1800" opacity="0.4"/>
-    </svg>
-  );
-  if (id === "arandanos") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <circle cx="16" cy="18" r="11" fill="#3d318a"/>
-      <circle cx="16" cy="17" r="9" fill="#5548b8"/>
-      <path d="M12 10 L14 8 L16 10.5 L18 8 L20 10" stroke="#2a1f6a" strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx="13" cy="14" r="3" fill="white" opacity="0.15"/>
-      <circle cx="12.5" cy="13" r="1.5" fill="white" opacity="0.18"/>
-    </svg>
-  );
-  if (id === "caramelo") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <path d="M4 10 Q8.5 5.5 13 10 Q17.5 14.5 22 10 Q25 7 28 10" stroke="#d98a1e" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-      <path d="M3 19 Q8 14.5 13 19 Q18 23.5 23 19 Q26 16.5 29 19" stroke="#c47010" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M6 27 Q11 23 16 27 Q20 30 25 27" stroke="#d98a1e" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-    </svg>
-  );
-  if (id === "coco") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <path d="M5 12 Q9 8 12 13 Q14 17 10 19" stroke="#d8c890" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M13 7 Q17 9 16 15 Q15 20 20 21" stroke="#c8b878" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M20 9 Q24 7 25 14 Q26 20 22 22" stroke="#d8c890" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M5 22 Q10 19 11 25" stroke="#c8b878" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
-      <path d="M21 23 Q25 21 26 27" stroke="#d8c890" strokeWidth="2.2" fill="none" strokeLinecap="round"/>
-    </svg>
-  );
-  if (id === "sal") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <polygon points="16,4 25,10 25,22 16,28 7,22 7,10" fill="#cce8d8"/>
-      <polygon points="16,4 25,10 16,28 7,10" fill="white" opacity="0.25"/>
-      <polygon points="16,4 25,10 20.5,16 11.5,16" fill="white" opacity="0.15"/>
-      <line x1="16" y1="4" x2="16" y2="28" stroke="#88c0a0" strokeWidth="0.8" opacity="0.7"/>
-      <line x1="7" y1="10" x2="25" y2="22" stroke="#88c0a0" strokeWidth="0.6" opacity="0.5"/>
-      <line x1="25" y1="10" x2="7" y2="22" stroke="#88c0a0" strokeWidth="0.6" opacity="0.5"/>
-    </svg>
-  );
-  if (id === "almendras") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <path d="M16 3 Q28 10 28 19 Q28 26 16 29 Q4 26 4 19 Q4 10 16 3Z" fill="#c9a86a"/>
-      <path d="M16 3 Q22 10 22 19 Q22 25 16 29" stroke="#9a7840" strokeWidth="1" fill="none"/>
-      <ellipse cx="12.5" cy="11" rx="4" ry="2.5" fill="#e8c880" opacity="0.4" transform="rotate(-20 12.5 11)"/>
-      <path d="M11.5 5 Q15 11 14 20" stroke="#a08040" strokeWidth="0.8" fill="none" opacity="0.5"/>
-    </svg>
-  );
-  if (id === "frambuesas") return (
-    <svg viewBox="0 0 32 32" style={anim} aria-hidden="true">
-      <circle cx="12" cy="12" r="4" fill="#d04040"/>
-      <circle cx="20" cy="12" r="4" fill="#cf4444"/>
-      <circle cx="16" cy="10" r="4" fill="#c83838"/>
-      <circle cx="9" cy="18" r="4" fill="#cf4444"/>
-      <circle cx="16" cy="17.5" r="4" fill="#c03838"/>
-      <circle cx="23" cy="18" r="4" fill="#d04040"/>
-      <circle cx="12" cy="24" r="4" fill="#cf4444"/>
-      <circle cx="20" cy="24" r="4" fill="#d04040"/>
-      <circle cx="11" cy="11" r="1.5" fill="white" opacity="0.22"/>
-      <circle cx="19" cy="11" r="1.5" fill="white" opacity="0.22"/>
-      <circle cx="8" cy="17" r="1.5" fill="white" opacity="0.22"/>
-      <path d="M14 7 Q16 5 18 7" stroke="#a02020" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
-    </svg>
-  );
-  return null;
-}
-
-// ── Dessert previews ──────────────────────────────────────────────────────────
-function BrownieSVG({ selected }: { selected: Set<string> }) {
-  return (
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
-      <defs>
-        <radialGradient id="brownieGrad" cx="40%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#78350f" />
-          <stop offset="60%" stopColor="#451a03" />
-          <stop offset="100%" stopColor="#1c0a00" />
-        </radialGradient>
-        <radialGradient id="brownieSheen" cx="30%" cy="25%" r="55%">
-          <stop offset="0%" stopColor="#92400e" stopOpacity="0.6" />
-          <stop offset="100%" stopColor="#451a03" stopOpacity="0" />
-        </radialGradient>
-        <filter id="bshadow">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.4" />
-        </filter>
-        <clipPath id="brownieClip">
-          <rect x="8" y="8" width="84" height="84" rx="10" />
-        </clipPath>
-      </defs>
-      <rect x="8" y="8" width="84" height="84" rx="10" fill="url(#brownieGrad)" filter="url(#bshadow)" />
-      <rect x="8" y="8" width="84" height="84" rx="10" fill="url(#brownieSheen)" />
-      <rect x="8" y="8" width="84" height="84" rx="10" fill="none" stroke="#92400e" strokeWidth="1.5" opacity="0.4" />
-      <g clipPath="url(#brownieClip)" opacity="0.15">
-        <line x1="8" y1="35" x2="92" y2="35" stroke="#78350f" strokeWidth="0.5" />
-        <line x1="8" y1="65" x2="92" y2="65" stroke="#78350f" strokeWidth="0.5" />
-        <line x1="35" y1="8" x2="35" y2="92" stroke="#78350f" strokeWidth="0.5" />
-        <line x1="65" y1="8" x2="65" y2="92" stroke="#78350f" strokeWidth="0.5" />
-      </g>
-      <g clipPath="url(#brownieClip)">
-        {TOPPINGS.filter(t => selected.has(t.id)).map(t =>
-          t.positions.map((pos, i) => (
-            <g key={`${t.id}-${i}`} style={{ animation: "popIn 0.3s ease" }}>
-              <ToppingShape t={t} pos={pos} />
-            </g>
-          ))
-        )}
-      </g>
-      <rect x="8" y="8" width="84" height="30" rx="10" fill="white" opacity="0.04" />
-    </svg>
-  );
-}
-
-function GalletaSVG({ selected }: { selected: Set<string> }) {
-  return (
-    <svg viewBox="0 0 100 100" className="w-full h-full drop-shadow-2xl">
-      <defs>
-        <radialGradient id="cookieGrad" cx="40%" cy="35%" r="65%">
-          <stop offset="0%" stopColor="#fbbf24" />
-          <stop offset="55%" stopColor="#d97706" />
-          <stop offset="100%" stopColor="#b45309" />
-        </radialGradient>
-        <radialGradient id="cookieSheen" cx="30%" cy="25%" r="55%">
-          <stop offset="0%" stopColor="#fef3c7" stopOpacity="0.5" />
-          <stop offset="100%" stopColor="#d97706" stopOpacity="0" />
-        </radialGradient>
-        <filter id="cshadow">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000" floodOpacity="0.3" />
-        </filter>
-        <clipPath id="cookieClip">
-          <circle cx="50" cy="50" r="42" />
-        </clipPath>
-      </defs>
-      <circle cx="50" cy="50" r="42" fill="url(#cookieGrad)" filter="url(#cshadow)" />
-      <circle cx="50" cy="50" r="42" fill="url(#cookieSheen)" />
-      <circle cx="50" cy="50" r="42" fill="none" stroke="#b45309" strokeWidth="2" opacity="0.5" />
-      <circle cx="50" cy="50" r="38" fill="none" stroke="#fef3c7" strokeWidth="0.5" opacity="0.2" />
-      <g clipPath="url(#cookieClip)" opacity="0.12">
-        <path d="M30 30 Q50 45 70 35" stroke="#92400e" strokeWidth="1" fill="none" />
-        <path d="M25 60 Q45 55 60 70" stroke="#92400e" strokeWidth="1" fill="none" />
-        <path d="M60 28 Q55 50 70 65" stroke="#92400e" strokeWidth="1" fill="none" />
-      </g>
-      <g clipPath="url(#cookieClip)">
-        {TOPPINGS.filter(t => selected.has(t.id)).map(t =>
-          t.positions.map((pos, i) => (
-            <g key={`${t.id}-${i}`} style={{ animation: "popIn 0.3s ease" }}>
-              <ToppingShape t={t} pos={pos} />
-            </g>
-          ))
-        )}
-      </g>
-      <ellipse cx="40" cy="35" rx="18" ry="10" fill="white" opacity="0.06" transform="rotate(-15 40 35)" />
-    </svg>
-  );
-}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function PersonalizaPage() {
   const [base, setBase] = useState<MainBase>("brownie");
-  const [brownieVariant, setBrownieVariant] = useState("clasico");
-  const [galletaVariant, setGalletaVariant] = useState("mantequilla");
+  const [brownieVariantIdx, setBrownieVariantIdx] = useState(0);
+  const [galletaVariantIdx, setGalletaVariantIdx] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [qty, setQty] = useState(1);
+  // Stable random delay refs so topping idle animations don't shift on re-render
+  const delayRef = useRef<Map<string, number>>(new Map());
+
   const addItem = useCartStore(s => s.addItem);
   const router = useRouter();
 
   const activeVariants = base === "brownie" ? BROWNIE_VARIANTS : GALLETA_VARIANTS;
-  const activeVariantId = base === "brownie" ? brownieVariant : galletaVariant;
-  const activeVariant = activeVariants.find(v => v.id === activeVariantId) ?? activeVariants[0];
+  const activeVariantIdx = base === "brownie" ? brownieVariantIdx : galletaVariantIdx;
+  const activeVariant = activeVariants[activeVariantIdx] ?? activeVariants[0];
   const sym = storeConfig.currencySymbol;
 
   function switchBase(b: MainBase) {
     if (b === base) return;
     setBase(b);
+    setSelected(new Set());
   }
-  function setVariant(id: string) {
-    if (base === "brownie") setBrownieVariant(id);
-    else setGalletaVariant(id);
+  function setVariantIdx(i: number) {
+    if (base === "brownie") setBrownieVariantIdx(i);
+    else setGalletaVariantIdx(i);
   }
-  function toggleTopping(id: string) {
-    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  function toggleTopping(name: string) {
+    setSelected(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
   }
 
-  const selectedToppings = TOPPINGS.filter(t => selected.has(t.id));
-  const unitPrice = activeVariant.price + selectedToppings.reduce((s, t) => s + t.price, 0);
+  const selectedNames = useMemo(
+    () => toppingOrder.filter(n => selected.has(n)),
+    [selected],
+  );
+  const extraPrice = useMemo(
+    () => TOPPINGS.filter(t => selected.has(t.name)).reduce((s, t) => s + t.price, 0),
+    [selected],
+  );
+  const unitPrice = activeVariant.price + extraPrice;
   const totalPrice = unitPrice * qty;
-  const baseName = base === "brownie" ? "Brownie" : "Galleta";
-  const itemName = `${baseName} ${activeVariant.name}${selectedToppings.length > 0 ? ` con ${selectedToppings.map(t => t.name).join(", ")}` : ""}`;
-  const itemEmoji = base === "brownie" ? "🍫" : "🍪";
+
+  // Topping placements for the SVG stage
+  const placements = useMemo(
+    () => chunkSpots(spots(base), selectedNames),
+    [base, selectedNames],
+  );
+
+  // Stable idle animation delay per topping-spot key
+  function idleDelay(key: string): number {
+    if (!delayRef.current.has(key)) {
+      delayRef.current.set(key, -(Math.random() * 3));
+    }
+    return delayRef.current.get(key)!;
+  }
+
+  const llevaText = selectedNames.length === 0
+    ? `${activeVariant.name} · sin toppings`
+    : `${activeVariant.name} · ${selectedNames.join(" · ")}`;
+
+  const itemName = `${base === "brownie" ? "Brownie" : "Galleta"} ${activeVariant.name}${
+    selectedNames.length > 0 ? ` con ${selectedNames.join(", ")}` : ""
+  }`;
 
   function handleAddToCart() {
     const id = `custom-${base}-${Date.now()}`;
+    const emoji = base === "brownie" ? "🍫" : "🍪";
     for (let i = 0; i < qty; i++)
-      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji: itemEmoji });
+      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji });
     router.push("/cart");
   }
 
-  const cardBase: React.CSSProperties = {
-    borderWidth: "1.5px", borderStyle: "solid", borderRadius: "var(--r-md)",
-    background: "var(--paper-card)", cursor: "pointer", transition: "all 0.15s",
-  };
-
   return (
     <>
-      {/* Header */}
+      {/* ── Page header ── */}
       <section
         className="text-center"
         style={{
@@ -319,52 +140,73 @@ export default function PersonalizaPage() {
         </div>
       </section>
 
-      {/* Builder */}
+      {/* ── Builder grid ── */}
       <div
-        className="mx-auto px-[var(--gutter)] grid items-start gap-[clamp(28px,4vw,56px)] bl-grid-2col"
-        style={{ maxWidth: "var(--maxw)", gridTemplateColumns: "1.05fr .95fr", paddingBlock: "clamp(48px, 6vw, 80px)" }}
+        className="mx-auto px-[var(--gutter)] bl-builder-grid"
+        style={{ maxWidth: "var(--maxw)", paddingBlock: "clamp(48px, 6vw, 80px)" }}
       >
-        {/* ── Preview (sticky on desktop, moves to top on mobile) ── */}
-        <div className="bl-pers-preview lg:sticky lg:top-24">
+        {/* ── Preview (sticky left on desktop, top on mobile) ── */}
+        <div className="bl-preview-col">
           <div
             className="rounded-[24px] p-[30px]"
             style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-md)" }}
           >
-            {/* Cross-fade dessert visual */}
-            <div style={{ position: "relative", width: "100%", maxWidth: 300, margin: "0 auto", aspectRatio: "1/1" }}>
-              <div style={{
-                position: "absolute", inset: 0,
-                opacity: base === "brownie" ? 1 : 0,
-                transform: base === "brownie" ? "scale(1)" : "scale(0.88)",
-                transition: "opacity 0.45s cubic-bezier(.4,0,.2,1), transform 0.45s cubic-bezier(.4,0,.2,1)",
-                pointerEvents: base === "brownie" ? "auto" : "none",
-              }}>
-                <BrownieSVG selected={selected} />
-              </div>
-              <div style={{
-                position: "absolute", inset: 0,
-                opacity: base === "galleta" ? 1 : 0,
-                transform: base === "galleta" ? "scale(1)" : "scale(0.88)",
-                transition: "opacity 0.45s cubic-bezier(.4,0,.2,1), transform 0.45s cubic-bezier(.4,0,.2,1)",
-                pointerEvents: base === "galleta" ? "auto" : "none",
-              }}>
-                <GalletaSVG selected={selected} />
-              </div>
+            {/* Illustrated stage */}
+            <div className="bl-stage" style={{ width: "100%", maxWidth: 360, margin: "2px auto 6px", position: "relative" }}>
+              {/* Base illustration — sits under the SVG toppings layer */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={activeVariant.img}
+                alt=""
+                aria-hidden="true"
+                style={{
+                  position: "absolute",
+                  left: "2.778%",
+                  top: "19.69%",
+                  width: "94.444%",
+                  height: "60.625%",
+                  objectFit: "contain",
+                  objectPosition: "center",
+                  pointerEvents: "none",
+                  transition: "opacity 0.25s ease",
+                }}
+              />
+              {/* SVG toppings overlay */}
+              <svg
+                viewBox="0 0 360 320"
+                role="img"
+                aria-label="Vista previa del postre"
+                style={{ width: "100%", height: "auto", overflow: "visible", display: "block", position: "relative" }}
+              >
+                <defs dangerouslySetInnerHTML={{ __html: brownieDefs }} suppressHydrationWarning />
+                {placements.map(({ name, spot }, i) => {
+                  const key = `${name}-${spot[0]}-${spot[1]}`;
+                  const artFn = toppingArt[name];
+                  if (!artFn) return null;
+                  return (
+                    <g key={key} transform={`translate(${spot[0]},${spot[1]})`} className="bl-topping">
+                      <g className="bl-bump">
+                        <g
+                          className="bl-idle"
+                          style={{ animationDelay: `${idleDelay(`${i}-${name}`).toFixed(2)}s` }}
+                          dangerouslySetInnerHTML={{ __html: artFn() }}
+                        />
+                      </g>
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
 
             {/* Lleva */}
             <div className="text-center mt-2">
               <p className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ color: "var(--ink-soft)" }}>Lleva</p>
-              <p className="mt-1 text-[15px]" style={{ color: "var(--ink)", minHeight: 22 }}>
-                {selected.size === 0
-                  ? `${baseName} ${activeVariant.name} · solo base`
-                  : selectedToppings.map(t => t.name).join(" · ")}
-              </p>
+              <p className="mt-1 text-[15px]" style={{ color: "var(--ink)", minHeight: 22 }}>{llevaText}</p>
             </div>
 
             <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "22px 0" }} />
 
-            {/* Quantity */}
+            {/* Quantity stepper */}
             <div className="flex items-center justify-center gap-4">
               <span className="text-[11px] font-bold tracking-[0.16em] uppercase" style={{ color: "var(--ink-soft)" }}>Cantidad</span>
               <div className="inline-flex items-center overflow-hidden" style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}>
@@ -372,8 +214,9 @@ export default function PersonalizaPage() {
                   onClick={() => setQty(q => Math.max(1, q - 1))}
                   className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
                   style={{ background: "transparent", color: "var(--ink)" }}
-                  onMouseOver={e => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
-                  onMouseOut={e => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                  onMouseOver={e => (e.currentTarget.style.background = "var(--cream)")}
+                  onMouseOut={e => (e.currentTarget.style.background = "transparent")}
+                  aria-label="Menos"
                 >
                   <BLIcon name="minus" size={16} />
                 </button>
@@ -382,8 +225,9 @@ export default function PersonalizaPage() {
                   onClick={() => setQty(q => Math.min(50, q + 1))}
                   className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
                   style={{ background: "transparent", color: "var(--ink)" }}
-                  onMouseOver={e => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
-                  onMouseOut={e => ((e.currentTarget as HTMLButtonElement).style.background = "transparent")}
+                  onMouseOver={e => (e.currentTarget.style.background = "var(--cream)")}
+                  onMouseOut={e => (e.currentTarget.style.background = "transparent")}
+                  aria-label="Más"
                 >
                   <BLIcon name="plus" size={16} />
                 </button>
@@ -395,7 +239,7 @@ export default function PersonalizaPage() {
               <p className="text-[11px] font-bold tracking-[0.16em] uppercase" style={{ color: "var(--ink-soft)" }}>Total estimado</p>
               <p
                 className="font-extrabold mt-1"
-                style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", fontSize: "clamp(36px, 5vw, 48px)", color: "var(--orange-ink)", lineHeight: 1.1 }}
+                style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(36px,5vw,48px)", color: "var(--orange-ink)", lineHeight: 1.1 }}
               >
                 {sym}{totalPrice}
               </p>
@@ -413,23 +257,23 @@ export default function PersonalizaPage() {
           </div>
         </div>
 
-        {/* ── Options ── */}
+        {/* ── Options panel ── */}
         <div>
           {/* Main base selector */}
-          <div className="grid gap-3 mb-4" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="grid gap-3 mb-[22px]" style={{ gridTemplateColumns: "1fr 1fr" }}>
             {(["brownie", "galleta"] as const).map(b => (
               <button
                 key={b}
                 onClick={() => switchBase(b)}
                 style={{
-                  ...cardBase,
-                  padding: "16px 20px",
-                  display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2, textAlign: "left",
+                  display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2,
+                  padding: "16px 20px", textAlign: "left", cursor: "pointer", transition: "all .15s",
+                  borderRadius: "var(--r-md)", border: "1.5px solid",
                   background: base === b ? "var(--choco-900)" : "var(--paper-card)",
                   borderColor: base === b ? "var(--choco-900)" : "var(--hairline)",
                 }}
               >
-                <strong style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", fontSize: 19, color: base === b ? "var(--on-dark)" : "var(--ink)" }}>
+                <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 19, color: base === b ? "var(--on-dark)" : "var(--ink)" }}>
                   {b === "brownie" ? "Brownie" : "Galleta"}
                 </strong>
                 <span style={{ fontSize: 13, color: base === b ? "var(--on-dark-soft)" : "var(--ink-soft)" }}>
@@ -439,78 +283,86 @@ export default function PersonalizaPage() {
             ))}
           </div>
 
-          {/* Sub-base variants */}
-          <div className="bl-pers-subbases grid gap-2.5 mb-6" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-            {activeVariants.map(v => (
-              <button
-                key={v.id}
-                onClick={() => setVariant(v.id)}
-                style={{
-                  ...cardBase,
-                  padding: "12px 14px", textAlign: "left",
-                  borderColor: activeVariantId === v.id ? "var(--orange)" : "var(--hairline)",
-                  background: activeVariantId === v.id ? "rgba(217,113,30,.07)" : "var(--paper-card)",
-                  boxShadow: activeVariantId === v.id ? "0 0 0 3px rgba(217,113,30,.12)" : "none",
-                }}
-              >
-                <strong style={{ display: "block", fontSize: 14, color: "var(--ink)", fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", lineHeight: 1.2 }}>
-                  {v.name}
-                </strong>
-                <span style={{ fontSize: 12, color: "var(--ink-soft)" }}>{v.desc} · {sym}{v.price}</span>
-              </button>
-            ))}
+          {/* Variant selector */}
+          <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-[11px]" style={{ color: "var(--ink-soft)" }}>
+            Elige el sabor
+          </p>
+          <div className="bl-variants-grid grid gap-3 mb-6">
+            {activeVariants.map((v, i) => {
+              const on = i === activeVariantIdx;
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setVariantIdx(i)}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3,
+                    padding: "13px 16px", textAlign: "left", cursor: "pointer", transition: "all .15s",
+                    borderRadius: "var(--r-md)", border: "1.5px solid",
+                    borderColor: on ? "var(--orange)" : "var(--hairline)",
+                    background: on ? "#fcf2e4" : "var(--paper-card)",
+                    boxShadow: on ? "0 0 0 3px rgba(217,113,30,.12)" : "none",
+                  }}
+                >
+                  <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 17, color: on ? "var(--orange-ink)" : "var(--ink)", lineHeight: 1.08 }}>
+                    {v.name}
+                  </strong>
+                  <span style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.3 }}>{v.desc} · {sym}{v.price}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Toppings heading */}
-          <h2 className="font-bold mb-1.5" style={{ fontSize: "clamp(22px, 2.6vw, 28px)", color: "var(--ink)" }}>
+          {/* Toppings */}
+          <h2 className="font-bold mb-1.5" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(22px,2.6vw,28px)", color: "var(--ink)" }}>
             Elige tus toppings
           </h2>
           <p className="mb-5 text-[15px]" style={{ color: "var(--ink-soft)" }}>
             Toca cada uno para agregarlo o quitarlo de tu postre.
           </p>
 
-          {/* Toppings grid with illustrated icons */}
-          <div className="bl-pers-toppings grid gap-3" style={{ gridTemplateColumns: "1fr 1fr" }}>
+          <div className="bl-toppings-grid grid gap-3">
             {TOPPINGS.map(topping => {
-              const isOn = selected.has(topping.id);
+              const isOn = selected.has(topping.name);
+              const iconSvg = toppingIconStable(topping.name);
               return (
                 <button
-                  key={topping.id}
-                  onClick={() => toggleTopping(topping.id)}
+                  key={topping.name}
+                  onClick={() => toggleTopping(topping.name)}
                   className="relative flex items-center gap-3 text-left cursor-pointer transition-all"
                   style={{
-                    ...cardBase,
-                    padding: "12px 14px",
+                    padding: "14px 16px",
+                    borderRadius: "var(--r-md)", border: "1.5px solid",
+                    background: "var(--paper-card)",
                     borderColor: isOn ? "var(--orange)" : "var(--hairline)",
                     boxShadow: isOn ? "0 0 0 3px rgba(217,113,30,.14)" : "none",
                     transform: isOn ? "translateY(-1px)" : "none",
                   }}
                 >
-                  {/* Illustrated icon */}
-                  <div
-                    key={`icon-${topping.id}-${isOn}`}
+                  {/* Illustrated mini-icon */}
+                  <span
+                    className="flex-none grid place-items-center overflow-hidden"
                     style={{
-                      width: 36, height: 36, flexShrink: 0,
-                      borderRadius: "var(--r-sm)",
-                      background: topping.id === "coco" || topping.id === "sal" ? "var(--cream)" : "transparent",
-                      padding: 2,
-                      animation: isOn ? "toppingPop 0.35s cubic-bezier(.34,1.56,.64,1)" : "none",
+                      width: 44, height: 44, borderRadius: 13,
+                      background: isOn ? "#fff" : "var(--cream)",
+                      boxShadow: isOn ? "inset 0 0 0 1px rgba(217,113,30,.35)" : "inset 0 0 0 1px rgba(0,0,0,.05)",
                     }}
-                  >
-                    <ToppingIcon id={topping.id} on={isOn} dur={topping.dur} />
-                  </div>
+                    suppressHydrationWarning
+                    dangerouslySetInnerHTML={{ __html: iconSvg }}
+                  />
                   <span style={{ flex: 1, minWidth: 0 }}>
-                    <span className="block font-semibold text-[14px] leading-tight" style={{ color: "var(--ink)" }}>
+                    <span className="block font-semibold text-[15px] leading-tight" style={{ color: "var(--ink)" }}>
                       {topping.name}
                     </span>
                     <span className="text-[13px] font-bold" style={{ color: "var(--orange-ink)" }}>
                       +{sym}{topping.price}
                     </span>
                   </span>
+                  {/* Check indicator */}
                   {isOn && (
                     <span
-                      className="absolute top-2 right-2 w-5 h-5 rounded-full grid place-items-center text-[10px] font-bold"
-                      style={{ background: "var(--orange)", color: "#fff" }}
+                      className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full grid place-items-center"
+                      style={{ background: "var(--orange)", color: "#fff", fontSize: 10, fontWeight: 700 }}
+                      aria-hidden="true"
                     >
                       ✓
                     </span>
@@ -532,15 +384,15 @@ export default function PersonalizaPage() {
         </div>
       </div>
 
-      {/* Back link */}
-      <div className="text-center pb-20 lg:pb-16">
-        <Link href="/menu" className="inline-flex items-center gap-2 font-bold text-[15px] no-underline transition-colors" style={{ color: "var(--orange-ink)" }}>
+      {/* ── Back link ── */}
+      <div className="text-center" style={{ paddingBottom: "clamp(40px,5vw,64px)" }}>
+        <Link href="/menu" className="inline-flex items-center gap-2 font-bold text-[15px] no-underline" style={{ color: "var(--orange-ink)" }}>
           <BLIcon name="arrow-right" size={16} className="rotate-180" />
           Ver menú completo
         </Link>
       </div>
 
-      {/* Mobile sticky add button */}
+      {/* ── Mobile sticky add button ── */}
       <div
         className="lg:hidden fixed bottom-0 left-0 right-0 p-4 z-30"
         style={{ background: "rgba(251,246,236,.92)", backdropFilter: "blur(10px)", borderTop: "1px solid var(--hairline)" }}
@@ -556,8 +408,60 @@ export default function PersonalizaPage() {
       </div>
 
       <style>{`
-        @keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        @keyframes toppingPop { 0% { transform: scale(0.7); } 65% { transform: scale(1.15); } 100% { transform: scale(1); } }
+        /* Builder layout */
+        .bl-builder-grid {
+          display: grid;
+          grid-template-columns: 1.05fr .95fr;
+          gap: clamp(28px, 4vw, 56px);
+          align-items: start;
+        }
+        .bl-preview-col { position: sticky; top: 96px; }
+        .bl-variants-grid { grid-template-columns: repeat(${activeVariants.length}, 1fr); }
+        .bl-toppings-grid { grid-template-columns: 1fr 1fr; }
+
+        /* Topping drop-in animation */
+        .bl-bump { opacity: 0; }
+        .bl-topping .bl-bump { opacity: 1; animation: bl-drop .42s cubic-bezier(.34,1.6,.5,1); }
+        @keyframes bl-drop {
+          0%   { transform: translateY(-11px); }
+          60%  { transform: translateY(2px); }
+          100% { transform: translateY(0); }
+        }
+        /* Idle sway */
+        .bl-idle {
+          transform-box: fill-box;
+          transform-origin: center bottom;
+          animation: bl-idle 3.2s ease-in-out infinite;
+        }
+        @keyframes bl-idle {
+          0%, 100% { transform: rotate(-1.8deg); }
+          50%       { transform: rotate(1.8deg); }
+        }
+        /* Coconut-specific animations */
+        .coco-wv {
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: coco-wv 2.1s ease-in-out infinite;
+        }
+        @keyframes coco-wv {
+          0%, 100% { transform: translateY(.5px) rotate(-1.2deg); }
+          50%       { transform: translateY(-.6px) rotate(1.2deg); }
+        }
+        .coco-tw { transform-box: fill-box; animation: coco-tw 1.5s ease-in-out infinite; }
+        @keyframes coco-tw { 0%, 100% { opacity: .2; } 45% { opacity: 1; } }
+
+        @media (prefers-reduced-motion: reduce) {
+          .bl-topping .bl-bump { animation: none; }
+          .bl-idle { animation: none; }
+          .coco-wv, .coco-tw { animation: none; }
+        }
+        @media (max-width: 920px) {
+          .bl-builder-grid { grid-template-columns: 1fr; }
+          .bl-preview-col { position: static; order: -1; }
+        }
+        @media (max-width: 640px) {
+          .bl-toppings-grid { grid-template-columns: 1fr; }
+        }
       `}</style>
     </>
   );
