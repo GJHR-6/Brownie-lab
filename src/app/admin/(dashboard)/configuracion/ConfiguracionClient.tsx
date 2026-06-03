@@ -91,18 +91,21 @@ function ImageUploadTile({
 export default function ConfiguracionClient({ config }: { config: Configuracion }) {
   const [state, formAction, isPending] = useActionState(updateConfiguracion, null);
   const [formKey, setFormKey] = useState(0);
-  const [logoPreview, setLogoPreview]   = useState<string | null>(config.logo_url ?? null);
-  const [heroPreview, setHeroPreview]   = useState<string | null>(config.hero_imagen_url ?? null);
-  const [nosotrosPreview, setNosotrosPreview] = useState<string | null>(config.nosotros_imagen_url ?? null);
-  const logoRef     = useRef<HTMLInputElement>(null);
-  const heroRef     = useRef<HTMLInputElement>(null);
-  const nosotrosRef = useRef<HTMLInputElement>(null);
+  const [logoPreview, setLogoPreview]             = useState<string | null>(config.logo_url ?? null);
+  const [heroPreview, setHeroPreview]             = useState<string | null>(config.hero_imagen_url ?? null);
+  const [nosotrosPreview, setNosotrosPreview]     = useState<string | null>(config.nosotros_imagen_url ?? null);
+  const [personalizadorPreview, setPersonalizadorPreview] = useState<string | null>(config.personalizador_imagen_url ?? null);
+  const logoRef         = useRef<HTMLInputElement>(null);
+  const heroRef         = useRef<HTMLInputElement>(null);
+  const nosotrosRef     = useRef<HTMLInputElement>(null);
+  const personalizadorRef = useRef<HTMLInputElement>(null);
 
   function handleDiscard() {
     setFormKey(k => k + 1);
     setLogoPreview(config.logo_url ?? null);
     setHeroPreview(config.hero_imagen_url ?? null);
     setNosotrosPreview(config.nosotros_imagen_url ?? null);
+    setPersonalizadorPreview(config.personalizador_imagen_url ?? null);
   }
 
   return (
@@ -235,6 +238,16 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
                   fieldName="nosotros_imagen"
                   label="subir imagen nosotros"
                   aspect="4/5"
+                />
+              </Field>
+              <Field label="Imagen del personalizador">
+                <ImageUploadTile
+                  inputRef={personalizadorRef as React.RefObject<HTMLInputElement>}
+                  preview={personalizadorPreview}
+                  onPreview={setPersonalizadorPreview}
+                  fieldName="personalizador_imagen"
+                  label="subir imagen postre"
+                  aspect="1/1"
                 />
               </Field>
             </FCard>

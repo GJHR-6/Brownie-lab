@@ -304,7 +304,16 @@ export default async function Home() {
               <BLIcon name="arrow-right" size={16} />
             </Link>
           </div>
-          {/* Media placeholder */}
+          {/* Media — imagen del personalizador */}
+          {config?.personalizador_imagen_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={config.personalizador_imagen_url}
+              alt="Arma tu postre"
+              className="rounded-[24px] w-full object-cover"
+              style={{ aspectRatio: "1/1", boxShadow: "var(--shadow-md)" }}
+            />
+          ) : (
           <div
             className="rounded-[24px]"
             style={{
@@ -314,6 +323,7 @@ export default async function Home() {
               boxShadow: "var(--shadow-md)",
             }}
           />
+          )}
         </div>
       </section>
 
