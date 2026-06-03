@@ -75,9 +75,17 @@ export interface Configuracion {
   tagline: string;
   descripcion: string | null;
   whatsapp: string;
+  correo: string;
+  ubicacion: string;
   instagram: string;
   facebook: string;
   tiktok: string;
+  envio_gratis_desde: string;
+  anticipacion_minima: string;
+  horario_atencion: string;
+  aviso_barra_superior: string;
+  mensaje_bienvenida: string;
+  logo_url: string | null;
   banco_nombre: string;
   banco_titular: string;
   banco_numero: string;

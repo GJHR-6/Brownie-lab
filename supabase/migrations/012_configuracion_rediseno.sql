@@ -1,0 +1,9 @@
+ALTER TABLE public.configuracion
+  ADD COLUMN IF NOT EXISTS correo              TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS ubicacion           TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS envio_gratis_desde  TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS anticipacion_minima TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS horario_atencion    TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS aviso_barra_superior TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS mensaje_bienvenida  TEXT NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS logo_url            TEXT;
