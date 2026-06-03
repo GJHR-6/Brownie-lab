@@ -1,29 +1,81 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { Package, ShoppingBag, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import VentasChart from "@/components/admin/VentasChart";
 import { storeConfig } from "@/config/store";
-import type { LucideIcon } from "lucide-react";
 import type { EstadoPedido, ClienteDatos } from "@/types/database";
 
-const ESTADO_CONFIG: Record<EstadoPedido, { label: string; bar: string; badge: string }> = {
-  pendiente:   { label: "Pendiente",   bar: "bg-amber-400",  badge: "bg-amber-100 text-amber-700"  },
-  preparacion: { label: "Preparación", bar: "bg-blue-400",   badge: "bg-blue-100 text-blue-700"    },
-  listo:       { label: "Listo",       bar: "bg-green-400",  badge: "bg-green-100 text-green-700"  },
-  completado:  { label: "Completado",  bar: "bg-stone-400",  badge: "bg-stone-100 text-stone-500"  },
+const ESTADO_CONFIG: Record<EstadoPedido, { label: string; fill: string; chip: string; dot: string }> = {
+  pendiente:   { label: "Pendiente",   fill: "var(--amber)",    chip: "#fbeccb", dot: "#9a6a12"  },
+  preparacion: { label: "Preparación", fill: "#3b82f6",         chip: "#dbeafe", dot: "#1d5fb8"  },
+  listo:       { label: "Listo",       fill: "var(--green)",    chip: "#d8f0e2", dot: "#157a4d"  },
+  completado:  { label: "Completado",  fill: "var(--choco-700)",chip: "#e4ded3", dot: "#6b5743"  },
 };
 
-function StatCard({ icon: Icon, label, value, color }: {
-  icon: LucideIcon; label: string; value: string | number; color: string;
+const STAT_ICONS = {
+  sales: (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 16.5 9 10l4 4 8-9"/><path d="M16 5.5h5v5"/>
+    </svg>
+  ),
+  orders: (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5.5 8h13l-1 11.2a1.5 1.5 0 0 1-1.5 1.3H8a1.5 1.5 0 0 1-1.5-1.3z"/>
+      <path d="M8.5 8V6.5a3.5 3.5 0 0 1 7 0V8"/>
+    </svg>
+  ),
+  products: (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 8.5 12 3 3 8.5v7L12 21l9-5.5z"/>
+      <path d="M3 8.5 12 14l9-5.5M12 14v7"/>
+    </svg>
+  ),
+  today: (
+    <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>
+    </svg>
+  ),
+};
+
+function StatCard({ type, value, label }: {
+  type: "sales" | "orders" | "products" | "today";
+  value: string | number;
+  label: string;
 }) {
+  const icBg: Record<string, string> = {
+    sales:    "rgba(31,138,91,.12)",
+    orders:   "rgba(217,113,30,.13)",
+    products: "rgba(116,58,20,.12)",
+    today:    "rgba(158,59,70,.12)",
+  };
+  const icColor: Record<string, string> = {
+    sales:    "var(--green)",
+    orders:   "var(--orange-ink)",
+    products: "var(--choco-700)",
+    today:    "var(--berry)",
+  };
   return (
-    <div className="bg-white rounded-2xl border border-stone-200 p-5 flex items-center gap-4">
-      <div className={`p-3 rounded-xl bg-stone-50 ${color}`}>
-        <Icon className="w-5 h-5" />
-      </div>
+    <div
+      className="flex items-center gap-[18px] p-6 rounded-[20px]"
+      style={{
+        background: "var(--paper-card)",
+        border: "1px solid var(--hairline)",
+        boxShadow: "var(--shadow-sm)",
+      }}
+    >
+      <span
+        className="flex-none grid place-items-center rounded-[14px]"
+        style={{ width: 52, height: 52, background: icBg[type], color: icColor[type] }}
+      >
+        {STAT_ICONS[type]}
+      </span>
       <div>
-        <p className="text-2xl font-bold text-stone-800">{value}</p>
-        <p className="text-xs text-stone-500 mt-0.5">{label}</p>
+        <p
+          className="font-[700] text-[30px] leading-none"
+          style={{ fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)", color: "var(--ink)" }}
+        >
+          {value}
+        </p>
+        <p className="text-[13.5px] font-[500] mt-1.5" style={{ color: "var(--ink-soft)" }}>{label}</p>
       </div>
     </div>
   );
@@ -59,7 +111,6 @@ export default async function AdminDashboardPage() {
 
   const pedidosActivos = porEstado.pendiente + porEstado.preparacion + porEstado.listo;
 
-  // Ventas diarias últimos 30 días
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   const dailyMap: Record<string, number> = {};
@@ -79,39 +130,90 @@ export default async function AdminDashboardPage() {
   const pedidosHoy = pedidos.filter((p) => p.created_at >= startOfToday).length;
   const ultimosPedidos = pedidos.slice(0, 6);
 
+  const alertIcon = (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.2"/><circle cx="12" cy="17.4" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+  const arrowIcon = (
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 12h14M13 6l6 6-6 6"/>
+    </svg>
+  );
+
   return (
-    <div className="p-4 sm:p-6 space-y-6">
+    <div className="px-6 md:px-10 py-8 pb-16 space-y-6 max-w-[1500px] w-full">
+      {/* Page head */}
       <div>
-        <h1 className="text-2xl font-bold text-stone-800">Dashboard</h1>
-        <p className="text-stone-500 text-sm mt-0.5">
+        <h1
+          className="text-[32px] font-[700] leading-tight"
+          style={{ fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)", color: "var(--ink)" }}
+        >
+          Dashboard
+        </h1>
+        <p className="text-[15px] mt-1.5 capitalize" style={{ color: "var(--ink-soft)" }}>
           {now.toLocaleDateString("es-HN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
         </p>
       </div>
 
-      {/* Alertas stock */}
+      {/* Alerts */}
       {(agotados.length > 0 || stockBajo.length > 0) && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           {agotados.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 flex items-center gap-3">
-              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-700 flex-1">
-                <span className="font-semibold">{agotados.length} {agotados.length === 1 ? 'producto agotado' : 'productos agotados'}:</span>{" "}
-                {agotados.map(p => p.nombre).join(", ")}
+            <div
+              className="flex items-center gap-[14px] rounded-[14px] px-[22px] py-[15px]"
+              style={{
+                background: "#fdf4dc",
+                border: "1px solid #f0dca6",
+                borderLeft: "4px solid var(--berry)",
+              }}
+            >
+              <span
+                className="flex-none grid place-items-center rounded-[10px]"
+                style={{ width: 38, height: 38, background: "rgba(158,59,70,.14)", color: "var(--berry)" }}
+              >
+                {alertIcon}
+              </span>
+              <p className="text-[14.5px] flex-1" style={{ color: "var(--choco-700)" }}>
+                <strong className="font-[700]" style={{ color: "var(--choco-800)" }}>
+                  {agotados.length} {agotados.length === 1 ? "producto agotado" : "productos agotados"}:
+                </strong>{" "}
+                {agotados.map((p) => p.nombre).join(", ")}
               </p>
-              <Link href="/admin/inventario" className="text-xs text-red-600 hover:underline font-medium flex-shrink-0">
-                Ir a inventario →
+              <Link
+                href="/admin/inventario"
+                className="ml-auto flex-none flex items-center gap-[7px] font-[700] text-[14px] whitespace-nowrap"
+                style={{ color: "var(--berry)" }}
+              >
+                Ir a inventario {arrowIcon}
               </Link>
             </div>
           )}
           {stockBajo.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-center gap-3">
-              <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0" />
-              <p className="text-sm text-amber-700 flex-1">
-                <span className="font-semibold">Stock bajo (≤5):</span>{" "}
-                {stockBajo.map(p => `${p.nombre} (${p.stock})`).join(", ")}
+            <div
+              className="flex items-center gap-[14px] rounded-[14px] px-[22px] py-[15px]"
+              style={{
+                background: "#fdf4dc",
+                border: "1px solid #f0dca6",
+                borderLeft: "4px solid var(--amber)",
+              }}
+            >
+              <span
+                className="flex-none grid place-items-center rounded-[10px]"
+                style={{ width: 38, height: 38, background: "rgba(232,162,58,.18)", color: "var(--orange-ink)" }}
+              >
+                {alertIcon}
+              </span>
+              <p className="text-[14.5px] flex-1" style={{ color: "var(--choco-700)" }}>
+                <strong className="font-[700]" style={{ color: "var(--choco-800)" }}>Stock bajo (≤5):</strong>{" "}
+                {stockBajo.map((p) => `${p.nombre} (${p.stock})`).join(", ")}
               </p>
-              <Link href="/admin/inventario" className="text-xs text-amber-600 hover:underline font-medium flex-shrink-0">
-                Ir a inventario →
+              <Link
+                href="/admin/inventario"
+                className="ml-auto flex-none flex items-center gap-[7px] font-[700] text-[14px] whitespace-nowrap"
+                style={{ color: "var(--orange-ink)" }}
+              >
+                Ir a inventario {arrowIcon}
               </Link>
             </div>
           )}
@@ -119,66 +221,122 @@ export default async function AdminDashboardPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={TrendingUp} label="Ventas del mes"    value={`${storeConfig.currencySymbol}${totalVentasMes.toFixed(2)}`} color="text-green-600" />
-        <StatCard icon={ShoppingBag} label="Pedidos activos"  value={pedidosActivos} color="text-amber-600" />
-        <StatCard icon={Package}    label="Productos activos" value={productosActivos} color="text-blue-600" />
-        <StatCard icon={Clock}      label="Pedidos hoy"       value={pedidosHoy} color="text-purple-600" />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+        <StatCard type="sales"    value={`${storeConfig.currencySymbol}${totalVentasMes.toFixed(2)}`} label="Ventas del mes" />
+        <StatCard type="orders"   value={pedidosActivos}  label="Pedidos activos" />
+        <StatCard type="products" value={productosActivos} label="Productos activos" />
+        <StatCard type="today"    value={pedidosHoy}       label="Pedidos hoy" />
       </div>
 
-      {/* Gráfica ventas */}
+      {/* Chart */}
       <VentasChart data={chartData} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Bottom grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Pedidos por estado */}
-        <div className="bg-white rounded-2xl border border-stone-200 p-5">
-          <h2 className="font-semibold text-stone-700 mb-4 text-sm">Pedidos por estado</h2>
-          <div className="space-y-3">
+        <div
+          className="rounded-[20px] p-[26px]"
+          style={{
+            background: "var(--paper-card)",
+            border: "1px solid var(--hairline)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <h2 className="font-[700] text-[16px] mb-5" style={{ color: "var(--ink)" }}>
+            Pedidos por estado
+          </h2>
+          <div className="flex flex-col gap-[22px]">
             {(Object.entries(porEstado) as [EstadoPedido, number][]).map(([estado, count]) => {
               const pct = pedidos.length > 0 ? Math.round((count / pedidos.length) * 100) : 0;
-              const { label, bar } = ESTADO_CONFIG[estado];
+              const { label, fill } = ESTADO_CONFIG[estado];
               return (
                 <div key={estado}>
-                  <div className="flex justify-between text-sm mb-1.5">
-                    <span className="text-stone-600">{label}</span>
-                    <span className="font-semibold text-stone-800">{count}</span>
+                  <div className="flex justify-between items-baseline mb-[9px]">
+                    <span className="text-[14.5px] font-[600]" style={{ color: "var(--ink)" }}>{label}</span>
+                    <span
+                      className="font-[700] text-[18px] leading-none"
+                      style={{ fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)", color: "var(--ink)" }}
+                    >
+                      {count}
+                    </span>
                   </div>
-                  <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-                    <div className={`h-full ${bar} rounded-full`} style={{ width: `${pct}%` }} />
+                  <div className="h-[9px] rounded-full overflow-hidden" style={{ background: "var(--cream-200)" }}>
+                    <div className="h-full rounded-full" style={{ width: `${pct}%`, background: fill }} />
                   </div>
                 </div>
               );
             })}
           </div>
-          <p className="text-xs text-stone-400 mt-4">{pedidos.length} pedidos en total</p>
+          <p className="text-[13px] font-[500] mt-4 pt-[18px]"
+            style={{ borderTop: "1px solid var(--hairline)", color: "var(--ink-soft)" }}>
+            {pedidos.length} pedidos en total
+          </p>
         </div>
 
         {/* Últimos pedidos */}
-        <div className="bg-white rounded-2xl border border-stone-200 p-5">
-          <h2 className="font-semibold text-stone-700 mb-4 text-sm">Últimos pedidos</h2>
+        <div
+          className="rounded-[20px] p-[26px]"
+          style={{
+            background: "var(--paper-card)",
+            border: "1px solid var(--hairline)",
+            boxShadow: "var(--shadow-sm)",
+          }}
+        >
+          <h2 className="font-[700] text-[16px] mb-2" style={{ color: "var(--ink)" }}>
+            Últimos pedidos
+          </h2>
           {ultimosPedidos.length === 0 ? (
-            <p className="text-stone-400 text-sm">No hay pedidos aún.</p>
+            <p className="text-[14px]" style={{ color: "var(--ink-soft)" }}>No hay pedidos aún.</p>
           ) : (
-            <div className="divide-y divide-stone-100">
+            <div>
               {ultimosPedidos.map((p) => {
                 const estado = p.estado as EstadoPedido;
+                const cfg = ESTADO_CONFIG[estado];
                 const cliente = p.cliente_datos as ClienteDatos;
                 return (
-                  <div key={p.id} className="flex items-center justify-between py-2.5 first:pt-0 last:pb-0">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-stone-800 truncate">{cliente.nombre}</p>
-                      <p className="text-xs text-stone-400">
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-[14px] py-[15px]"
+                    style={{ borderBottom: "1px solid var(--hairline)" }}
+                  >
+                    <span
+                      className="flex-none grid place-items-center rounded-[12px] font-[700] text-[16px]"
+                      style={{
+                        width: 42,
+                        height: 42,
+                        background: "var(--cream)",
+                        color: "var(--orange-ink)",
+                        fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)",
+                      }}
+                    >
+                      {(cliente.nombre?.[0] ?? "?").toUpperCase()}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[15px] font-[600] truncate" style={{ color: "var(--ink)" }}>
+                        {cliente.nombre}
+                      </p>
+                      <p className="text-[12.5px] mt-0.5" style={{ color: "var(--ink-soft)" }}>
                         {new Date(p.created_at).toLocaleDateString("es-HN", {
                           day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                         })}
                       </p>
                     </div>
-                    <div className="text-right ml-3 flex-shrink-0">
-                      <p className="text-sm font-bold text-amber-800">
+                    <div className="text-right flex-shrink-0 flex flex-col items-end gap-1.5">
+                      <p
+                        className="font-[700] text-[16px] leading-none"
+                        style={{
+                          fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)",
+                          color: "var(--orange-ink)",
+                        }}
+                      >
                         {storeConfig.currencySymbol}{Number(p.total).toFixed(2)}
                       </p>
-                      <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${ESTADO_CONFIG[estado]?.badge}`}>
-                        {ESTADO_CONFIG[estado]?.label}
+                      <span
+                        className="inline-flex items-center gap-1.5 text-[11.5px] font-[700] px-[11px] py-[4px] rounded-full whitespace-nowrap"
+                        style={{ background: cfg?.chip, color: cfg?.dot }}
+                      >
+                        <span className="w-[7px] h-[7px] rounded-full flex-none" style={{ background: "currentColor" }} />
+                        {cfg?.label}
                       </span>
                     </div>
                   </div>

@@ -22,7 +22,7 @@ interface ToppingDef { name: string; price: number; }
 
 // ── Data ──────────────────────────────────────────────────────────────────────
 const BROWNIE_VARIANTS: Variant[] = [
-  { id: "clasico",  name: "Clásico",  desc: "Denso y húmedo",     price: 40, img: "/art/brownie-clasico.png" },
+  { id: "clasico",  name: "Clásico",  desc: "Denso y húmedo",     price: 40, img: "/art/brownie-clasico.svg" },
   { id: "con-nuez", name: "Con Nuez", desc: "Con nuez tostada",   price: 45, img: "/art/brownie-nuez.svg" },
 ];
 const GALLETA_VARIANTS: Variant[] = [
