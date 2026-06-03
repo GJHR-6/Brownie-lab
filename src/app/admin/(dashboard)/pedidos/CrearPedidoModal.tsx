@@ -5,39 +5,28 @@ import { Loader2, X, Plus, Minus } from 'lucide-react';
 import { crearPedidoManual } from '@/actions/pedidos';
 import type { Producto, PedidoItem } from '@/types/database';
 
-interface CrearPedidoModalProps {
-  productos: Producto[];
-  onSuccess: () => void;
-  onClose: () => void;
-}
+const T = {
+  inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
+};
 
-export default function CrearPedidoModal({ productos, onSuccess, onClose }: CrearPedidoModalProps) {
+export default function CrearPedidoModal({ productos, onSuccess, onClose }: { productos: Producto[]; onSuccess: () => void; onClose: () => void }) {
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
   const [state, formAction, isPending] = useActionState(crearPedidoManual, null);
 
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
   function setQty(id: string, delta: number) {
-    setCantidades((prev) => {
+    setCantidades(prev => {
       const current = prev[id] ?? 0;
       const next = Math.max(0, current + delta);
-      if (next === 0) {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      }
+      if (next === 0) { const { [id]: _, ...rest } = prev; return rest; }
       return { ...prev, [id]: next };
     });
   }
 
   const items: PedidoItem[] = Object.entries(cantidades).map(([id, cantidad]) => {
-    const p = productos.find((x) => x.id === id)!;
-    return {
-      producto_id: id,
-      nombre: p.nombre,
-      precio: Number(p.precio),
-      cantidad,
-      subtotal: Number(p.precio) * cantidad,
-    };
+    const p = productos.find(x => x.id === id)!;
+    return { producto_id: id, nombre: p.nombre, precio: Number(p.precio), cantidad, subtotal: Number(p.precio) * cantidad };
   });
 
   const total = items.reduce((s, i) => s + i.subtotal, 0);
@@ -45,81 +34,72 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: Crea
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+      <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 flex-shrink-0">
-          <h2 className="text-lg font-bold text-stone-800">Nuevo pedido manual</h2>
-          <button onClick={onClose} className="text-stone-400 hover:text-stone-600">
-            <X className="w-5 h-5" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', flexShrink: 0, borderRadius: 'var(--r-lg) var(--r-lg) 0 0' }}>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>Nuevo pedido manual</h3>
+          <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
+            <X style={{ width: 18, height: 18 }} />
           </button>
         </div>
 
-        <form action={formAction} className="flex flex-col flex-1 min-h-0">
+        <form action={formAction} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           <input type="hidden" name="items_json" value={JSON.stringify(items)} />
 
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+          <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
             {state?.success === false && (
-              <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">
-                {state.error}
-              </div>
+              <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>{state.error}</div>
             )}
 
             {/* Cliente */}
             <div>
-              <h3 className="font-semibold text-stone-700 text-sm mb-3">Cliente</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">
-                    Nombre <span className="text-red-500">*</span>
-                  </label>
-                  <input name="nombre" required disabled={isPending}
-                    className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-                    placeholder="María López" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">
-                    Teléfono <span className="text-red-500">*</span>
-                  </label>
-                  <input name="telefono" required disabled={isPending}
-                    className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-                    placeholder="9999-0000" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-stone-600 mb-1">Notas</label>
-                  <input name="notas" disabled={isPending}
-                    className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
-                    placeholder="Sin nueces, para llevar…" />
-                </div>
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Cliente</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {[
+                  { name: 'nombre', label: 'Nombre', required: true, placeholder: 'María López' },
+                  { name: 'telefono', label: 'Teléfono', required: true, placeholder: '9999-0000' },
+                  { name: 'notas', label: 'Notas', required: false, placeholder: 'Sin nueces, para llevar…' },
+                ].map(({ name, label, required, placeholder }) => (
+                  <div key={name} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                      {label} {required && <span style={{ color: 'var(--berry)' }}>*</span>}
+                    </label>
+                    <input name={name} required={required} disabled={isPending} placeholder={placeholder}
+                      style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+                      onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* Productos */}
             <div>
-              <h3 className="font-semibold text-stone-700 text-sm mb-3">Productos</h3>
-              <div className="space-y-2">
-                {productos.filter(p => p.disponible).map((p) => {
+              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Productos</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {productos.filter(p => p.disponible).map(p => {
                   const qty = cantidades[p.id] ?? 0;
                   return (
-                    <div key={p.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
-                      qty > 0 ? 'border-amber-300 bg-amber-50' : 'border-stone-200'
-                    }`}>
-                      <span className="text-xl flex-shrink-0">{p.emoji ?? '🍪'}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-stone-800 truncate">{p.nombre}</p>
-                        <p className="text-xs text-amber-700 font-semibold">L.{Number(p.precio).toFixed(2)}</p>
+                    <div key={p.id}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 'var(--r-md)', border: `1.5px solid ${qty > 0 ? 'var(--orange)' : 'var(--hairline)'}`, background: qty > 0 ? 'var(--cream)' : 'var(--paper-card)', transition: '.14s' }}>
+                      <span style={{ fontSize: 20, flexShrink: 0 }}>{p.emoji ?? '🍪'}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.nombre}</p>
+                        <p style={{ fontSize: 12, fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--orange-ink)', margin: 0 }}>L.{Number(p.precio).toFixed(2)}</p>
                       </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                         <button type="button" onClick={() => setQty(p.id, -1)} disabled={qty === 0 || isPending}
-                          className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center disabled:opacity-30 transition-colors">
-                          <Minus className="w-3 h-3" />
+                          style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--cream-200)', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--ink-soft)', opacity: qty === 0 ? 0.3 : 1 }}>
+                          <Minus style={{ width: 12, height: 12 }} />
                         </button>
-                        <span className="w-5 text-center text-sm font-semibold text-stone-800">{qty}</span>
+                        <span style={{ minWidth: 20, textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--ink)' }}>{qty}</span>
                         <button type="button" onClick={() => setQty(p.id, 1)} disabled={isPending}
-                          className="w-7 h-7 rounded-full bg-amber-100 hover:bg-amber-200 flex items-center justify-center disabled:opacity-30 transition-colors">
-                          <Plus className="w-3 h-3" />
+                          style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--orange)', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#fff' }}>
+                          <Plus style={{ width: 12, height: 12 }} />
                         </button>
                       </div>
                     </div>
@@ -130,21 +110,21 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: Crea
           </div>
 
           {/* Footer */}
-          <div className="border-t border-stone-100 px-6 py-4 flex-shrink-0 space-y-3">
+          <div style={{ padding: '18px 24px', borderTop: '1px solid var(--hairline)', background: 'var(--paper-card)', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12, borderRadius: '0 0 var(--r-lg) var(--r-lg)' }}>
             {itemCount > 0 && (
-              <div className="flex justify-between text-sm font-semibold text-stone-800 bg-stone-50 rounded-xl px-4 py-2.5">
-                <span>{itemCount} {itemCount === 1 ? 'producto' : 'productos'}</span>
-                <span className="text-amber-800">Total: L.{total.toFixed(2)}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, background: 'var(--cream)', borderRadius: 'var(--r-md)', padding: '10px 16px' }}>
+                <span style={{ color: 'var(--ink)' }}>{itemCount} {itemCount === 1 ? 'producto' : 'productos'}</span>
+                <span style={{ fontFamily: 'var(--font-display)', color: 'var(--orange-ink)', fontSize: 16 }}>L.{total.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex gap-3">
+            <div style={{ display: 'flex', gap: 10 }}>
               <button type="button" onClick={onClose} disabled={isPending}
-                className="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-60">
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' }}>
                 Cancelar
               </button>
               <button type="submit" disabled={isPending || itemCount === 0}
-                className="flex-1 bg-amber-700 hover:bg-amber-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s', opacity: isPending || itemCount === 0 ? 0.6 : 1 }}>
+                {isPending && <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />}
                 {isPending ? 'Creando…' : 'Crear pedido'}
               </button>
             </div>
