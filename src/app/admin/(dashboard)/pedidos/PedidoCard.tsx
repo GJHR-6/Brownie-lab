@@ -2,54 +2,63 @@ import type { Pedido } from '@/types/database';
 import { Clock } from 'lucide-react';
 
 function formatFecha(iso: string): string {
-  return new Date(iso).toLocaleString('es-HN', {
-    day: '2-digit',
-    month: 'short',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return new Date(iso).toLocaleString('es-HN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
 export default function PedidoCard({ pedido }: { pedido: Pedido }) {
   return (
-    <div className="bg-white rounded-xl border border-stone-200 p-3.5 shadow-sm space-y-2.5 select-none">
+    <div
+      style={{
+        background: 'var(--paper-card)',
+        border: '1px solid var(--hairline)',
+        borderRadius: 'var(--r-md)',
+        padding: '14px 16px',
+        boxShadow: 'var(--shadow-sm)',
+        userSelect: 'none',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
       {/* ID + total */}
-      <div className="flex items-start justify-between gap-2">
-        <span className="text-xs font-mono text-stone-400">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', color: 'var(--ink-soft)' }}>
           #{pedido.id.slice(0, 8).toUpperCase()}
         </span>
-        <span className="text-sm font-bold text-amber-700">
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--orange-ink)' }}>
           L. {Number(pedido.total).toFixed(2)}
         </span>
       </div>
 
       {/* Cliente */}
       <div>
-        <p className="font-semibold text-sm text-stone-800 leading-tight">
+        <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', lineHeight: 1.2, margin: 0 }}>
           {pedido.cliente_datos.nombre}
         </p>
-        <p className="text-xs text-stone-400">{pedido.cliente_datos.telefono}</p>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 2 }}>
+          {pedido.cliente_datos.telefono}
+        </p>
       </div>
 
       {/* Notas */}
       {pedido.cliente_datos.notas && (
-        <p className="text-xs text-stone-500 bg-stone-50 rounded-lg px-2.5 py-1.5 leading-relaxed">
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', background: 'var(--cream)', borderRadius: 8, padding: '8px 10px', lineHeight: 1.5, margin: 0 }}>
           {pedido.cliente_datos.notas}
         </p>
       )}
 
       {/* Items */}
       {pedido.items && pedido.items.length > 0 && (
-        <details className="text-xs">
-          <summary className="cursor-pointer text-amber-700 font-medium hover:text-amber-600 list-none flex items-center gap-1">
-            <span>▸</span>
+        <details style={{ fontSize: 12 }}>
+          <summary style={{ cursor: 'pointer', color: 'var(--orange-ink)', fontWeight: 600, listStyle: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 10 }}>▸</span>
             <span>{pedido.items.length} {pedido.items.length === 1 ? 'producto' : 'productos'}</span>
           </summary>
-          <ul className="mt-1.5 space-y-1 pl-1">
+          <ul style={{ marginTop: 6, paddingLeft: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {pedido.items.map((item, i) => (
-              <li key={i} className="flex justify-between text-stone-600">
+              <li key={i} style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--ink-soft)', listStyle: 'none' }}>
                 <span>{item.cantidad}× {item.nombre}</span>
-                <span className="font-medium">L.{Number(item.subtotal).toFixed(2)}</span>
+                <span style={{ fontWeight: 600 }}>L.{Number(item.subtotal).toFixed(2)}</span>
               </li>
             ))}
           </ul>
@@ -57,8 +66,8 @@ export default function PedidoCard({ pedido }: { pedido: Pedido }) {
       )}
 
       {/* Fecha */}
-      <div className="flex items-center gap-1.5 text-xs text-stone-400">
-        <Clock className="w-3 h-3" />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'ui-monospace,monospace' }}>
+        <Clock style={{ width: 12, height: 12, flexShrink: 0 }} />
         {formatFecha(pedido.created_at)}
       </div>
     </div>

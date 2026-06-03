@@ -2,55 +2,52 @@
 
 import { useState, useCallback, useTransition, useActionState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X, Pencil } from 'lucide-react';
+import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react';
 import { createBanner, updateBanner, toggleBanner, deleteBanner } from '@/actions/banners';
 import type { Banner } from '@/types/database';
+import ToggleSwitch from '@/components/admin/ToggleSwitch';
+
+const T = {
+  th: { textAlign: 'left' as const, fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--ink-soft)', padding: '14px 22px', borderBottom: '1px solid var(--hairline)', whiteSpace: 'nowrap' as const, background: 'var(--paper)' },
+  td: { padding: '14px 22px', fontSize: 14, color: 'var(--ink)', verticalAlign: 'middle' as const, borderBottom: '1px solid var(--hairline)' },
+  inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
+  btnPrimary: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer' as const, background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' },
+  btnGhost: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer' as const, background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' },
+};
 
 type ModalState = { open: false } | { open: true; modo: 'crear' } | { open: true; modo: 'editar'; banner: Banner };
 
-function BannerForm({
-  bannerInicial,
-  onSuccess,
-  onCancel,
-}: {
-  bannerInicial?: Banner;
-  onSuccess: () => void;
-  onCancel: () => void;
-}) {
+function BannerForm({ bannerInicial, onSuccess, onCancel }: { bannerInicial?: Banner; onSuccess: () => void; onCancel: () => void }) {
   const isEditing = !!bannerInicial;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const action = useMemo(() => isEditing ? updateBanner.bind(null, bannerInicial!.id) : createBanner, []);
   const [state, formAction, isPending] = useActionState(action, null);
-
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
   return (
-    <form action={formAction} className="px-6 py-5 space-y-4">
+    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 24 }}>
       {state?.success === false && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{state.error}</div>
+        <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>{state.error}</div>
       )}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">
-          Mensaje <span className="text-red-500">*</span>
-        </label>
-        <textarea name="mensaje" required rows={2} disabled={isPending}
-          defaultValue={bannerInicial?.mensaje}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Mensaje <span style={{ color: 'var(--berry)' }}>*</span></label>
+        <textarea name="mensaje" required rows={2} disabled={isPending} defaultValue={bannerInicial?.mensaje}
           placeholder="🎉 ¡Envío gratis en pedidos mayores a L.200!"
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 resize-none" />
+          style={{ ...T.inp, resize: 'vertical', minHeight: 80, lineHeight: 1.6, opacity: isPending ? 0.6 : 1 }}
+          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Orden (menor = primero)</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Orden (menor = primero)</label>
         <input name="orden" type="number" min="0" disabled={isPending} defaultValue={bannerInicial?.orden ?? 0}
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+          style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
       </div>
-      <div className="flex gap-3 pt-1">
-        <button type="button" onClick={onCancel} disabled={isPending}
-          className="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-60">
-          Cancelar
-        </button>
-        <button type="submit" disabled={isPending}
-          className="flex-1 bg-amber-700 hover:bg-amber-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+      <div style={{ display: 'flex', gap: 10, paddingTop: 4, borderTop: '1px solid var(--hairline)', marginTop: 4 }}>
+        <button type="button" onClick={onCancel} disabled={isPending} style={{ ...T.btnGhost, flex: 1, justifyContent: 'center' }}>Cancelar</button>
+        <button type="submit" disabled={isPending} style={{ ...T.btnPrimary, flex: 1, justifyContent: 'center', opacity: isPending ? 0.7 : 1 }}>
+          {isPending && <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />}
           {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear banner'}
         </button>
       </div>
@@ -83,76 +80,82 @@ export default function BannersClient({ initialBanners }: { initialBanners: Bann
   }
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="px-6 md:px-10 py-8 pb-16 max-w-[1500px] w-full">
+      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Banners</h1>
-          <p className="text-stone-500 text-sm mt-0.5">
-            Mensajes que aparecen en la parte superior del sitio.
-            {isPending && <span className="ml-2 text-amber-600">Actualizando…</span>}
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Banners</h1>
+          <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
+            Mensajes en la parte superior del sitio.{isPending && <span style={{ marginLeft: 8, color: 'var(--orange-ink)' }}>Actualizando…</span>}
           </p>
         </div>
-        <button onClick={() => setModal({ open: true, modo: 'crear' })}
-          className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-          <Plus className="w-4 h-4" />Nuevo banner
+        <button onClick={() => setModal({ open: true, modo: 'crear' })} style={T.btnPrimary}>
+          <Plus style={{ width: 17, height: 17 }} />Nuevo banner
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="border-b border-stone-100 bg-stone-50 text-stone-600">
-              <th className="text-left px-4 py-3 font-semibold">Mensaje</th>
-              <th className="text-center px-4 py-3 font-semibold">Orden</th>
-              <th className="text-center px-4 py-3 font-semibold">Activo</th>
-              <th className="text-right px-4 py-3 font-semibold">Acciones</th>
+            <tr>
+              <th style={T.th}>Mensaje</th>
+              <th style={{ ...T.th, textAlign: 'center' }}>Orden</th>
+              <th style={{ ...T.th, textAlign: 'center' }}>Activo</th>
+              <th style={{ ...T.th, textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody>
             {initialBanners.map((b) => (
-              <tr key={b.id} className="hover:bg-stone-50/70 transition-colors">
-                <td className="px-4 py-3">
-                  <p className="text-stone-800 max-w-md">{b.mensaje}</p>
+              <tr key={b.id}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--paper)')}
+                onMouseLeave={e => (e.currentTarget.style.background = '')}
+                style={{ transition: 'background .12s' }}>
+                <td style={T.td}>
+                  <p style={{ maxWidth: 480, color: 'var(--ink)', fontSize: 14 }}>{b.mensaje}</p>
                 </td>
-                <td className="px-4 py-3 text-center text-stone-500">{b.orden}</td>
-                <td className="px-4 py-3 text-center">
-                  <button onClick={() => handleToggle(b.id, b.activo)} disabled={togglingId === b.id} className="disabled:opacity-50">
-                    {togglingId === b.id ? <Loader2 className="w-5 h-5 animate-spin text-stone-400 mx-auto" /> :
-                      b.activo ? <ToggleRight className="w-7 h-7 text-green-500 mx-auto" /> :
-                      <ToggleLeft className="w-7 h-7 text-stone-300 mx-auto" />}
-                  </button>
+                <td style={{ ...T.td, textAlign: 'center', color: 'var(--ink-soft)' }}>{b.orden}</td>
+                <td style={{ ...T.td, textAlign: 'center' }}>
+                  <ToggleSwitch checked={b.activo} onChange={() => handleToggle(b.id, b.activo)} disabled={togglingId === b.id} />
                 </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex items-center justify-end gap-3">
+                <td style={{ ...T.td, textAlign: 'right' }}>
+                  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                     <button onClick={() => setModal({ open: true, modo: 'editar', banner: b })}
-                      className="text-stone-300 hover:text-amber-600 transition-colors">
-                      <Pencil className="w-4 h-4" />
+                      style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s' }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange-ink)'; e.currentTarget.style.borderColor = 'var(--orange)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
+                      <Pencil style={{ width: 15, height: 15 }} />
                     </button>
                     <button onClick={() => handleDelete(b.id)} disabled={deletingId === b.id}
-                      className="text-stone-300 hover:text-red-500 transition-colors disabled:opacity-50">
-                      {deletingId === b.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === b.id ? 0.5 : 1 }}
+                      onMouseEnter={e => { e.currentTarget.style.color = 'var(--berry)'; e.currentTarget.style.borderColor = 'var(--berry)'; }}
+                      onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
+                      {deletingId === b.id ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: 15, height: 15 }} />}
                     </button>
                   </div>
                 </td>
               </tr>
             ))}
             {initialBanners.length === 0 && (
-              <tr><td colSpan={4} className="px-4 py-16 text-center text-stone-400">No hay banners. Agrega el primero.</td></tr>
+              <tr>
+                <td colSpan={4} style={{ ...T.td, textAlign: 'center', padding: '48px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
+                  No hay banners. Agrega el primero.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
       {modal.open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setModal({ open: false }); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
-              <h2 className="text-lg font-bold text-stone-800">
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) setModal({ open: false }); }}>
+          <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>
                 {modal.modo === 'crear' ? 'Nuevo banner' : 'Editar banner'}
-              </h2>
-              <button onClick={() => setModal({ open: false })} className="text-stone-400 hover:text-stone-600">
-                <X className="w-5 h-5" />
+              </h3>
+              <button onClick={() => setModal({ open: false })}
+                style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
+                <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
             <BannerForm

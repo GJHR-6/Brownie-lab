@@ -11,39 +11,19 @@ import type { ClienteDatos, PedidoItem } from '@/types/database';
 import { marcarPedidosCompletados } from '@/actions/pedidos';
 import type { Pedido, EstadoPedido, Producto } from '@/types/database';
 
-// ── Config de columnas ─────────────────────────────────────────────────────────
-
-interface Columna {
-  estado: EstadoPedido;
-  label: string;
-  color: string;
-  dot: string;
-}
+interface Columna { estado: EstadoPedido; label: string; accent: string; chip: string; dot: string }
 
 const COLUMNAS: Columna[] = [
-  { estado: 'pendiente',   label: 'Pendiente',   color: 'border-t-amber-400',  dot: 'bg-amber-400'  },
-  { estado: 'preparacion', label: 'Preparación', color: 'border-t-blue-400',   dot: 'bg-blue-400'   },
-  { estado: 'listo',       label: 'Listo',       color: 'border-t-green-400',  dot: 'bg-green-400'  },
-  { estado: 'completado',  label: 'Completado',  color: 'border-t-stone-400',  dot: 'bg-stone-400'  },
+  { estado: 'pendiente',   label: 'Pendiente',   accent: 'var(--amber)',    chip: '#fbeccb', dot: '#9a6a12' },
+  { estado: 'preparacion', label: 'Preparación', accent: '#3b82f6',        chip: '#dbeafe', dot: '#1d5fb8' },
+  { estado: 'listo',       label: 'Listo',       accent: 'var(--green)',   chip: '#d8f0e2', dot: '#157a4d' },
+  { estado: 'completado',  label: 'Completado',  accent: 'var(--choco-700)', chip: '#e4ded3', dot: '#6b5743' },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 function agrupar(pedidos: Pedido[]): Record<EstadoPedido, Pedido[]> {
-  const base: Record<EstadoPedido, Pedido[]> = {
-    pendiente: [], preparacion: [], listo: [], completado: [],
-  };
-  for (const p of pedidos) {
-    base[p.estado].push(p);
-  }
+  const base: Record<EstadoPedido, Pedido[]> = { pendiente: [], preparacion: [], listo: [], completado: [] };
+  for (const p of pedidos) base[p.estado].push(p);
   return base;
-}
-
-// ── Componente ─────────────────────────────────────────────────────────────────
-
-interface KanbanClientProps {
-  initialPedidos: Pedido[];
-  productos: Producto[];
 }
 
 function sendWhatsAppCliente(pedido: Pedido) {
@@ -52,13 +32,9 @@ function sendWhatsAppCliente(pedido: Pedido) {
   const origen = typeof window !== 'undefined' ? window.location.origin : '';
   const id = pedido.id.slice(0, 8).toUpperCase();
   const lineas = [
-    `¡Hola ${cd.nombre}! 🍪`,
-    '',
-    `Tu pedido *#${id}* ha sido confirmado y está siendo preparado con mucho amor. 💛`,
-    '',
-    `📍 Puedes rastrear el estado de tu pedido aquí:`,
-    `${origen}/seguimiento`,
-    '',
+    `¡Hola ${cd.nombre}! 🍪`, '',
+    `Tu pedido *#${id}* ha sido confirmado y está siendo preparado con mucho amor. 💛`, '',
+    `📍 Puedes rastrear el estado de tu pedido aquí:`, `${origen}/seguimiento`, '',
     '¡Gracias por tu compra en Brownie Lab! 🍪',
   ];
   window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(lineas.join('\n'))}`, '_blank');
@@ -76,9 +52,7 @@ function printPedido(pedido: Pedido) {
   <div class="divider"></div>
   <p class="label">Cliente</p><p>${cd.nombre}</p><p>${cd.telefono}</p>${cd.notas ? `<p style="color:#555">${cd.notas}</p>` : ''}
   <div class="divider"></div>
-  ${items && items.length > 0
-    ? items.map(i => `<div class="row"><span>${i.cantidad}× ${i.nombre}</span><span>L.${Number(i.subtotal).toFixed(2)}</span></div>`).join('')
-    : '<p>Sin detalle de productos</p>'}
+  ${items && items.length > 0 ? items.map(i => `<div class="row"><span>${i.cantidad}× ${i.nombre}</span><span>L.${Number(i.subtotal).toFixed(2)}</span></div>`).join('') : '<p>Sin detalle de productos</p>'}
   <div class="divider"></div>
   <div class="row total"><span>TOTAL</span><span>L.${Number(pedido.total).toFixed(2)}</span></div>
   <div class="divider"></div>
@@ -92,161 +66,137 @@ function printPedido(pedido: Pedido) {
   win.document.close();
 }
 
-export default function KanbanClient({ initialPedidos, productos }: KanbanClientProps) {
+export default function KanbanClient({ initialPedidos, productos }: { initialPedidos: Pedido[]; productos: Producto[] }) {
   const router = useRouter();
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
-  const [columns, setColumns] = useState<Record<EstadoPedido, Pedido[]>>(
-    () => agrupar(initialPedidos)
-  );
+  const [columns, setColumns] = useState<Record<EstadoPedido, Pedido[]>>(() => agrupar(initialPedidos));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result;
-
-    if (
-      !destination ||
-      (destination.droppableId === source.droppableId &&
-        destination.index === source.index)
-    ) return;
-
-    const srcCol  = source.droppableId      as EstadoPedido;
+    if (!destination || (destination.droppableId === source.droppableId && destination.index === source.index)) return;
+    const srcCol = source.droppableId as EstadoPedido;
     const destCol = destination.droppableId as EstadoPedido;
-
-    // Snapshot para revertir si la Server Action falla
     const snapshot = { ...columns, [srcCol]: [...columns[srcCol]], [destCol]: [...columns[destCol]] };
-
-    // Obtener pedido arrastrado
-    const pedido = columns[srcCol].find((p) => p.id === draggableId);
+    const pedido = columns[srcCol].find(p => p.id === draggableId);
     if (!pedido) return;
-
-    // ── Actualización optimista ──────────────────────────────────────────────
-    setColumns((prev) => {
-      const src  = prev[srcCol].filter((p) => p.id !== draggableId);
+    setColumns(prev => {
+      const src = prev[srcCol].filter(p => p.id !== draggableId);
       const dest = [...prev[destCol]];
       dest.splice(destination.index, 0, { ...pedido, estado: destCol });
       return { ...prev, [srcCol]: src, [destCol]: dest };
     });
     setErrorMsg(null);
-
-    // ── Persistir en Supabase ────────────────────────────────────────────────
     const res = await actualizarEstadoPedido(draggableId, destCol);
-
-    if (!res.success) {
-      // Revertir al snapshot previo
-      setColumns(snapshot);
-      setErrorMsg(`Error al actualizar pedido: ${res.error}`);
-    }
+    if (!res.success) { setColumns(snapshot); setErrorMsg(`Error al actualizar pedido: ${res.error}`); }
   }, [columns]);
 
   const total = initialPedidos.length;
-
-  const toggleSelect = (id: string) => setSelectedIds(prev => {
-    const next = new Set(prev);
-    next.has(id) ? next.delete(id) : next.add(id);
-    return next;
-  });
+  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   async function handleBulkComplete() {
     if (!selectedIds.size) return;
     if (!confirm(`¿Marcar ${selectedIds.size} pedido(s) como completado?`)) return;
     setBulkLoading(true);
     await marcarPedidosCompletados([...selectedIds]);
-    setSelectedIds(new Set());
-    setBulkLoading(false);
-    router.refresh();
+    setSelectedIds(new Set()); setBulkLoading(false); router.refresh();
   }
 
   const searchResults = search.trim()
-    ? initialPedidos.filter(p => {
-        const cd = p.cliente_datos as ClienteDatos;
-        const q = search.toLowerCase();
-        return cd.nombre.toLowerCase().includes(q) || cd.telefono.includes(q);
-      })
+    ? initialPedidos.filter(p => { const cd = p.cliente_datos as ClienteDatos; const q = search.toLowerCase(); return cd.nombre.toLowerCase().includes(q) || cd.telefono.includes(q); })
     : [];
 
+  const chipStyle = (col: Columna) => ({ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 'var(--r-pill)', background: col.chip, color: col.dot });
+
   return (
-    <div className="p-4 sm:p-6 h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
+    <div className="px-6 md:px-10 py-8 pb-16" style={{ height: '100%', display: 'flex', flexDirection: 'column', maxWidth: 1500 }}>
+      {/* Page head + toolbar */}
+      <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Pedidos</h1>
-          <p className="text-stone-500 text-sm mt-0.5">
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Pedidos</h1>
+          <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
             {total} {total === 1 ? 'pedido' : 'pedidos'} · Arrastra para cambiar estado
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSelectedIds(new Set()); }}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Search style={{ position: 'absolute', left: 14, width: 17, height: 17, color: 'var(--ink-soft)', pointerEvents: 'none' }} />
+            <input type="text" value={search} onChange={e => { setSearch(e.target.value); setSelectedIds(new Set()); }}
               placeholder="Buscar cliente…"
-              className="pl-9 pr-8 py-2.5 border border-stone-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white w-48"
-            />
+              style={{ padding: '10px 16px 10px 40px', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', background: 'var(--paper-card)', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', width: 220, outline: 'none' }}
+              onFocus={e => e.target.style.borderColor = 'var(--orange)'}
+              onBlur={e => e.target.style.borderColor = 'var(--hairline)'} />
             {search && (
-              <button onClick={() => { setSearch(''); setSelectedIds(new Set()); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600">
-                <X className="w-3.5 h-3.5" />
+              <button onClick={() => { setSearch(''); setSelectedIds(new Set()); }}
+                style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', display: 'grid', placeItems: 'center' }}>
+                <X style={{ width: 14, height: 14 }} />
               </button>
             )}
           </div>
           <a href="/api/admin/export/pedidos" download>
-            <button className="flex items-center gap-2 border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-              <Download className="w-4 h-4" />CSV
+            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' }}>
+              <Download style={{ width: 16, height: 16 }} />CSV
             </button>
           </a>
           <button onClick={() => setIsCrearOpen(true)}
-            className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-            <Plus className="w-4 h-4" />Nuevo pedido
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' }}>
+            <Plus style={{ width: 17, height: 17 }} />Nuevo pedido
           </button>
         </div>
       </div>
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
-        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-3">
-          <span className="text-sm font-medium text-amber-800">{selectedIds.size} seleccionado(s)</span>
+        <div style={{ marginBottom: 16, background: 'var(--cream)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '12px 18px', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{selectedIds.size} seleccionado(s)</span>
           <button onClick={handleBulkComplete} disabled={bulkLoading}
-            className="text-sm font-semibold text-green-700 hover:underline disabled:opacity-50 flex items-center gap-1">
-            {bulkLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : '✓'}
+            style={{ fontSize: 14, fontWeight: 700, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {bulkLoading ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> : '✓'}
             Marcar como completado
           </button>
-          <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-stone-400 hover:text-stone-600">
-            <X className="w-4 h-4" />
+          <button onClick={() => setSelectedIds(new Set())}
+            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', display: 'grid', placeItems: 'center' }}>
+            <X style={{ width: 16, height: 16 }} />
           </button>
         </div>
       )}
 
-      {/* Search results list */}
+      {/* Error toast */}
+      {errorMsg && (
+        <div style={{ marginBottom: 16, background: '#fdf0f0', border: '1px solid #e6c4c8', borderLeft: '4px solid var(--berry)', borderRadius: 'var(--r-md)', padding: '12px 16px', fontSize: 14, color: 'var(--berry)' }}>
+          {errorMsg}
+        </div>
+      )}
+
+      {/* Search results */}
       {search.trim() && (
-        <div className="flex-1 overflow-auto">
-          <p className="text-xs text-stone-500 mb-3">{searchResults.length} resultado(s) para &ldquo;{search}&rdquo;</p>
+        <div style={{ flex: 1, overflowY: 'auto' }}>
+          <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 12 }}>{searchResults.length} resultado(s) para &ldquo;{search}&rdquo;</p>
           {searchResults.length === 0 ? (
-            <p className="text-stone-400 text-sm text-center py-12">Sin resultados.</p>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 14, textAlign: 'center', padding: '48px 0' }}>Sin resultados.</p>
           ) : (
-            <div className="space-y-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {searchResults.map(p => {
                 const cd = p.cliente_datos as ClienteDatos;
                 const checked = selectedIds.has(p.id);
+                const col = COLUMNAS.find(c => c.estado === p.estado)!;
                 return (
                   <div key={p.id} onClick={() => toggleSelect(p.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${checked ? 'border-amber-400 bg-amber-50' : 'border-stone-200 bg-white hover:bg-stone-50'}`}>
-                    {checked ? <CheckSquare className="w-4 h-4 text-amber-600 flex-shrink-0" /> : <Square className="w-4 h-4 text-stone-300 flex-shrink-0" />}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm text-stone-800">{cd.nombre}</p>
-                      <p className="text-xs text-stone-400">{cd.telefono} · {new Date(p.created_at).toLocaleDateString('es-HN')}</p>
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 'var(--r-md)', border: `1.5px solid ${checked ? 'var(--orange)' : 'var(--hairline)'}`, background: checked ? 'var(--cream)' : 'var(--paper-card)', cursor: 'pointer', transition: '.12s' }}>
+                    {checked ? <CheckSquare style={{ width: 16, height: 16, color: 'var(--orange-ink)', flexShrink: 0 }} /> : <Square style={{ width: 16, height: 16, color: 'var(--ink-soft)', flexShrink: 0 }} />}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontWeight: 600, fontSize: 14, color: 'var(--ink)', margin: 0 }}>{cd.nombre}</p>
+                      <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>{cd.telefono} · {new Date(p.created_at).toLocaleDateString('es-HN')}</p>
                     </div>
-                    <span className={`text-xs rounded-full px-2 py-0.5 font-medium ${
-                      p.estado === 'completado' ? 'bg-stone-100 text-stone-500' :
-                      p.estado === 'listo' ? 'bg-green-100 text-green-700' :
-                      p.estado === 'preparacion' ? 'bg-blue-100 text-blue-700' :
-                      'bg-amber-100 text-amber-700'
-                    }`}>{p.estado}</span>
-                    <span className="font-bold text-amber-800 text-sm">L.{Number(p.total).toFixed(2)}</span>
+                    <span style={chipStyle(col)}>
+                      <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+                      {col.label}
+                    </span>
+                    <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--orange-ink)' }}>L.{Number(p.total).toFixed(2)}</span>
                   </div>
                 );
               })}
@@ -255,88 +205,66 @@ export default function KanbanClient({ initialPedidos, productos }: KanbanClient
         </div>
       )}
 
-      {/* Modal crear pedido */}
+      {/* Crear modal */}
       {isCrearOpen && (
-        <CrearPedidoModal
-          productos={productos}
-          onSuccess={() => { setIsCrearOpen(false); router.refresh(); }}
-          onClose={() => setIsCrearOpen(false)}
-        />
+        <CrearPedidoModal productos={productos} onSuccess={() => { setIsCrearOpen(false); router.refresh(); }} onClose={() => setIsCrearOpen(false)} />
       )}
 
+      {/* Kanban board */}
       {!search.trim() && (
-        <>
-          {/* Error toast */}
-          {errorMsg && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
-              {errorMsg}
-            </div>
-          )}
-
-          {/* Kanban board */}
-          <DragDropContext onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 flex-1 min-h-0">
-              {COLUMNAS.map(({ estado, label, color, dot }) => (
-                <div key={estado} className={`flex flex-col bg-stone-100 rounded-2xl border-t-4 ${color} overflow-hidden`}>
-                  <div className="px-3 py-3 flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`} />
-                    <span className="font-semibold text-sm text-stone-700">{label}</span>
-                    <span className="ml-auto text-xs font-medium text-stone-400 bg-white rounded-full px-2 py-0.5 border border-stone-200">
-                      {columns[estado].length}
-                    </span>
-                  </div>
-                  <Droppable droppableId={estado}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`flex-1 px-3 pb-3 space-y-2 overflow-y-auto min-h-[120px] transition-colors ${snapshot.isDraggingOver ? 'bg-stone-200/60' : ''}`}
-                      >
-                        {columns[estado].map((pedido, index) => (
-                          <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
-                            {(provided, snapshot) => (
-                              <div
-                                ref={provided.innerRef}
-                                {...provided.draggableProps}
-                                {...provided.dragHandleProps}
-                                className={`relative group transition-shadow ${snapshot.isDragging ? 'shadow-xl rotate-1' : ''}`}
-                              >
-                                <PedidoCard pedido={pedido} />
-                                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onClick={() => sendWhatsAppCliente(pedido)}
-                                    aria-label="Enviar WhatsApp al cliente"
-                                    title="Enviar confirmación por WhatsApp"
-                                    className="text-stone-300 hover:text-green-600 bg-white rounded-lg p-1 shadow-sm"
-                                  >
-                                    <MessageCircle className="w-3 h-3" />
-                                  </button>
-                                  <button
-                                    onMouseDown={(e) => e.stopPropagation()}
-                                    onClick={() => printPedido(pedido)}
-                                    aria-label="Imprimir ticket"
-                                    className="text-stone-300 hover:text-stone-700 bg-white rounded-lg p-1 shadow-sm"
-                                  >
-                                    <Printer className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            )}
-                          </Draggable>
-                        ))}
-                        {provided.placeholder}
-                        {columns[estado].length === 0 && (
-                          <p className="text-xs text-stone-400 text-center py-6">Sin pedidos</p>
-                        )}
-                      </div>
-                    )}
-                  </Droppable>
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4" style={{ flex: 1, minHeight: 0 }}>
+            {COLUMNAS.map((col) => (
+              <div key={col.estado}
+                style={{ display: 'flex', flexDirection: 'column', background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', borderTop: `3px solid ${col.accent}`, overflow: 'hidden', boxShadow: 'var(--shadow-sm)' }}>
+                {/* Column header */}
+                <div style={{ padding: '12px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--hairline)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.accent, flexShrink: 0 }} />
+                  <span style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)' }}>{col.label}</span>
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 700, background: 'var(--cream-200)', color: 'var(--ink-soft)', padding: '2px 8px', borderRadius: 'var(--r-pill)' }}>
+                    {columns[col.estado].length}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </DragDropContext>
-        </>
+                <Droppable droppableId={col.estado}>
+                  {(provided, snapshot) => (
+                    <div ref={provided.innerRef} {...provided.droppableProps}
+                      style={{ flex: 1, padding: '10px 10px', display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto', minHeight: 120, background: snapshot.isDraggingOver ? 'var(--cream)' : '', transition: 'background .15s' }}>
+                      {columns[col.estado].map((pedido, index) => (
+                        <Draggable key={pedido.id} draggableId={pedido.id} index={index}>
+                          {(provided, snapshot) => (
+                            <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
+                              className="group relative"
+                              style={{ transition: snapshot.isDragging ? 'none' : 'box-shadow .15s', transform: snapshot.isDragging ? 'rotate(1deg)' : undefined, ...provided.draggableProps.style }}>
+                              <PedidoCard pedido={pedido} />
+                              {/* Action buttons on hover */}
+                              <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                style={{ pointerEvents: 'none' }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.pointerEvents = 'auto'; }}>
+                                <button onMouseDown={e => e.stopPropagation()} onClick={() => sendWhatsAppCliente(pedido)}
+                                  title="Enviar confirmación por WhatsApp"
+                                  style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: '#1aad56', cursor: 'pointer', display: 'grid', placeItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
+                                  <MessageCircle style={{ width: 13, height: 13 }} />
+                                </button>
+                                <button onMouseDown={e => e.stopPropagation()} onClick={() => printPedido(pedido)}
+                                  title="Imprimir ticket"
+                                  style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', display: 'grid', placeItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
+                                  <Printer style={{ width: 13, height: 13 }} />
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </Draggable>
+                      ))}
+                      {provided.placeholder}
+                      {columns[col.estado].length === 0 && (
+                        <p style={{ fontSize: 12, color: 'var(--ink-soft)', textAlign: 'center', padding: '20px 0' }}>Sin pedidos</p>
+                      )}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            ))}
+          </div>
+        </DragDropContext>
       )}
     </div>
   );

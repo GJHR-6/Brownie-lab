@@ -2,43 +2,59 @@
 
 import { useState, useCallback, useTransition, useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, ToggleLeft, ToggleRight, Loader2, X } from 'lucide-react';
+import { Plus, Trash2, Loader2, X } from 'lucide-react';
 import { createTestimonio, toggleAprobado, deleteTestimonio } from '@/actions/testimonios';
 import type { Testimonio } from '@/actions/testimonios';
 import type { ActionResult } from '@/types/actions';
+import ToggleSwitch from '@/components/admin/ToggleSwitch';
+
+const T = {
+  th: { textAlign: 'left' as const, fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--ink-soft)', padding: '14px 22px', borderBottom: '1px solid var(--hairline)', whiteSpace: 'nowrap' as const, background: 'var(--paper)' },
+  td: { padding: '14px 22px', fontSize: 14, color: 'var(--ink)', verticalAlign: 'middle' as const, borderBottom: '1px solid var(--hairline)' },
+  inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
+  btnPrimary: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer' as const, background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' },
+  btnGhost: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer' as const, background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' },
+};
+
+const STARS = ['', '★', '★★', '★★★', '★★★★', '★★★★★'];
 
 function TestimonioForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
-  const [state, formAction, isPending] = useActionState<ActionResult<Testimonio> | null, FormData>(createTestimonio as any, null);
+  const [state, formAction, isPending] = useActionState<ActionResult<Testimonio> | null, FormData>(createTestimonio as never, null);
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
   return (
-    <form action={formAction} className="px-6 py-5 space-y-4">
+    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 20, padding: 24 }}>
       {state?.success === false && (
-        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm text-red-700">{state.error}</div>
+        <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>{state.error}</div>
       )}
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Autor <span className="text-red-500">*</span></label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Autor <span style={{ color: 'var(--berry)' }}>*</span></label>
         <input name="autor" required disabled={isPending} placeholder="María López"
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60" />
+          style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Texto <span className="text-red-500">*</span></label>
-        <textarea name="texto" required rows={3} disabled={isPending} placeholder="Excelentes brownies, los mejores que he probado..."
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 resize-none" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Texto <span style={{ color: 'var(--berry)' }}>*</span></label>
+        <textarea name="texto" required rows={3} disabled={isPending}
+          placeholder="Excelentes brownies, los mejores que he probado..."
+          style={{ ...T.inp, resize: 'vertical', minHeight: 88, lineHeight: 1.6, opacity: isPending ? 0.6 : 1 }}
+          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
       </div>
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1.5">Estrellas</label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Estrellas</label>
         <select name="estrellas" defaultValue="5" disabled={isPending}
-          className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60 bg-white">
-          {[5,4,3,2,1].map(n => <option key={n} value={n}>{'⭐'.repeat(n)} ({n})</option>)}
+          style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}
+          onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
+          onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}>
+          {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{STARS[n]} ({n})</option>)}
         </select>
       </div>
-      <div className="flex gap-3 pt-1">
-        <button type="button" onClick={onCancel} disabled={isPending}
-          className="flex-1 border border-stone-200 text-stone-600 py-2.5 rounded-xl text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-60">Cancelar</button>
-        <button type="submit" disabled={isPending}
-          className="flex-1 bg-amber-700 hover:bg-amber-600 disabled:opacity-60 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-          {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+      <div style={{ display: 'flex', gap: 10, paddingTop: 4, borderTop: '1px solid var(--hairline)', marginTop: 4 }}>
+        <button type="button" onClick={onCancel} disabled={isPending} style={{ ...T.btnGhost, flex: 1, justifyContent: 'center' }}>Cancelar</button>
+        <button type="submit" disabled={isPending} style={{ ...T.btnPrimary, flex: 1, justifyContent: 'center', opacity: isPending ? 0.7 : 1 }}>
+          {isPending && <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />}
           {isPending ? 'Guardando…' : 'Agregar'}
         </button>
       </div>
@@ -73,64 +89,76 @@ export default function TestimoniosClient({ initialTestimonios }: { initialTesti
   const aprobados = initialTestimonios.filter(t => t.aprobado).length;
 
   return (
-    <div className="p-4 sm:p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="px-6 md:px-10 py-8 pb-16 max-w-[1500px] w-full">
+      <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 className="text-2xl font-bold text-stone-800">Testimonios</h1>
-          <p className="text-stone-500 text-sm mt-0.5">{aprobados} aprobados · {initialTestimonios.length} total{isPending && <span className="ml-2 text-amber-600">Actualizando…</span>}</p>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Testimonios</h1>
+          <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
+            {aprobados} aprobados · {initialTestimonios.length} total{isPending && <span style={{ marginLeft: 8, color: 'var(--orange-ink)' }}>Actualizando…</span>}
+          </p>
         </div>
-        <button onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-amber-700 hover:bg-amber-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-          <Plus className="w-4 h-4" />Agregar testimonio
+        <button onClick={() => setIsModalOpen(true)} style={T.btnPrimary}>
+          <Plus style={{ width: 17, height: 17 }} />Agregar testimonio
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
-            <tr className="border-b border-stone-100 bg-stone-50 text-stone-600">
-              <th className="text-left px-4 py-3 font-semibold">Autor</th>
-              <th className="text-left px-4 py-3 font-semibold">Testimonio</th>
-              <th className="text-center px-4 py-3 font-semibold">⭐</th>
-              <th className="text-center px-4 py-3 font-semibold">Visible</th>
-              <th className="text-right px-4 py-3 font-semibold">Acciones</th>
+            <tr>
+              <th style={T.th}>Autor</th>
+              <th style={T.th}>Testimonio</th>
+              <th style={{ ...T.th, textAlign: 'center' }}>Estrellas</th>
+              <th style={{ ...T.th, textAlign: 'center' }}>Visible</th>
+              <th style={{ ...T.th, textAlign: 'right' }}>Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-stone-100">
+          <tbody>
             {initialTestimonios.map((t) => (
-              <tr key={t.id} className="hover:bg-stone-50/70 transition-colors">
-                <td className="px-4 py-3 font-medium text-stone-800 whitespace-nowrap">{t.autor}</td>
-                <td className="px-4 py-3 text-stone-500 max-w-xs truncate">{t.texto}</td>
-                <td className="px-4 py-3 text-center">{'⭐'.repeat(t.estrellas)}</td>
-                <td className="px-4 py-3 text-center">
-                  <button onClick={() => handleToggle(t.id, t.aprobado)} disabled={togglingId === t.id} className="disabled:opacity-50">
-                    {togglingId === t.id ? <Loader2 className="w-5 h-5 animate-spin text-stone-400 mx-auto" /> :
-                      t.aprobado ? <ToggleRight className="w-7 h-7 text-green-500 mx-auto" /> :
-                      <ToggleLeft className="w-7 h-7 text-stone-300 mx-auto" />}
-                  </button>
+              <tr key={t.id}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--paper)')}
+                onMouseLeave={e => (e.currentTarget.style.background = '')}
+                style={{ transition: 'background .12s' }}>
+                <td style={{ ...T.td, whiteSpace: 'nowrap', fontWeight: 600 }}>{t.autor}</td>
+                <td style={{ ...T.td, maxWidth: 320 }}>
+                  <p style={{ color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 300 }}>{t.texto}</p>
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td style={{ ...T.td, textAlign: 'center', color: 'var(--amber)', letterSpacing: 1, fontSize: 13 }}>
+                  {STARS[t.estrellas]}
+                </td>
+                <td style={{ ...T.td, textAlign: 'center' }}>
+                  <ToggleSwitch checked={t.aprobado} onChange={() => handleToggle(t.id, t.aprobado)} disabled={togglingId === t.id} />
+                </td>
+                <td style={{ ...T.td, textAlign: 'right' }}>
                   <button onClick={() => handleDelete(t.id)} disabled={deletingId === t.id}
-                    className="text-stone-300 hover:text-red-500 transition-colors disabled:opacity-50">
-                    {deletingId === t.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === t.id ? 0.5 : 1 }}
+                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--berry)'; e.currentTarget.style.borderColor = 'var(--berry)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
+                    {deletingId === t.id ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: 15, height: 15 }} />}
                   </button>
                 </td>
               </tr>
             ))}
             {initialTestimonios.length === 0 && (
-              <tr><td colSpan={5} className="px-4 py-16 text-center text-stone-400">No hay testimonios aún.</td></tr>
+              <tr>
+                <td colSpan={5} style={{ ...T.td, textAlign: 'center', padding: '48px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
+                  No hay testimonios aún.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-          onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
-              <h2 className="text-lg font-bold text-stone-800">Nuevo testimonio</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-stone-400 hover:text-stone-600"><X className="w-5 h-5" /></button>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
+          onClick={e => { if (e.target === e.currentTarget) setIsModalOpen(false); }}>
+          <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 460, maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)' }}>
+              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>Nuevo testimonio</h3>
+              <button onClick={() => setIsModalOpen(false)} style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
+                <X style={{ width: 18, height: 18 }} />
+              </button>
             </div>
             <TestimonioForm onSuccess={() => { setIsModalOpen(false); refresh(); }} onCancel={() => setIsModalOpen(false)} />
           </div>
