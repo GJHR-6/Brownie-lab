@@ -10,7 +10,7 @@ import {
 import BLIcon from "@/components/BLIcon";
 import { useCartStore } from "@/lib/cartStore";
 import { storeConfig } from "@/config/store";
-import { validarPromocion, crearPedidoPublico, getConfiguracionBanco } from "@/actions/publico";
+import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, subirComprobante } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
@@ -152,59 +152,13 @@ export default function CartPage() {
           orderId: id,
           seguimientoUrl: `${window.location.origin}/seguimiento`,
         });
-      }
-
-      const seguimientoUrl = `${window.location.origin}/seguimiento`;
-      const pedidoTag = id ? `#${id.slice(0, 8).toUpperCase()}` : "";
-
-      const buildBase = () => {
-        const lines: string[] = [`¡Hola ${storeConfig.name}! 🍪`, ""];
-        if (pedidoTag) lines.push(`📋 Pedido ${pedidoTag}`, "");
-        lines.push("📦 PRODUCTOS:");
-        items.forEach(i => lines.push(`• ${i.quantity}x ${i.name} = ${sym}${(i.price * i.quantity).toFixed(2)}`));
-        lines.push("", "💰 RESUMEN:");
-        lines.push(`Subtotal: ${sym}${subtotal.toFixed(2)}`);
-        if (promo) lines.push(`Descuento ${promo.codigo} (${promo.descuento_porcentaje}%): -${sym}${descuento.toFixed(2)}`);
-        lines.push(`*Total: ${sym}${totalFinal.toFixed(2)} ${storeConfig.currency}*`);
-        lines.push("", "👤 DATOS DEL CLIENTE:");
-        lines.push(`Nombre: ${datos.nombre}`, `Teléfono: ${datos.telefono}`);
-        lines.push("", `🚚 ENTREGA: ${datos.tipo_entrega === "pickup" ? "Recoger en tienda" : "A domicilio"}`);
-        if (datos.tipo_entrega === "domicilio" && datos.direccion) lines.push(`Dirección: ${datos.direccion}`);
-        if (datos.fecha_entrega) {
-          const fecha = new Date(datos.fecha_entrega + "T12:00:00").toLocaleDateString("es-HN", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-          lines.push(`Fecha: ${fecha}`);
+        // Subir comprobante si el cliente adjuntó uno
+        if (ssFile) {
+          const fd = new FormData();
+          fd.append('comprobante', ssFile);
+          await subirComprobante(id, fd);
         }
-        if (datos.hora_entrega) lines.push(`Hora preferida: ${datos.hora_entrega}`);
-        if (datos.notas) lines.push("", `📝 NOTAS: ${datos.notas}`);
-        return lines;
-      };
-
-      let waLines: string[];
-
-      if (datos.metodo_pago === "efectivo") {
-        waLines = buildBase();
-        waLines.push("", "💵 MÉTODO DE PAGO: Efectivo al recibir");
-        waLines.push("", "✅ Tu pedido ha sido recibido. Te contactaremos pronto para confirmarlo.");
-        waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
-      } else if (datos.metodo_pago === "transferencia" && ssFile) {
-        waLines = buildBase();
-        waLines.push("", "🏦 MÉTODO DE PAGO: Transferencia bancaria");
-        waLines.push("✅ Adjunto el comprobante de pago.");
-        waLines.push("", "¡Gracias! Por favor confirma la recepción.");
-        waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
-      } else {
-        // transferencia sin SS
-        waLines = buildBase();
-        waLines.push("", "🏦 MÉTODO DE PAGO: Transferencia bancaria");
-        waLines.push("", "Por favor realiza la transferencia a:");
-        waLines.push(`🏛 Banco: ${banco.banco}`);
-        waLines.push(`👤 Titular: ${banco.titular}`);
-        waLines.push(`💳 Cuenta: ${banco.numero}`);
-        waLines.push("", "Una vez realizado el pago, envía tu comprobante por este chat.");
-        waLines.push(`🔍 Rastrea tu pedido en: ${seguimientoUrl}`);
       }
-
-      window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(waLines.join("\n"))}`, "_blank");
 
       // Persist user data keyed by phone for next visit
       try {
@@ -253,7 +207,7 @@ export default function CartPage() {
           </span>
         )}
         <p className="mb-8" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
-          Tu pedido fue enviado por WhatsApp. Te confirmaremos en breve — recuerda que preparamos con 24h de anticipación.
+          Tu pedido fue confirmado. Te contactaremos pronto — recuerda que preparamos con 24h de anticipación.
         </p>
         <div className="flex flex-col items-center gap-3.5">
           <Link
@@ -1051,7 +1005,7 @@ export default function CartPage() {
                 </ReviewCard>
               )}
 
-              {/* Comprobante — solo transferencia */}
+              {/* Datos de transferencia + comprobante */}
               {datos.metodo_pago === "transferencia" && (
                 <div
                   className="rounded-[24px] p-[clamp(22px,2.6vw,30px)]"
@@ -1062,11 +1016,10 @@ export default function CartPage() {
                   }}
                 >
                   <h3 className="font-semibold text-[17px] mb-1" style={{ color: "var(--ink)" }}>
-                    Comprobante de transferencia
+                    Transferencia bancaria
                   </h3>
                   <p className="text-[14px] mb-4" style={{ color: "var(--ink-soft)", lineHeight: 1.5 }}>
-                    Si ya realizaste el pago, adjunta el screenshot para agilizar la confirmación.
-                    Si no, igual puedes continuar y enviarlo en el chat de WhatsApp.
+                    Realiza el pago y adjunta el comprobante para agilizar la confirmación.
                   </p>
 
                   <div
@@ -1085,7 +1038,7 @@ export default function CartPage() {
                   </div>
 
                   <label
-                    className="flex flex-col items-center gap-2 p-6 rounded-[16px] border-2 border-dashed cursor-pointer transition-colors"
+                    className="flex flex-col items-center gap-2 p-5 rounded-[16px] border-2 border-dashed cursor-pointer transition-colors"
                     style={{
                       borderColor: ssFile ? "var(--wa)" : "var(--hairline)",
                       background: ssFile ? "rgba(31,170,85,.06)" : "transparent",
@@ -1093,14 +1046,14 @@ export default function CartPage() {
                   >
                     <BLIcon
                       name="share"
-                      size={30}
+                      size={28}
                       style={{ color: ssFile ? "var(--wa)" : "var(--ink-soft)" } as React.CSSProperties}
                     />
                     <strong className="text-[15px]" style={{ color: ssFile ? "#1a7a40" : "var(--ink)" }}>
                       {ssFile ? ssFile.name : "Adjuntar comprobante (opcional)"}
                     </strong>
                     <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
-                      PNG o JPG · toca para subir
+                      PNG, JPG o WEBP · máx. 10 MB
                     </span>
                     {ssFile && (
                       <button
@@ -1114,16 +1067,11 @@ export default function CartPage() {
                     )}
                     <input
                       type="file"
-                      accept="image/*"
+                      accept="image/png,image/jpeg,image/jpg,image/webp"
                       className="sr-only"
                       onChange={(e) => setSsFile(e.target.files?.[0] ?? null)}
                     />
                   </label>
-                  <p className="text-[13px] text-center mt-3.5" style={{ color: "var(--ink-soft)" }}>
-                    {ssFile
-                      ? "El comprobante se adjuntará al mensaje de WhatsApp."
-                      : "Sin comprobante, te enviaremos los datos de pago por WhatsApp para que los confirmes ahí."}
-                  </p>
                 </div>
               )}
 
@@ -1141,8 +1089,8 @@ export default function CartPage() {
                     </>
                   ) : (
                     <>
-                      <BLIcon name="whatsapp" size={20} style={{ color: "#58d684" } as React.CSSProperties} />
-                      Confirmar y enviar por WhatsApp
+                      <CheckCircle className="w-5 h-5" />
+                      Confirmar pedido
                     </>
                   )}
                 </button>

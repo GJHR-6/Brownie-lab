@@ -164,6 +164,23 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
             </div>
           )}
 
+          {/* Comprobante de pago */}
+          {pedido.comprobante_url && (
+            <div style={{ marginBottom: 24 }}>
+              <DrawerSecTitle>Comprobante de pago</DrawerSecTitle>
+              <a href={pedido.comprobante_url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                <img
+                  src={pedido.comprobante_url}
+                  alt="Comprobante de pago"
+                  style={{ width: '100%', borderRadius: 'var(--r-md)', border: '1px solid var(--hairline)', display: 'block' }}
+                />
+              </a>
+              <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>
+                Toca la imagen para abrirla en pantalla completa
+              </p>
+            </div>
+          )}
+
           {/* Seguimiento / Timeline */}
           <div style={{ marginBottom: 24 }}>
             <DrawerSecTitle>Seguimiento</DrawerSecTitle>

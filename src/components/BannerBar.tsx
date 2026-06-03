@@ -25,7 +25,7 @@ export default function BannerBar({ mensaje, bannerId }: BannerBarProps) {
 
   return (
     <div
-      className="relative flex items-center justify-center gap-2.5 py-2.5 px-12 text-sm font-semibold text-white"
+      className="relative flex items-center justify-center gap-2.5 py-2.5 px-10 sm:px-12 text-sm font-semibold text-white"
       style={{ background: "var(--orange)" }}
     >
       <BLIcon name="truck" size={18} />
