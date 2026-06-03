@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { Especial } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
 
@@ -10,6 +11,15 @@ async function requireAdmin() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('No autorizado');
   return { supabase };
+}
+
+async function uploadEspecialImage(file: File, id: string): Promise<string> {
+  const service = createSupabaseServiceClient();
+  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+  const fileName = `especial-${id}.${ext}`;
+  const { error } = await service.storage.from('product-images').upload(fileName, file, { upsert: true });
+  if (error) throw new Error(error.message);
+  return service.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
 }
 
 export async function getEspeciales(): Promise<Especial[]> {
@@ -38,6 +48,7 @@ export async function createEspecial(
       return { success: false, error: 'Nombre, descripción y duración son requeridos.' };
     }
 
+    // Insert first to get the ID
     const { data, error } = await supabase
       .from('especiales')
       .insert({ nombre, descripcion, emoji, fecha_inicio, duracion_dias })
@@ -45,6 +56,14 @@ export async function createEspecial(
       .single();
 
     if (error) return { success: false, error: error.message };
+
+    // Upload image if provided
+    const imageFile = formData.get('imagen') as File | null;
+    if (imageFile && imageFile.size > 0) {
+      const imagen_url = await uploadEspecialImage(imageFile, data.id);
+      await supabase.from('especiales').update({ imagen_url }).eq('id', data.id);
+      data.imagen_url = imagen_url;
+    }
 
     revalidatePath('/admin/especiales');
     revalidatePath('/');
@@ -54,13 +73,28 @@ export async function createEspecial(
   }
 }
 
+export async function updateEspecialImagen(id: string, formData: FormData): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    const imageFile = formData.get('imagen') as File | null;
+    if (!imageFile || imageFile.size === 0) return { success: false, error: 'No se proporcionó imagen.' };
+
+    const imagen_url = await uploadEspecialImage(imageFile, id);
+    const { error } = await supabase.from('especiales').update({ imagen_url }).eq('id', id);
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/admin/especiales');
+    revalidatePath('/');
+    return { success: true, data: undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
 export async function toggleEspecial(id: string, activo: boolean): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdmin();
-    const { error } = await supabase
-      .from('especiales')
-      .update({ activo })
-      .eq('id', id);
+    const { error } = await supabase.from('especiales').update({ activo }).eq('id', id);
     if (error) return { success: false, error: error.message };
     revalidatePath('/admin/especiales');
     revalidatePath('/');

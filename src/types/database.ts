@@ -108,6 +108,7 @@ export interface Especial {
   nombre: string;
   descripcion: string;
   emoji: string;
+  imagen_url: string | null;
   fecha_inicio: string;
   duracion_dias: number;
   activo: boolean;
