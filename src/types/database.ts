@@ -1,18 +1,26 @@
 export type EstadoPedido = 'pendiente' | 'preparacion' | 'listo' | 'completado';
 
 export interface Producto {
-  // disponibilidad_programada
-  disponible_desde?: string | null;
-  disponible_hasta?: string | null;
   id: string;
   nombre: string;
   descripcion: string | null;
   precio: number;
   imagen_url: string | null;
+  imagenes: string[];
   stock: number;
+  stock_alerta: number;
   disponible: boolean;
   categoria: string;
   emoji: string | null;
+  tiempo_preparacion: string | null;
+  alergenos: string[];
+  etiquetas: string[];
+  sku: string | null;
+  destacado_capricho: boolean;
+  disponible_personaliza: boolean;
+  disponible_desde?: string | null;
+  disponible_hasta?: string | null;
+  ingredientes?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -127,6 +135,7 @@ export interface Ingrediente {
   cantidad_por_bandeja: number | null;
   costo_por_bandeja: number | null;
   stock_paquetes: number;
+  precio_extra: number;
   es_topping: boolean;
   activo: boolean;
   notas: string | null;

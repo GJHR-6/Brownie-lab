@@ -474,72 +474,90 @@ export default function CartPage() {
                 Tu carrito
               </h1>
 
-              <div className="flex flex-col gap-3.5">
-                {items.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center gap-4 rounded-[16px] p-4"
-                    style={{
-                      background: "var(--paper-card)",
-                      border: "1px solid var(--hairline)",
-                      boxShadow: "var(--shadow-sm)",
-                    }}
-                  >
-                    <div
-                      className="w-[70px] h-[70px] rounded-[12px] flex items-center justify-center text-4xl flex-none"
-                      style={{ background: "var(--cream)" }}
-                    >
-                      {item.emoji}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="font-bold text-[18px] leading-tight"
-                        style={{
-                          fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
-                          color: "var(--ink)",
-                        }}
-                      >
-                        {item.name}
-                      </p>
-                      <p className="font-bold text-[16px] mt-0.5" style={{ color: "var(--orange-ink)" }}>
-                        {sym}{(item.price * item.quantity).toFixed(2)}
-                        <small className="ml-1.5 font-medium text-[13px]" style={{ color: "var(--ink-soft)" }}>
-                          ({sym}{item.price.toFixed(2)} c/u)
-                        </small>
-                      </p>
-                    </div>
-                    <div
-                      className="inline-flex items-center overflow-hidden flex-none"
-                      style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}
-                    >
-                      <button
-                        onClick={() => updateQuantity(item.id, -1)}
-                        className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
-                        style={{ background: "transparent", color: "var(--ink)" }}
-                      >
-                        <BLIcon name="minus" size={16} />
-                      </button>
-                      <span className="w-[26px] text-center font-bold text-[15px]" style={{ color: "var(--ink)" }}>
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.id, +1)}
-                        className="w-[38px] h-[38px] grid place-items-center border-0 cursor-pointer transition-colors"
-                        style={{ background: "transparent", color: "var(--ink)" }}
-                      >
-                        <BLIcon name="plus" size={16} />
-                      </button>
-                    </div>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="w-[34px] h-[34px] rounded-full grid place-items-center border-0 cursor-pointer transition-colors"
-                      style={{ background: "none", color: "var(--ink-soft)" }}
-                      aria-label="Quitar"
-                    >
-                      <BLIcon name="close" size={16} />
-                    </button>
-                  </div>
-                ))}
+              {/* Table */}
+              <div style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-soft)", padding: "14px 22px", borderBottom: "1px solid var(--hairline)", whiteSpace: "nowrap", background: "var(--paper)" }}>Producto</th>
+                        <th style={{ textAlign: "right", fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-soft)", padding: "14px 22px", borderBottom: "1px solid var(--hairline)", whiteSpace: "nowrap", background: "var(--paper)" }}>Precio</th>
+                        <th style={{ textAlign: "center", fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-soft)", padding: "14px 22px", borderBottom: "1px solid var(--hairline)", whiteSpace: "nowrap", background: "var(--paper)" }}>Cantidad</th>
+                        <th style={{ textAlign: "right", fontSize: 11.5, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-soft)", padding: "14px 22px", borderBottom: "1px solid var(--hairline)", whiteSpace: "nowrap", background: "var(--paper)" }}>Subtotal</th>
+                        <th style={{ background: "var(--paper)", borderBottom: "1px solid var(--hairline)", padding: "14px 22px" }} />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {items.map((item, idx) => (
+                        <tr
+                          key={item.id}
+                          onMouseEnter={e => (e.currentTarget.style.background = "var(--paper)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "")}
+                          style={{ transition: "background .12s" }}
+                        >
+                          {/* Producto */}
+                          <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                              <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, background: "var(--cream)", display: "grid", placeItems: "center", fontSize: 22 }}>
+                                {item.emoji}
+                              </div>
+                              <p style={{ fontWeight: 600, color: "var(--ink)", margin: 0, whiteSpace: "nowrap" }}>{item.name}</p>
+                            </div>
+                          </td>
+
+                          {/* Precio unitario */}
+                          <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "right", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
+                            <span style={{ color: "var(--ink-soft)" }}>{sym}{item.price.toFixed(2)}</span>
+                          </td>
+
+                          {/* Cantidad */}
+                          <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "center", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
+                            <div
+                              className="inline-flex items-center overflow-hidden"
+                              style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}
+                            >
+                              <button
+                                onClick={() => updateQuantity(item.id, -1)}
+                                className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer transition-colors"
+                                style={{ background: "transparent", color: "var(--ink)" }}
+                              >
+                                <BLIcon name="minus" size={14} />
+                              </button>
+                              <span className="w-[24px] text-center font-bold text-[14px]" style={{ color: "var(--ink)" }}>
+                                {item.quantity}
+                              </span>
+                              <button
+                                onClick={() => updateQuantity(item.id, +1)}
+                                className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer transition-colors"
+                                style={{ background: "transparent", color: "var(--ink)" }}
+                              >
+                                <BLIcon name="plus" size={14} />
+                              </button>
+                            </div>
+                          </td>
+
+                          {/* Subtotal */}
+                          <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "right", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
+                            <span style={{ fontWeight: 700, color: "var(--orange-ink)" }}>{sym}{(item.price * item.quantity).toFixed(2)}</span>
+                          </td>
+
+                          {/* Eliminar */}
+                          <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "right", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              style={{ width: 34, height: 34, borderRadius: 9, display: "grid", placeItems: "center", background: "var(--paper-card)", border: "1px solid var(--hairline)", color: "var(--ink-soft)", cursor: "pointer", transition: ".14s" }}
+                              onMouseEnter={e => { e.currentTarget.style.color = "var(--berry)"; e.currentTarget.style.borderColor = "var(--berry)"; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = "var(--ink-soft)"; e.currentTarget.style.borderColor = "var(--hairline)"; }}
+                              aria-label="Quitar"
+                            >
+                              <BLIcon name="close" size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {/* Promo code */}
@@ -569,7 +587,7 @@ export default function CartPage() {
                 ) : (
                   <div>
                     <div className="flex gap-2.5">
-                      <div className="flex-1 relative flex items-center">
+                      <div className="flex-1 relative flex items-center min-w-0">
                         <BLIcon
                           name="sparkle"
                           size={18}

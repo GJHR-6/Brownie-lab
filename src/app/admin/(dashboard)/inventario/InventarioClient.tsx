@@ -2,9 +2,9 @@
 
 import { useState, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react';
-import { deleteProducto, toggleDisponible } from '@/actions/productos';
-import ProductoForm from './ProductoForm';
+import Link from 'next/link';
+import { Plus, Pencil } from 'lucide-react';
+import { toggleDisponible } from '@/actions/productos';
 import type { Producto, Categoria } from '@/types/database';
 import ToggleSwitch from '@/components/admin/ToggleSwitch';
 
@@ -19,30 +19,17 @@ interface InventarioClientProps {
   categorias: Categoria[];
 }
 
-type ModalState = { open: false } | { open: true; modo: 'crear' } | { open: true; modo: 'editar'; producto: Producto };
-
-export default function InventarioClient({ initialProducts, categorias }: InventarioClientProps) {
+export default function InventarioClient({ initialProducts, categorias: _categorias }: InventarioClientProps) {
   const router = useRouter();
-  const [modal, setModal] = useState<ModalState>({ open: false });
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const refresh = useCallback(() => { startTransition(() => { router.refresh(); }); }, [router]);
-  const handleSuccess = useCallback(() => { setModal({ open: false }); refresh(); }, [refresh]);
 
   async function handleToggle(id: string, current: boolean) {
     setTogglingId(id);
     await toggleDisponible(id, !current);
     setTogglingId(null);
-    refresh();
-  }
-
-  async function handleDelete(id: string, nombre: string) {
-    if (!confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
-    setDeletingId(id);
-    await deleteProducto(id);
-    setDeletingId(null);
     refresh();
   }
 
@@ -57,10 +44,10 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
             {isPending && <span style={{ marginLeft: 8, color: 'var(--orange-ink)' }}>Actualizando…</span>}
           </p>
         </div>
-        <button onClick={() => setModal({ open: true, modo: 'crear' })} style={T.btnPrimary}>
+        <Link href="/admin/inventario/nuevo" style={{ ...T.btnPrimary, textDecoration: 'none' }}>
           <Plus style={{ width: 17, height: 17 }} />
           Nuevo producto
-        </button>
+        </Link>
       </div>
 
       {/* Table */}
@@ -136,18 +123,12 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
                   {/* Actions */}
                   <td style={{ ...T.td, textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-                      <button onClick={() => setModal({ open: true, modo: 'editar', producto: p })}
-                        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s' }}
+                      <Link href={`/admin/inventario/${p.id}`}
+                        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', textDecoration: 'none', transition: '.14s' }}
                         onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange-ink)'; e.currentTarget.style.borderColor = 'var(--orange)'; }}
                         onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
                         <Pencil style={{ width: 15, height: 15 }} />
-                      </button>
-                      <button onClick={() => handleDelete(p.id, p.nombre)} disabled={deletingId === p.id}
-                        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === p.id ? 0.5 : 1 }}
-                        onMouseEnter={e => { e.currentTarget.style.color = 'var(--berry)'; e.currentTarget.style.borderColor = 'var(--berry)'; }}
-                        onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}>
-                        {deletingId === p.id ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Trash2 style={{ width: 15, height: 15 }} />}
-                      </button>
+                      </Link>
                     </div>
                   </td>
                 </tr>
@@ -165,30 +146,6 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
         </div>
       </div>
 
-      {/* Modal crear / editar */}
-      {modal.open && (
-        <div
-          style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-          onClick={e => { if (e.target === e.currentTarget) setModal({ open: false }); }}>
-          <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', position: 'sticky', top: 0 }}>
-              <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>
-                {modal.modo === 'crear' ? 'Nuevo producto' : 'Editar producto'}
-              </h3>
-              <button onClick={() => setModal({ open: false })}
-                style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
-                <X style={{ width: 18, height: 18 }} />
-              </button>
-            </div>
-            <ProductoForm
-              productoInicial={modal.modo === 'editar' ? modal.producto : undefined}
-              categorias={categorias}
-              onSuccess={handleSuccess}
-              onCancel={() => setModal({ open: false })}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
