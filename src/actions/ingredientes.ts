@@ -39,6 +39,7 @@ export async function createIngrediente(
     const cantidad_por_bandeja = formData.get('cantidad_por_bandeja') ? parseFloat(formData.get('cantidad_por_bandeja') as string) : null;
     const costo_por_bandeja = formData.get('costo_por_bandeja') ? parseFloat(formData.get('costo_por_bandeja') as string) : null;
     const stock_paquetes = parseFloat(formData.get('stock_paquetes') as string) || 0;
+    const precio_extra = parseFloat(formData.get('precio_extra') as string) || 0;
     const es_topping = formData.get('es_topping') === 'true';
     const activo = formData.get('activo') === 'true';
     const notas = (formData.get('notas') as string).trim() || null;
@@ -49,7 +50,7 @@ export async function createIngrediente(
 
     const { data, error } = await supabase
       .from('ingredientes')
-      .insert({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, es_topping, activo, notas })
+      .insert({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas })
       .select()
       .single();
 
@@ -78,6 +79,7 @@ export async function updateIngrediente(
     const cantidad_por_bandeja = formData.get('cantidad_por_bandeja') ? parseFloat(formData.get('cantidad_por_bandeja') as string) : null;
     const costo_por_bandeja = formData.get('costo_por_bandeja') ? parseFloat(formData.get('costo_por_bandeja') as string) : null;
     const stock_paquetes = parseFloat(formData.get('stock_paquetes') as string) || 0;
+    const precio_extra = parseFloat(formData.get('precio_extra') as string) || 0;
     const es_topping = formData.get('es_topping') === 'true';
     const activo = formData.get('activo') === 'true';
     const notas = (formData.get('notas') as string).trim() || null;
@@ -88,7 +90,7 @@ export async function updateIngrediente(
 
     const { data, error } = await supabase
       .from('ingredientes')
-      .update({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, es_topping, activo, notas })
+      .update({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas })
       .eq('id', id)
       .select()
       .single();
@@ -106,6 +108,18 @@ export async function deleteIngrediente(id: string): Promise<ActionResult> {
   try {
     const { supabase } = await requireAdmin();
     const { error } = await supabase.from('ingredientes').delete().eq('id', id);
+    if (error) return { success: false, error: error.message };
+    revalidatePath('/admin/ingredientes');
+    return { success: true, data: undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+export async function toggleIngredienteActivo(id: string, activo: boolean): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from('ingredientes').update({ activo }).eq('id', id);
     if (error) return { success: false, error: error.message };
     revalidatePath('/admin/ingredientes');
     return { success: true, data: undefined };
