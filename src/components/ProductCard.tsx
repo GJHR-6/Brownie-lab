@@ -17,6 +17,9 @@ export default function ProductCard({ product }: { product: Producto }) {
   const [added, setAdded] = useState(false);
   const [qty, setQty] = useState(1);
   const [mounted, setMounted] = useState(false);
+  const [imgIndex, setImgIndex] = useState(0);
+
+  const allImages = [product.imagen_url, ...(product.imagenes ?? [])].filter(Boolean) as string[];
 
   const agotado = product.disponible && product.stock === 0;
 
@@ -61,12 +64,13 @@ export default function ProductCard({ product }: { product: Producto }) {
           ...(agotado && { filter: "grayscale(0.65)", opacity: 0.82 }),
         }}
       >
-        {product.imagen_url ? (
+        {allImages.length > 0 ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.imagen_url}
+            src={allImages[imgIndex]}
             alt={product.nombre}
             className="w-full h-full object-cover"
+            style={{ transition: 'opacity .2s' }}
           />
         ) : (
           <div
@@ -77,6 +81,21 @@ export default function ProductCard({ product }: { product: Producto }) {
             }}
           >
             {product.emoji ?? "🍪"}
+          </div>
+        )}
+
+        {/* Etiquetas badges */}
+        {product.etiquetas && product.etiquetas.length > 0 && (
+          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pointer-events-none">
+            {product.etiquetas.slice(0, 2).map(tag => (
+              <span
+                key={tag}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "var(--choco-900)", color: "var(--amber)", letterSpacing: ".04em" }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         )}
 
@@ -101,6 +120,27 @@ export default function ProductCard({ product }: { product: Producto }) {
               Agotado hoy
             </span>
           </>
+        )}
+
+        {/* Image navigation dots */}
+        {allImages.length > 1 && (
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-auto">
+            {allImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={e => { e.stopPropagation(); setImgIndex(i); }}
+                aria-label={`Foto ${i + 1}`}
+                style={{
+                  width: i === imgIndex ? 18 : 7,
+                  height: 7, borderRadius: 4,
+                  background: i === imgIndex ? '#fff' : 'rgba(255,255,255,.55)',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                  transition: 'width .2s, background .2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,.3)',
+                }}
+              />
+            ))}
+          </div>
         )}
 
         {/* Wishlist button */}
@@ -147,6 +187,29 @@ export default function ProductCard({ product }: { product: Producto }) {
         <p className="text-[14px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
           {product.descripcion}
         </p>
+
+        {/* Tiempo de preparación */}
+        {product.tiempo_preparacion && (
+          <p className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "var(--ink-soft)" }}>
+            <BLIcon name="clock" size={13} style={{ flexShrink: 0 } as React.CSSProperties} />
+            {product.tiempo_preparacion}
+          </p>
+        )}
+
+        {/* Alergenos */}
+        {product.alergenos && product.alergenos.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {product.alergenos.map(a => (
+              <span
+                key={a}
+                className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(158,59,70,.08)", color: "var(--berry)", border: "1px solid rgba(158,59,70,.15)" }}
+              >
+                {a}
+              </span>
+            ))}
+          </div>
+        )}
 
         {agotado && (
           <p className="text-[13px] font-medium" style={{ color: "var(--ink-soft)" }}>

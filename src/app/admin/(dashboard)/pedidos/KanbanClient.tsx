@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
+import { Bell } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { actualizarEstadoPedido } from '@/actions/pedidos';
 import PedidoCard from './PedidoCard';
@@ -74,6 +76,16 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
   const [bulkLoading, setBulkLoading] = useState(false);
   const [columns, setColumns] = useState<Record<EstadoPedido, Pedido[]>>(() => agrupar(initialPedidos));
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [nuevosCount, setNuevosCount] = useState(0);
+
+  const refresh = useCallback(() => {
+    router.refresh();
+    setNuevosCount(0);
+  }, [router]);
+
+  useRealtimePedidos(useCallback(() => {
+    setNuevosCount(n => n + 1);
+  }, []));
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -113,6 +125,29 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
 
   return (
     <div className="px-6 md:px-10 py-8 pb-16" style={{ height: '100%', display: 'flex', flexDirection: 'column', maxWidth: 1500 }}>
+
+      {/* Realtime banner */}
+      {nuevosCount > 0 && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+          background: 'var(--choco-900)', color: 'var(--on-dark)', borderRadius: 'var(--r-lg)',
+          padding: '12px 18px', marginBottom: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <Bell style={{ width: 17, height: 17, color: 'var(--amber)', flexShrink: 0 }} />
+            <span style={{ fontSize: 14, fontWeight: 600 }}>
+              {nuevosCount === 1 ? '1 nuevo pedido recibido' : `${nuevosCount} nuevos pedidos recibidos`}
+            </span>
+          </div>
+          <button
+            onClick={refresh}
+            style={{ fontSize: 13, fontWeight: 700, padding: '6px 14px', borderRadius: 'var(--r-pill)', background: 'var(--orange)', color: '#fff', border: 'none', cursor: 'pointer' }}
+          >
+            Actualizar
+          </button>
+        </div>
+      )}
+
       {/* Page head + toolbar */}
       <div style={{ marginBottom: 20, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>

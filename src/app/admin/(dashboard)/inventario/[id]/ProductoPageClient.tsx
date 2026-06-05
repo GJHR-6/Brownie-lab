@@ -8,7 +8,8 @@ import { createProducto, updateProducto, deleteProducto } from '@/actions/produc
 import ToggleSwitch from '@/components/admin/ToggleSwitch';
 import type { Producto, Categoria, Ingrediente } from '@/types/database';
 
-const ETIQUETAS = ['Nuevo', 'Más vendido', 'Sin gluten', 'Vegano', 'Edición limitada', 'Sin azúcar'];
+const ETIQUETAS  = ['Nuevo', 'Más vendido', 'Sin gluten', 'Vegano', 'Edición limitada', 'Sin azúcar'];
+const ALERGENOS  = ['Gluten', 'Lácteos', 'Huevo', 'Frutos secos', 'Maní', 'Soja', 'Mariscos', 'Pescado'];
 
 const T = {
   inp: {
@@ -106,6 +107,7 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
   const [destacadoCapricho,      setDestacadoCapricho]     = useState(producto?.destacado_capricho ?? false);
   const [disponiblePersonaliza,  setDisponiblePersonaliza] = useState(producto?.disponible_personaliza ?? false);
   const [etiquetas,              setEtiquetas]             = useState<string[]>(producto?.etiquetas ?? []);
+  const [alergenos,              setAlergenos]             = useState<string[]>(producto?.alergenos ?? []);
   const [ingredientesIds,        setIngredientesIds]       = useState<string[]>(producto?.ingredientes ?? []);
   const [deletingId,             setDeletingId]            = useState(false);
 
@@ -165,7 +167,8 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
         <input type="hidden" name="destacado_capricho"     value={String(destacadoCapricho)} />
         <input type="hidden" name="disponible_personaliza" value={String(disponiblePersonaliza)} />
         <input type="hidden" name="etiquetas"              value={etiquetas.join(',')} />
-        <input type="hidden" name="ingredientes_ids"       value={ingredientesIds.join(',')} />
+        <input type="hidden" name="alergenos"             value={alergenos.join(',')} />
+        <input type="hidden" name="ingredientes_ids"      value={ingredientesIds.join(',')} />
         {/* Existing image URLs (cleared ones send empty string) */}
         {allImages.map((url, i) => (
           <input key={i} type="hidden" name={`imagen_url_${i + 1}`} value={clearedImages[i + 1] ? '' : (url ?? '')} />
@@ -197,8 +200,8 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label style={T.label}>Categoría</label>
-                    <select name="categoria" defaultValue={producto?.categoria ?? 'clasicas'} style={{ ...T.inp, appearance: 'auto' }} onFocus={inpFocus} onBlur={inpBlur}>
-                      {categorias.map(c => <option key={c.slug} value={c.slug}>{c.nombre}</option>)}
+                    <select name="categoria_id" defaultValue={producto?.categoria_id ?? ''} style={{ ...T.inp, appearance: 'auto' }} onFocus={inpFocus} onBlur={inpBlur}>
+                      {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                     </select>
                   </div>
                   <div>
@@ -284,7 +287,7 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                     <button
                       key={e}
                       type="button"
-                      onClick={() => toggleEtiqueta(e)}
+                      onClick={() => setEtiquetas(prev => prev.includes(e) ? prev.filter(x => x !== e) : [...prev, e])}
                       style={{
                         fontSize: 13, fontWeight: 600, padding: '7px 14px',
                         borderRadius: 'var(--r-pill)', cursor: 'pointer', transition: '.14s',
@@ -294,6 +297,33 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                       }}
                     >
                       {e}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Alergenos */}
+            <div style={T.card}>
+              <p style={T.cardTitle}>Alergenos</p>
+              <p style={T.cardSub}>Se muestran en la tarjeta del producto en el menú.</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {ALERGENOS.map(a => {
+                  const selected = alergenos.includes(a);
+                  return (
+                    <button
+                      key={a}
+                      type="button"
+                      onClick={() => setAlergenos(prev => prev.includes(a) ? prev.filter(x => x !== a) : [...prev, a])}
+                      style={{
+                        fontSize: 13, fontWeight: 600, padding: '7px 14px',
+                        borderRadius: 'var(--r-pill)', cursor: 'pointer', transition: '.14s',
+                        border: `1.5px solid ${selected ? 'var(--berry)' : 'var(--hairline)'}`,
+                        background: selected ? 'rgba(158,59,70,.08)' : 'var(--paper-card)',
+                        color: selected ? 'var(--berry)' : 'var(--ink)',
+                      }}
+                    >
+                      {a}
                     </button>
                   );
                 })}

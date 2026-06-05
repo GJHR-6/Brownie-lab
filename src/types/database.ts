@@ -10,7 +10,8 @@ export interface Producto {
   stock: number;
   stock_alerta: number;
   disponible: boolean;
-  categoria: string;
+  categoria_id: string;
+  categoria: string;           // slug derivado del join con categorias
   emoji: string | null;
   tiempo_preparacion: string | null;
   alergenos: string[];
@@ -47,12 +48,22 @@ export interface PedidoItem {
 export interface Pedido {
   id: string;
   cliente_datos: ClienteDatos;
-  items: PedidoItem[] | null;
+  items: PedidoItem[] | null;   // mapeado desde pedido_items
   total: number;
   estado: EstadoPedido;
   comprobante_url?: string | null;
+  telefono_cliente?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface Testimonio {
+  id: string;
+  autor: string;
+  texto: string;
+  estrellas: number;
+  aprobado: boolean;
+  created_at: string;
 }
 
 export interface Promocion {

@@ -5,7 +5,7 @@ import ClubSection from "@/components/ClubSection";
 import BLIcon from "@/components/BLIcon";
 import GiftIntro from "@/components/GiftIntro";
 import { storeConfig } from "@/config/store";
-import { getProductosPublicos, getEspecialesActivos, getConfiguracion } from "@/lib/data";
+import { getProductosPublicos, getEspecialesActivos, getConfiguracion, getProductosDestacados, getTestimoniosAprobados } from "@/lib/data";
 
 export const revalidate = 3600;
 
@@ -21,10 +21,12 @@ function getDaysLeft(fechaInicio: string, duracionDias: number): number {
 const SEC: React.CSSProperties = { paddingBlock: "clamp(64px, 9vw, 120px)" };
 
 export default async function Home() {
-  const [productos, especiales, config] = await Promise.all([
+  const [productos, especiales, config, capricho, testimonios] = await Promise.all([
     getProductosPublicos(),
     getEspecialesActivos(),
     getConfiguracion(),
+    getProductosDestacados(),
+    getTestimoniosAprobados(),
   ]);
   const whatsapp = config?.whatsapp || storeConfig.whatsapp;
   const featured = productos.slice(0, 3);
@@ -336,6 +338,76 @@ export default async function Home() {
           )}
         </div>
       </section>
+
+      {/* ── Capricho del Chef ────────────────────────────────────────── */}
+      {capricho.length > 0 && (
+        <section style={{ background: "var(--cream)", ...SEC }}>
+          <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+            <AnimateIn>
+              <div className="flex items-center gap-3 mb-2">
+                <BLIcon name="sparkle" size={18} style={{ color: "var(--orange)" } as React.CSSProperties} />
+                <span className="text-[12px] font-bold tracking-[0.22em] uppercase" style={{ color: "var(--orange)" }}>
+                  Capricho del Chef
+                </span>
+              </div>
+              <h2 className="mb-2" style={{ fontSize: "clamp(28px, 3.6vw, 40px)", color: "var(--ink)" }}>
+                Selección especial
+              </h2>
+              <p className="mb-10" style={{ color: "var(--ink-soft)", fontSize: 16, maxWidth: "48ch" }}>
+                Creaciones que el chef destaca esta temporada.
+              </p>
+            </AnimateIn>
+            <div
+              className="grid gap-6"
+              style={{ gridTemplateColumns: `repeat(${Math.min(capricho.length, 3)}, 1fr)` }}
+            >
+              {capricho.map((p) => (
+                <AnimateIn key={p.id}>
+                  <ProductCard product={p} />
+                </AnimateIn>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Testimonios ──────────────────────────────────────────────── */}
+      {testimonios.length > 0 && (
+        <section style={{ ...SEC }}>
+          <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+            <AnimateIn className="text-center mb-10">
+              <span className="text-[12px] font-bold tracking-[0.22em] uppercase" style={{ color: "var(--orange)" }}>
+                Lo que dicen nuestros clientes
+              </span>
+              <h2 className="mt-3" style={{ fontSize: "clamp(28px, 3.6vw, 40px)", color: "var(--ink)" }}>
+                Opiniones reales
+              </h2>
+            </AnimateIn>
+            <div className="grid gap-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))" }}>
+              {testimonios.map((t) => (
+                <AnimateIn key={t.id}>
+                  <div
+                    className="flex flex-col gap-3 rounded-[20px] p-6"
+                    style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-sm)" }}
+                  >
+                    <div className="flex gap-0.5">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <span key={i} style={{ color: i < t.estrellas ? "var(--amber)" : "var(--hairline)", fontSize: 16 }}>★</span>
+                      ))}
+                    </div>
+                    <p className="text-[15px] leading-relaxed flex-1" style={{ color: "var(--ink)" }}>
+                      &ldquo;{t.texto}&rdquo;
+                    </p>
+                    <p className="text-[13px] font-semibold" style={{ color: "var(--ink-soft)" }}>
+                      — {t.autor}
+                    </p>
+                  </div>
+                </AnimateIn>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Club Brownie Lab ──────────────────────────────────────────── */}
       <ClubSection />
