@@ -45,7 +45,7 @@ export async function validarPromocion(
   }
 }
 
-// ── Seguimiento de pedido por teléfono ───────────────────────────────────────
+// ── Seguimiento de pedido ────────────────────────────────────────────────────
 
 export interface PedidoTrackingItem {
   nombre: string;
@@ -82,6 +82,31 @@ export async function buscarPedidosPorTelefono(
 
     if (error) return { success: false, error: 'Error al buscar pedidos.' };
     return { success: true, data: (data ?? []) as PedidoTracking[] };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+export async function buscarPedidoPorCodigo(
+  codigo: string
+): Promise<ActionResult<PedidoTracking | null>> {
+  const ip = getIpFromHeaders(await headers());
+  if (!rateLimit(`track-code:${ip}`, 15, 5 * 60 * 1000)) {
+    return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
+  }
+
+  const clean = codigo.replace(/^#/, '').trim().toUpperCase();
+  if (!/^[0-9A-F]{6,8}$/i.test(clean)) {
+    return { success: false, error: 'Código inválido. Debe tener entre 6 y 8 caracteres (ej: A1B2C3D4).' };
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data, error } = await supabase.rpc('get_pedido_por_codigo', { codigo_input: clean });
+    if (error) return { success: false, error: 'Error al buscar el pedido.' };
+    const pedido = (data ?? [])[0] ?? null;
+    if (!pedido) return { success: false, error: 'No encontramos ningún pedido con ese código.' };
+    return { success: true, data: pedido as PedidoTracking };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }

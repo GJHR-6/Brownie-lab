@@ -25,15 +25,17 @@ export default function MenuClient({
   categorias,
   especiales = [],
   whatsapp = "",
+  initialSearch = "",
 }: {
   productos: Producto[];
   categorias: Categoria[];
   especiales?: Especial[];
   whatsapp?: string;
+  initialSearch?: string;
 }) {
   const LABELS = Object.fromEntries(categorias.map((c) => [c.slug, c.nombre]));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initialSearch);
 
   const allCats = [...new Set(productos.map((p) => p.categoria))];
 
@@ -161,8 +163,8 @@ export default function MenuClient({
         className="mx-auto px-[var(--gutter)]"
         style={{ maxWidth: "var(--maxw)", paddingBottom: "clamp(56px, 7vw, 96px)" }}
       >
-        {/* ── Especiales activos ── */}
-        {especiales.length > 0 && !activeCategory && !search && (
+        {/* ── Especiales activos — siempre visibles ── */}
+        {especiales.length > 0 && (
           <section style={{ paddingTop: "clamp(36px,4vw,52px)", paddingBottom: 0 }}>
             <div className="flex items-center gap-2.5 mb-5">
               <BLIcon name="sparkle" size={16} style={{ color: "var(--orange)" } as React.CSSProperties} />
@@ -235,6 +237,7 @@ export default function MenuClient({
             <p>No encontramos nada con esa búsqueda. Prueba otra palabra.</p>
             <button
               onClick={() => { setSearch(""); setActiveCategory(null); }}
+              aria-label="Limpiar búsqueda y filtros"
               className="text-sm font-semibold cursor-pointer border-0 bg-transparent underline"
               style={{ color: "var(--orange-ink)" }}
             >
