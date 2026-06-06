@@ -80,6 +80,35 @@ export async function getToppingsDinamicos(): Promise<{ id: string; nombre: stri
   }));
 }
 
+export async function getProductoPublicoById(id: string): Promise<Producto | null> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select(PRODUCTO_SELECT)
+    .eq('id', id)
+    .single();
+  if (error || !data) return null;
+  return normalizeProducto(data);
+}
+
+export async function getProductosSimilares(categoriaSlug: string, excludeId: string): Promise<Producto[]> {
+  const supabase = await createSupabaseServerClient();
+  const today = new Date().toISOString().split('T')[0];
+  const { data } = await supabase
+    .from('productos')
+    .select(PRODUCTO_SELECT)
+    .eq('disponible', true)
+    .neq('id', excludeId)
+    .or(`disponible_desde.is.null,disponible_desde.lte.${today}`)
+    .or(`disponible_hasta.is.null,disponible_hasta.gte.${today}`)
+    .limit(4);
+  const all = (data ?? []).map(normalizeProducto);
+  // Prioritize same category
+  const same = all.filter(p => p.categoria === categoriaSlug);
+  const others = all.filter(p => p.categoria !== categoriaSlug);
+  return [...same, ...others].slice(0, 4);
+}
+
 export async function getCategoriasPublicas(): Promise<Categoria[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase

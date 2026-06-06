@@ -38,8 +38,7 @@ function SellosDemoGrid({ sellos }: { sellos: number }) {
 const SEC: React.CSSProperties = { paddingBlock: 'clamp(64px, 9vw, 120px)' };
 
 export default function ClubSection() {
-  /* Empieza con 4 de demo; se actualiza con datos reales cuando el usuario consulta */
-  const [sellos, setSellos] = useState(4);
+  const [sellos, setSellos] = useState(0);
 
   return (
     <section

@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import AnimateIn from "@/components/AnimateIn";
 import ClubSection from "@/components/ClubSection";
+import EspecialCarousel from "@/components/EspecialCarousel";
 import BLIcon from "@/components/BLIcon";
 import GiftIntro from "@/components/GiftIntro";
 import { storeConfig } from "@/config/store";
@@ -9,6 +11,27 @@ import Image from "next/image";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion, getProductosDestacados, getTestimoniosAprobados } from "@/lib/data";
 
 export const revalidate = 3600;
+
+export const metadata: Metadata = {
+  title: {
+    absolute: "Brownie Lab — Brownies y galletas artesanales en Honduras",
+  },
+  description:
+    "Brownies y galletas hechos a mano con ingredientes reales. Pedidos con 24 h de anticipación. Pickup o entrega a domicilio en Honduras.",
+  openGraph: {
+    title: "Brownie Lab — Brownies y galletas artesanales",
+    description:
+      "Brownies y galletas hechos a mano con ingredientes reales. Pedidos con 24 h de anticipación.",
+    url: "/",
+    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Brownie Lab" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Brownie Lab — Brownies y galletas artesanales",
+    description: "Brownies y galletas hechos a mano con ingredientes reales.",
+    images: ["/opengraph-image"],
+  },
+};
 
 function getDaysLeft(fechaInicio: string, duracionDias: number): number {
   const end = new Date(fechaInicio);
@@ -146,11 +169,9 @@ export default async function Home() {
               className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col"
               style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".9fr 1.1fr" }}
             >
-              {/* Media — imagen del especial activo */}
-              {activeSpecials[0].imagen_url ? (
-                <div className="relative w-full overflow-hidden rounded-[24px]" style={{ aspectRatio: "4/5" }}>
-                  <Image src={activeSpecials[0].imagen_url} alt={activeSpecials[0].nombre} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 45vw" />
-                </div>
+              {/* Media — carousel de imágenes del especial */}
+              {activeSpecials[0].imagen_url || (activeSpecials[0].imagenes?.length > 0) ? (
+                <EspecialCarousel especial={activeSpecials[0]} />
               ) : (
                 <div
                   className="rounded-[24px]"

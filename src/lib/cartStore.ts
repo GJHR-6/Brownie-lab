@@ -9,6 +9,7 @@ export interface CartItem {
   price: number;
   quantity: number;
   emoji: string;
+  detalle?: string;
 }
 
 interface CartStore {

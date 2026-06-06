@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { storeConfig } from "@/config/store";
 import { getConfiguracion } from "@/lib/data";
 import BLIcon from "@/components/BLIcon";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Nosotros",
@@ -81,13 +82,18 @@ export default async function NosotrosPage() {
         >
           {/* Media — imagen desde admin o placeholder */}
           {config?.nosotros_imagen_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={config.nosotros_imagen_url}
-              alt="Nuestra historia"
-              className="rounded-[24px] w-full object-cover"
+            <div
+              className="rounded-[24px] overflow-hidden relative w-full"
               style={{ aspectRatio: '4/5', boxShadow: 'var(--shadow-md)' }}
-            />
+            >
+              <Image
+                src={config.nosotros_imagen_url}
+                alt="Nuestra historia"
+                fill
+                className="object-cover"
+                sizes="(max-width: 920px) 100vw, 46vw"
+              />
+            </div>
           ) : (
             <div
               className="rounded-[24px]"

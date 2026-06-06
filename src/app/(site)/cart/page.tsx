@@ -8,16 +8,19 @@ import {
   Home, Store,
 } from "lucide-react";
 import BLIcon from "@/components/BLIcon";
+import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
+import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
 import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, subirComprobante } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="block text-sm font-medium text-stone-700 mb-1.5">{label}</label>
       {children}
+      {hint && !error && <p className="text-[12px] mt-1" style={{ color: "var(--ink-soft)" }}>{hint}</p>}
       {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
     </div>
   );
@@ -53,6 +56,7 @@ const STEPS = [
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, total, itemCount } = useCartStore();
+  const recentProducts = useRecentStore((s) => s.productos);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>(1);
   const [promoInput, setPromoInput] = useState("");
@@ -245,30 +249,49 @@ export default function CartPage() {
   // ── Empty ────────────────────────────────────────────────────────────────────
   if (items.length === 0) {
     return (
-      <div
-        className="text-center"
-        style={{ paddingBlock: "clamp(60px, 9vw, 120px)", paddingInline: "var(--gutter)" }}
-      >
-        <span
-          className="w-24 h-24 rounded-full mx-auto mb-7 grid place-items-center"
-          style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
-        >
-          <BLIcon name="cart" size={46} />
-        </span>
-        <h1 className="mb-3" style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--ink)" }}>
-          Tu carrito está vacío
-        </h1>
-        <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
-          Agrega algunas galletas o brownies para continuar.
-        </p>
-        <Link
-          href="/menu"
-          className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline"
-          style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
-        >
-          Ver el menú
-          <BLIcon name="arrow-right" size={16} />
-        </Link>
+      <div style={{ paddingBlock: "clamp(48px, 7vw, 96px)", paddingInline: "var(--gutter)" }}>
+        <div className="text-center mb-12">
+          <span
+            className="w-24 h-24 rounded-full mx-auto mb-7 grid place-items-center"
+            style={{ background: "var(--cream)", color: "var(--orange-ink)" }}
+          >
+            <BLIcon name="cart" size={46} />
+          </span>
+          <h1 className="mb-3" style={{ fontSize: "clamp(30px, 4vw, 44px)", color: "var(--ink)" }}>
+            Tu carrito está vacío
+          </h1>
+          <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
+            Agrega algunas galletas o brownies para continuar.
+          </p>
+          <Link
+            href="/menu"
+            className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline"
+            style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+          >
+            Ver el menú
+            <BLIcon name="arrow-right" size={16} />
+          </Link>
+        </div>
+
+        {/* Productos vistos recientemente */}
+        {mounted && recentProducts.length > 0 && (
+          <div className="mx-auto" style={{ maxWidth: "var(--maxw)" }}>
+            <p
+              className="text-[11px] font-bold tracking-[.14em] uppercase mb-6 text-center"
+              style={{ color: "var(--ink-soft)" }}
+            >
+              Viste recientemente
+            </p>
+            <div
+              className="grid gap-6"
+              style={{ gridTemplateColumns: `repeat(${Math.min(recentProducts.length, 4)}, 1fr)` }}
+            >
+              {recentProducts.slice(0, 4).map((p) => (
+                <ProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -512,7 +535,10 @@ export default function CartPage() {
                               <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, background: "var(--cream)", display: "grid", placeItems: "center", fontSize: 22 }}>
                                 {item.emoji}
                               </div>
-                              <p style={{ fontWeight: 600, color: "var(--ink)", margin: 0, whiteSpace: "nowrap" }}>{item.name}</p>
+                              <p style={{ fontWeight: 600, color: "var(--ink)", margin: 0 }}>{item.name}</p>
+                              {item.detalle && (
+                                <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", lineHeight: 1.4 }}>{item.detalle}</p>
+                              )}
                             </div>
                           </td>
 
@@ -807,11 +833,11 @@ export default function CartPage() {
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Fecha preferida">
+                  <Field label="Fecha preferida" hint="Preparamos con mínimo 24 h de anticipación">
                     <input
                       type="date"
                       value={datos.fecha_entrega}
-                      min={new Date().toISOString().split("T")[0]}
+                      min={(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()}
                       onChange={(e) => setDatos((d) => ({ ...d, fecha_entrega: e.target.value }))}
                       style={inputStyle}
                     />

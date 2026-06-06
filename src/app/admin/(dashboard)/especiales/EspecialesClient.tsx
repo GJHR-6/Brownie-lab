@@ -4,7 +4,7 @@ import { useState, useCallback, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X, Upload } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
-import { createEspecial, toggleEspecial, deleteEspecial, updateEspecialImagen } from '@/actions/especiales';
+import { createEspecial, toggleEspecial, deleteEspecial, addEspecialImagen, removeEspecialImagen } from '@/actions/especiales';
 import type { Especial } from '@/types/database';
 import ToggleSwitch from '@/components/admin/ToggleSwitch';
 
@@ -109,43 +109,71 @@ function EspecialForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
   );
 }
 
-/* ── Inline image upload for existing especials ── */
-function ImagenUploader({ especial, onDone }: { especial: Especial; onDone: () => void }) {
+/* ── Multi-image gallery manager ── */
+function GaleriaEspecial({ especial, onDone }: { especial: Especial; onDone: () => void }) {
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const allImgs = [
+    ...(especial.imagen_url ? [especial.imagen_url] : []),
+    ...(Array.isArray(especial.imagenes) ? especial.imagenes : []),
+  ];
+
+  async function handleAdd(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    setError(null);
     const fd = new FormData();
     fd.append('imagen', file);
-    const result = await updateEspecialImagen(especial.id, fd);
+    await addEspecialImagen(especial.id, fd);
     setUploading(false);
-    if (result.success) onDone();
-    else setError(result.error ?? 'Error');
+    onDone();
+  }
+
+  async function handleRemove(url: string) {
+    setRemoving(url);
+    await removeEspecialImagen(especial.id, url);
+    setRemoving(null);
+    onDone();
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp"
-        onChange={handleChange} style={{ display: 'none' }} />
-      <button
-        onClick={() => inputRef.current?.click()}
-        disabled={uploading}
-        style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s' }}
-        onMouseEnter={e => { e.currentTarget.style.color = 'var(--orange-ink)'; e.currentTarget.style.borderColor = 'var(--orange)'; }}
-        onMouseLeave={e => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}
-        title="Cambiar imagen"
-      >
-        {uploading
-          ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} />
-          : <Upload style={{ width: 15, height: 15 }} />
-        }
-      </button>
-      {error && <p style={{ fontSize: 11, color: 'var(--berry)', maxWidth: 120 }}>{error}</p>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {allImgs.map((url, i) => (
+        <div key={url} style={{ position: 'relative', flexShrink: 0 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={url} alt={`img ${i + 1}`}
+            style={{ width: 40, height: 40, borderRadius: 8, objectFit: 'cover', border: i === 0 ? '2px solid var(--orange)' : '1px solid var(--hairline)', display: 'block' }} />
+          <button
+            onClick={() => handleRemove(url)}
+            disabled={removing === url}
+            title="Eliminar imagen"
+            style={{ position: 'absolute', top: -5, right: -5, width: 16, height: 16, borderRadius: '50%', background: 'var(--berry)', color: '#fff', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 9, lineHeight: 1 }}
+          >
+            {removing === url ? '…' : '×'}
+          </button>
+        </div>
+      ))}
+
+      {/* Add button */}
+      {allImgs.length < 5 && (
+        <>
+          <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp"
+            onChange={handleAdd} style={{ display: 'none' }} />
+          <button
+            onClick={() => inputRef.current?.click()}
+            disabled={uploading}
+            title="Agregar imagen"
+            style={{ width: 40, height: 40, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'var(--cream)', border: '1.5px dashed var(--hairline)', color: 'var(--orange-ink)', cursor: 'pointer', flexShrink: 0 }}
+          >
+            {uploading
+              ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} />
+              : <Upload style={{ width: 14, height: 14 }} />
+            }
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -249,8 +277,7 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
 
                     <td style={{ ...T.td, textAlign: 'right' }}>
                       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', alignItems: 'center' }}>
-                        {/* Upload image button */}
-                        <ImagenUploader especial={e} onDone={refresh} />
+                        <GaleriaEspecial especial={e} onDone={refresh} />
                         {/* Delete */}
                         <button onClick={() => handleDelete(e.id, e.nombre)} disabled={deletingId === e.id}
                           style={{ width: 34, height: 34, borderRadius: 9, display: 'grid', placeItems: 'center', background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: 'var(--ink-soft)', cursor: 'pointer', transition: '.14s', opacity: deletingId === e.id ? 0.5 : 1 }}
