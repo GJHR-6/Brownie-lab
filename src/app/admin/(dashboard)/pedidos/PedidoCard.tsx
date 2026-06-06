@@ -1,11 +1,11 @@
-import type { Pedido } from '@/types/database';
-import { Clock } from 'lucide-react';
+import type { Pedido, ClienteDatos } from '@/types/database';
+import { Clock, X } from 'lucide-react';
 
 function formatFecha(iso: string): string {
   return new Date(iso).toLocaleString('es-HN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 }
 
-export default function PedidoCard({ pedido }: { pedido: Pedido }) {
+export default function PedidoCard({ pedido, onCancel }: { pedido: Pedido; onCancel?: () => void }) {
   return (
     <div
       style={{
@@ -20,14 +20,31 @@ export default function PedidoCard({ pedido }: { pedido: Pedido }) {
         gap: 10,
       }}
     >
-      {/* ID + total */}
+      {/* ID + total + cancelar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', color: 'var(--ink-soft)' }}>
           #{pedido.id.slice(0, 8).toUpperCase()}
         </span>
-        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--orange-ink)' }}>
-          L. {Number(pedido.total).toFixed(2)}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--orange-ink)' }}>
+            L. {Number(pedido.total).toFixed(2)}
+          </span>
+          {onCancel && (
+            <button
+              onClick={e => { e.stopPropagation(); onCancel(); }}
+              title="Cancelar pedido"
+              style={{
+                width: 22, height: 22, borderRadius: 6, display: 'grid', placeItems: 'center',
+                background: 'transparent', border: '1px solid var(--hairline)',
+                color: 'var(--ink-soft)', cursor: 'pointer', flexShrink: 0, transition: '.14s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(158,59,70,.1)'; e.currentTarget.style.color = 'var(--berry)'; e.currentTarget.style.borderColor = 'var(--berry)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--hairline)'; }}
+            >
+              <X style={{ width: 11, height: 11 }} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Cliente */}
@@ -65,11 +82,36 @@ export default function PedidoCard({ pedido }: { pedido: Pedido }) {
         </details>
       )}
 
-      {/* Fecha */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'ui-monospace,monospace' }}>
-        <Clock style={{ width: 12, height: 12, flexShrink: 0 }} />
-        {formatFecha(pedido.created_at)}
+      {/* Fecha + entrega */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'ui-monospace,monospace' }}>
+          <Clock style={{ width: 12, height: 12, flexShrink: 0 }} />
+          {formatFecha(pedido.created_at)}
+        </div>
+        {(() => {
+          const cd = pedido.cliente_datos as ClienteDatos;
+          if (!cd.tipo_entrega) return null;
+          return (
+            <span style={{
+              fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 6, flexShrink: 0,
+              background: cd.tipo_entrega === 'domicilio' ? 'rgba(42,111,219,.1)' : 'var(--cream)',
+              color: cd.tipo_entrega === 'domicilio' ? '#2a6fdb' : 'var(--ink-soft)',
+            }}>
+              {cd.tipo_entrega === 'domicilio' ? '🚚 Domicilio' : '📍 Pickup'}
+            </span>
+          );
+        })()}
       </div>
+      {(() => {
+        const cd = pedido.cliente_datos as ClienteDatos;
+        if (!cd.fecha_entrega) return null;
+        return (
+          <div style={{ fontSize: 11, color: 'var(--ink-soft)', fontFamily: 'ui-monospace,monospace' }}>
+            📅 {new Date(cd.fecha_entrega + 'T12:00:00').toLocaleDateString('es-HN', { day: '2-digit', month: 'short' })}
+            {cd.hora_entrega && ` · ${cd.hora_entrega}`}
+          </div>
+        );
+      })()}
     </div>
   );
 }

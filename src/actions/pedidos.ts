@@ -202,3 +202,14 @@ export async function crearPedidoManual(
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }
 }
+
+export async function getPedidosPorTelefono(telefono: string): Promise<Pedido[]> {
+  const { supabase } = await requireAdmin();
+  const { data } = await supabase
+    .from('pedidos')
+    .select('*, pedido_items(id, producto_id, nombre_producto, precio_unitario, cantidad, subtotal)')
+    .eq('telefono_cliente', telefono)
+    .order('created_at', { ascending: false })
+    .limit(10);
+  return (data ?? []).map(normalizePedido);
+}

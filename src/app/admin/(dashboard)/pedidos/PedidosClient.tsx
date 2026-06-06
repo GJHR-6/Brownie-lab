@@ -15,9 +15,10 @@ const ESTADO_CFG: Record<EstadoPedido, { label: string; chip: string; dot: strin
   preparacion: { label: 'Preparación', chip: '#dbeafe', dot: '#1d5fb8' },
   listo:       { label: 'Listo',       chip: '#d8f0e2', dot: '#157a4d' },
   completado:  { label: 'Completado',  chip: '#e4ded3', dot: '#6b5743' },
+  cancelado:   { label: 'Cancelado',   chip: '#fce8ea', dot: '#9e3b46' },
 };
 
-const ESTADOS = ['pendiente', 'preparacion', 'listo', 'completado'] as EstadoPedido[];
+const ESTADOS = ['pendiente', 'preparacion', 'listo', 'completado', 'cancelado'] as EstadoPedido[];
 
 const TIMELINE: { key: EstadoPedido; label: string }[] = [
   { key: 'pendiente',   label: 'Recibido' },
@@ -80,6 +81,20 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
     }
   }
 
+  async function handleCancelar() {
+    if (!confirm('¿Cancelar este pedido? Quedará marcado como cancelado.')) return;
+    setSavingEstado('cancelado');
+    setErrorMsg(null);
+    const res = await actualizarEstadoPedido(pedido.id, 'cancelado');
+    setSavingEstado(null);
+    if (res.success) {
+      setLocalEstado('cancelado');
+      onUpdated({ ...pedido, estado: 'cancelado' });
+    } else {
+      setErrorMsg(res.error ?? 'Error al cancelar');
+    }
+  }
+
   const th: React.CSSProperties = { textAlign: 'left', fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)', padding: '14px 22px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper)' };
   void th;
 
@@ -106,6 +121,11 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
         {/* Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>
 
+          {localEstado === 'cancelado' && (
+            <div style={{ background: '#fce8ea', border: '1px solid #e6c4c8', borderLeft: '4px solid var(--berry)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: '#7a2530', marginBottom: 20 }}>
+              Este pedido fue <strong>cancelado</strong>. Podés cambiar el estado si fue un error.
+            </div>
+          )}
           {errorMsg && (
             <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: 'var(--berry)', marginBottom: 20 }}>
               {errorMsg}
@@ -128,6 +148,42 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
               ))}
             </div>
           </div>
+
+          {/* Entrega y pago */}
+          {(cd.tipo_entrega || cd.metodo_pago || cd.fecha_entrega) && (
+            <div style={{ marginBottom: 24 }}>
+              <DrawerSecTitle>Entrega y pago</DrawerSecTitle>
+              {cd.tipo_entrega && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14, borderBottom: '1px dashed var(--hairline)' }}>
+                  <span style={{ color: 'var(--ink-soft)' }}>Tipo</span>
+                  <span style={{ fontWeight: 600 }}>{cd.tipo_entrega === 'pickup' ? '📍 Recoger en tienda' : '🚚 A domicilio'}</span>
+                </div>
+              )}
+              {cd.direccion && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14, borderBottom: '1px dashed var(--hairline)' }}>
+                  <span style={{ color: 'var(--ink-soft)', flexShrink: 0 }}>Dirección</span>
+                  <span style={{ fontWeight: 600, textAlign: 'right', maxWidth: '60%' }}>{cd.direccion}</span>
+                </div>
+              )}
+              {(cd.fecha_entrega || cd.hora_entrega) && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14, borderBottom: cd.metodo_pago ? '1px dashed var(--hairline)' : 0 }}>
+                  <span style={{ color: 'var(--ink-soft)' }}>Fecha preferida</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {[
+                      cd.fecha_entrega ? new Date(cd.fecha_entrega + 'T12:00:00').toLocaleDateString('es-HN', { weekday: 'short', day: '2-digit', month: 'short' }) : '',
+                      cd.hora_entrega,
+                    ].filter(Boolean).join(' — ')}
+                  </span>
+                </div>
+              )}
+              {cd.metodo_pago && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14 }}>
+                  <span style={{ color: 'var(--ink-soft)' }}>Método de pago</span>
+                  <span style={{ fontWeight: 600 }}>{cd.metodo_pago === 'efectivo' ? '💵 Efectivo' : '🏦 Transferencia'}</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Productos */}
           {items.length > 0 && (
@@ -227,18 +283,27 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '18px 24px', borderTop: '1px solid var(--hairline)', background: 'var(--paper-card)', display: 'flex', gap: 10, flexShrink: 0 }}>
+        <div style={{ padding: '14px 24px', borderTop: '1px solid var(--hairline)', background: 'var(--paper-card)', display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
           <button
             onClick={() => sendWhatsApp(pedido)}
-            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--choco-900)', color: '#fff', transition: '.16s' }}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 14px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--choco-900)', color: '#fff', transition: '.16s' }}
           >
-            <MessageCircle style={{ width: 17, height: 17, color: '#58d684' }} />
+            <MessageCircle style={{ width: 15, height: 15, color: '#58d684' }} />
             WhatsApp
           </button>
+          {localEstado !== 'cancelado' && (
+            <button
+              onClick={handleCancelar}
+              disabled={!!savingEstado}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 14px', borderRadius: 'var(--r-pill)', border: '1.5px solid #e6c4c8', cursor: 'pointer', background: '#fce8ea', color: '#9e3b46', transition: '.16s', opacity: savingEstado ? 0.7 : 1 }}
+            >
+              Cancelar pedido
+            </button>
+          )}
           <button
             onClick={handleGuardar}
             disabled={!!savingEstado}
-            style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s', opacity: savingEstado ? 0.7 : 1 }}
+            style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s', opacity: savingEstado ? 0.7 : 1 }}
           >
             {savingEstado ? '…' : 'Guardar'}
           </button>
