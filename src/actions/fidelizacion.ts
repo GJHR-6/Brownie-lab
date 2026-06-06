@@ -82,6 +82,17 @@ export async function buscarCliente(
   }
 }
 
+// ── Admin: ajuste manual de sellos ────────────────────────────────────────────
+
+export async function registrarCompraAdmin(
+  telefono: string
+): Promise<ActionResult<{ cliente: ClienteFidelizacion; cuponGenerado: CuponFidelizacion | null }>> {
+  const supabase = await createSupabaseServerClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: 'No autorizado.' };
+  return registrarCompra(telefono);
+}
+
 // ── Mutations (service role — llamar desde server actions protegidos) ────────────
 
 /**

@@ -105,7 +105,7 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
   }`;
 
   function handleAddToCart() {
-    const id = `custom-${base}-${Date.now()}`;
+    const id = `custom-${crypto.randomUUID()}`;
     const emoji = base === "brownie" ? "🍫" : "🍪";
     const sym = storeConfig.currencySymbol;
     const detalle = [

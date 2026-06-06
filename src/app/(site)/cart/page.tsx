@@ -132,6 +132,12 @@ export default function CartPage() {
     if (!/^\d{8,}$/.test(datos.telefono.replace(/\D/g, ""))) e.telefono = "Teléfono válido requerido (mín. 8 dígitos)";
     if (datos.tipo_entrega === "domicilio" && !datos.direccion.trim()) e.direccion = "Dirección requerida para entrega a domicilio";
     if (!datos.metodo_pago) e.metodo_pago = "Selecciona un método de pago";
+    if (datos.fecha_entrega) {
+      const min = new Date(); min.setDate(min.getDate() + 1); min.setHours(0, 0, 0, 0);
+      if (new Date(datos.fecha_entrega + "T00:00:00") < min) {
+        e.fecha_entrega = "La fecha debe ser mínimo mañana (24 h de anticipación)";
+      }
+    }
     setFormErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -174,7 +180,10 @@ export default function CartPage() {
         if (ssFile) {
           const fd = new FormData();
           fd.append('comprobante', ssFile);
-          await subirComprobante(id, fd);
+          const uploadResult = await subirComprobante(id, fd);
+          if (!uploadResult.success) {
+            setOrderError(`Pedido creado, pero no se pudo subir el comprobante: ${uploadResult.error ?? 'Error desconocido'}. Envíalo por WhatsApp.`);
+          }
         }
       }
 
@@ -823,6 +832,7 @@ export default function CartPage() {
                           onChange={(e) => setDatos((d) => ({ ...d, direccion: e.target.value }))}
                           placeholder="Col. Palmira, Calle Principal #123, frente al parque..."
                           rows={2}
+                          maxLength={300}
                           autoComplete="street-address"
                           className="resize-none"
                           style={{ ...inputStyle, paddingLeft: 42 }}
@@ -973,6 +983,7 @@ export default function CartPage() {
                   onChange={(e) => setDatos((d) => ({ ...d, notas: e.target.value }))}
                   placeholder="Alergias, preferencias especiales, instrucciones de entrega…"
                   rows={3}
+                  maxLength={500}
                   className="resize-none"
                   style={{ ...inputStyle, minHeight: 96 }}
                 />

@@ -17,7 +17,22 @@ export default function FavoritosClient({ productos }: { productos: Producto[] }
     [productos, ids],
   );
 
-  if (!mounted) return null;
+  if (!mounted) return (
+    <div
+      className="mx-auto px-[var(--gutter)]"
+      style={{ maxWidth: "var(--maxw)", paddingBlock: "clamp(48px,6vw,80px)" }}
+    >
+      <div className="mb-10">
+        <div className="animate-pulse rounded-full" style={{ width: 180, height: 34, background: "var(--cream)" }} />
+        <div className="animate-pulse rounded-full mt-3" style={{ width: 120, height: 16, background: "var(--cream)" }} />
+      </div>
+      <div className="grid gap-6" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))" }}>
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="animate-pulse rounded-[var(--r-lg)]" style={{ aspectRatio: "4/3", background: "var(--cream)" }} />
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div
