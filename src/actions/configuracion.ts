@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { ActionResult } from '@/types/actions';
+import { logActividad } from './actividad';
 
 async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
@@ -77,6 +78,7 @@ export async function updateConfiguracion(
     if (error) return { success: false, error: error.message };
 
     revalidatePath('/', 'layout');
+    await logActividad('config', 'Configuración de la tienda actualizada');
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };

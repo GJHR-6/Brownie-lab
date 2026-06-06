@@ -150,6 +150,7 @@ export interface Ingrediente {
   es_topping: boolean;
   activo: boolean;
   notas: string | null;
+  imagen_url: string | null;
   created_at: string;
   updated_at: string;
 }

@@ -63,16 +63,21 @@ export async function getTestimoniosAprobados(): Promise<Testimonio[]> {
   return (data ?? []) as Testimonio[];
 }
 
-export async function getToppingsDinamicos(): Promise<{ id: string; nombre: string; precio_extra: number }[]> {
+export async function getToppingsDinamicos(): Promise<{ id: string; nombre: string; precio_extra: number; imagen_url: string | null }[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('ingredientes')
-    .select('id, nombre, precio_extra')
+    .select('id, nombre, precio_extra, imagen_url')
     .eq('es_topping', true)
     .eq('activo', true)
     .order('nombre');
   if (error) { console.error('getToppingsDinamicos:', error.message); return []; }
-  return (data ?? []).map(d => ({ id: d.id as string, nombre: d.nombre as string, precio_extra: Number(d.precio_extra ?? 0) }));
+  return (data ?? []).map(d => ({
+    id:          d.id as string,
+    nombre:      d.nombre as string,
+    precio_extra: Number(d.precio_extra ?? 0),
+    imagen_url:  (d.imagen_url as string | null) ?? null,
+  }));
 }
 
 export async function getCategoriasPublicas(): Promise<Categoria[]> {
