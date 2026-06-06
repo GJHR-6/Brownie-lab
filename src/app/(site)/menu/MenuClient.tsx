@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import ProductCard from "@/components/ProductCard";
 import BLIcon from "@/components/BLIcon";
-import type { Producto, Categoria } from "@/types/database";
+import type { Producto, Categoria, Especial } from "@/types/database";
 import type { BLIconName } from "@/components/BLIcon";
 
 function catIcon(slug: string): BLIconName {
@@ -12,12 +13,23 @@ function catIcon(slug: string): BLIconName {
   return "brownie";
 }
 
+function getDiasRestantes(fechaInicio: string, duracionDias: number): number {
+  const end = new Date(fechaInicio);
+  end.setDate(end.getDate() + duracionDias);
+  const now = new Date(); now.setHours(0,0,0,0); end.setHours(0,0,0,0);
+  return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 86400000));
+}
+
 export default function MenuClient({
   productos,
   categorias,
+  especiales = [],
+  whatsapp = "",
 }: {
   productos: Producto[];
   categorias: Categoria[];
+  especiales?: Especial[];
+  whatsapp?: string;
 }) {
   const LABELS = Object.fromEntries(categorias.map((c) => [c.slug, c.nombre]));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -149,6 +161,65 @@ export default function MenuClient({
         className="mx-auto px-[var(--gutter)]"
         style={{ maxWidth: "var(--maxw)", paddingBottom: "clamp(56px, 7vw, 96px)" }}
       >
+        {/* ── Especiales activos ── */}
+        {especiales.length > 0 && !activeCategory && !search && (
+          <section style={{ paddingTop: "clamp(36px,4vw,52px)", paddingBottom: 0 }}>
+            <div className="flex items-center gap-2.5 mb-5">
+              <BLIcon name="sparkle" size={16} style={{ color: "var(--orange)" } as React.CSSProperties} />
+              <span className="text-[12px] font-bold tracking-[.18em] uppercase" style={{ color: "var(--orange)" }}>
+                Capricho del Chef
+              </span>
+            </div>
+            <div className="flex flex-col gap-4">
+              {especiales.map(e => {
+                const dias = getDiasRestantes(e.fecha_inicio, e.duracion_dias);
+                const allImgs = [e.imagen_url, ...(Array.isArray(e.imagenes) ? e.imagenes : [])].filter(Boolean) as string[];
+                return (
+                  <div key={e.id}
+                    className="flex items-center gap-5 rounded-[20px] overflow-hidden"
+                    style={{ background: "var(--choco-900)", color: "var(--on-dark)", padding: "clamp(16px,2vw,24px)" }}
+                  >
+                    {/* Image or emoji */}
+                    <div className="flex-none relative overflow-hidden rounded-[14px]"
+                      style={{ width: 80, height: 80, background: "rgba(255,255,255,.06)", flexShrink: 0 }}>
+                      {allImgs.length > 0 ? (
+                        <Image src={allImgs[0]} alt={e.nombre} fill className="object-cover"
+                          sizes="80px" />
+                      ) : (
+                        <div className="w-full h-full grid place-items-center text-4xl">{e.emoji}</div>
+                      )}
+                    </div>
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <span className="font-extrabold text-[18px]"
+                          style={{ fontFamily: "var(--font-playfair,'Playfair Display',Georgia,serif)", color: "var(--on-dark)" }}>
+                          {e.nombre}
+                        </span>
+                        <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full shrink-0"
+                          style={{ background: dias <= 2 ? "rgba(217,113,30,.3)" : "rgba(255,255,255,.12)", color: dias <= 2 ? "var(--amber)" : "var(--on-dark-soft)" }}>
+                          {dias === 1 ? "último día" : `${dias} días`}
+                        </span>
+                      </div>
+                      <p className="text-[14px] line-clamp-2" style={{ color: "var(--on-dark-soft)" }}>{e.descripcion}</p>
+                    </div>
+                    {/* CTA */}
+                    {whatsapp && (
+                      <a href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Me interesa el ${e.nombre} del Capricho del Chef 🍪`)}`}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex-none inline-flex items-center gap-2 font-bold text-[14px] px-4 py-2.5 rounded-full text-white no-underline"
+                        style={{ background: "var(--orange)", boxShadow: "0 4px 14px rgba(217,113,30,.4)", whiteSpace: "nowrap" }}>
+                        <BLIcon name="whatsapp" size={16} />
+                        Pedir
+                      </a>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         {noResults ? (
           <div
             className="text-center py-16 flex flex-col items-center gap-3"
