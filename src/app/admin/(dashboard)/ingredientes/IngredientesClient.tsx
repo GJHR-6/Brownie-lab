@@ -31,10 +31,13 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const boundAction = useMemo(() => isEdit ? updateIngrediente.bind(null, inicial.id) : createIngrediente, []);
   const [state, formAction, pending] = useActionState(boundAction, null);
+  const [esTopping, setEsTopping] = useState(inicial?.es_topping ?? false);
+  const [imgPreview, setImgPreview] = useState<string | null>(inicial?.imagen_url ?? null);
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
   return (
-    <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 24 }}>
+    <form action={formAction} encType="multipart/form-data" style={{ display: 'flex', flexDirection: 'column', gap: 18, padding: 24 }}>
+      {isEdit && <input type="hidden" name="imagen_url_existing" value={inicial?.imagen_url ?? ''} />}
       {state && !state.success && (
         <div style={{ background: '#fdf0f0', border: '1px solid #e6c4c8', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 13, color: 'var(--berry)' }}>{state.error}</div>
       )}
@@ -97,6 +100,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
         <div style={{ gridColumn: '1/-1', display: 'flex', gap: 20, alignItems: 'center' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--ink)', cursor: 'pointer' }}>
             <input type="checkbox" name="es_topping" value="true" defaultChecked={inicial?.es_topping ?? false}
+              onChange={e => setEsTopping(e.target.checked)}
               style={{ accentColor: 'var(--orange)', width: 16, height: 16 }} />
             Es topping
           </label>
@@ -106,6 +110,41 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
             Activo / En Personaliza
           </label>
         </div>
+
+        {/* Imagen del topping (solo si es topping) */}
+        {esTopping && (
+          <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+              Imagen del topping
+              <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 400, color: 'var(--ink-soft)' }}>
+                (se usa si no hay arte SVG incorporado)
+              </span>
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              {imgPreview && (
+                <div style={{ position: 'relative', flexShrink: 0 }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={imgPreview} alt="Vista previa" style={{ width: 64, height: 64, objectFit: 'cover', borderRadius: 12, border: '1px solid var(--hairline)' }} />
+                  <button type="button" onClick={() => setImgPreview(null)}
+                    style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--berry)', color: '#fff', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', fontSize: 10 }}>
+                    ×
+                  </button>
+                </div>
+              )}
+              <label style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '14px 16px', border: '1.5px dashed var(--hairline)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 13, color: 'var(--ink-soft)' }}>
+                <Sparkles style={{ width: 18, height: 18, color: 'var(--orange-ink)' }} />
+                <span>{imgPreview ? 'Cambiar imagen' : 'Subir imagen'}</span>
+                <span style={{ fontSize: 11 }}>PNG, JPG, WEBP · máx. 5 MB</span>
+                <input type="file" name="imagen_file" accept="image/png,image/jpeg,image/jpg,image/webp"
+                  className="sr-only"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) setImgPreview(URL.createObjectURL(f));
+                  }} />
+              </label>
+            </div>
+          </div>
+        )}
 
         <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
@@ -126,14 +165,24 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
   );
 }
 
-function IngredienteIcon({ es_topping }: { es_topping: boolean }) {
+function IngredienteIcon({ ingrediente }: { ingrediente: Ingrediente }) {
+  if (ingrediente.es_topping && ingrediente.imagen_url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={ingrediente.imagen_url}
+        alt={ingrediente.nombre}
+        style={{ width: 36, height: 36, borderRadius: 10, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--hairline)' }}
+      />
+    );
+  }
   return (
     <div style={{
       width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-      background: es_topping ? 'rgba(217,113,30,.12)' : 'var(--cream)',
+      background: ingrediente.es_topping ? 'rgba(217,113,30,.12)' : 'var(--cream)',
       color: 'var(--orange-ink)',
     }}>
-      {es_topping
+      {ingrediente.es_topping
         ? <Sparkles style={{ width: 17, height: 17 }} />
         : <FlaskConical style={{ width: 17, height: 17 }} />}
     </div>
@@ -315,7 +364,7 @@ export default function IngredientesClient({ initialIngredientes }: { initialIng
                   {/* Ingrediente */}
                   <td style={T.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <IngredienteIcon es_topping={i.es_topping} />
+                      <IngredienteIcon ingrediente={i} />
                       <div>
                         <p style={{ fontWeight: 600, color: 'var(--ink)', margin: 0, whiteSpace: 'nowrap' }}>{i.nombre}</p>
                         {i.notas && <p style={{ fontSize: 11.5, color: 'var(--ink-soft)', margin: 0 }}>{i.notas}</p>}

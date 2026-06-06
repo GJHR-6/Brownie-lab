@@ -18,7 +18,7 @@ import {
 // ── Types ─────────────────────────────────────────────────────────────────────
 type MainBase = "brownie" | "galleta";
 interface Variant { id: string; name: string; desc: string; price: number; img: string; }
-interface ToppingDef { name: string; price: number; }
+interface ToppingDef { name: string; price: number; imagen_url?: string | null; }
 
 // ── Static data ───────────────────────────────────────────────────────────────
 const BROWNIE_VARIANTS: Variant[] = [
@@ -171,15 +171,24 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
                 {placements.map(({ name, spot }, i) => {
                   const key = `${name}-${spot[0]}-${spot[1]}`;
                   const artFn = toppingArt[name];
-                  if (!artFn) return null;
+                  const delay = idleDelay(`${i}-${name}`);
                   return (
                     <g key={key} transform={`translate(${spot[0]},${spot[1]})`} className="bl-topping">
                       <g className="bl-bump">
-                        <g
-                          className="bl-idle"
-                          style={{ animationDelay: `${idleDelay(`${i}-${name}`).toFixed(2)}s` }}
-                          dangerouslySetInnerHTML={{ __html: artFn() }}
-                        />
+                        {artFn ? (
+                          <g
+                            className="bl-idle"
+                            style={{ animationDelay: `${delay.toFixed(2)}s` }}
+                            dangerouslySetInnerHTML={{ __html: artFn() }}
+                          />
+                        ) : (
+                          /* Generic blob for custom toppings without SVG art */
+                          <g className="bl-idle" style={{ animationDelay: `${delay.toFixed(2)}s` }}>
+                            <ellipse cx="1" cy="13" rx="11" ry="3.2" fill="rgba(0,0,0,.18)" />
+                            <circle cx="0" cy="0" r="11" fill="#d97826" stroke="#9a5310" strokeWidth="1.5" />
+                            <ellipse cx="-3" cy="-4" rx="4" ry="2.5" fill="rgba(255,255,255,.42)" />
+                          </g>
+                        )}
                       </g>
                     </g>
                   );
@@ -327,17 +336,33 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
                     transform: isOn ? "translateY(-1px)" : "none",
                   }}
                 >
-                  {/* Illustrated mini-icon */}
-                  <span
-                    className="flex-none grid place-items-center overflow-hidden"
-                    style={{
-                      width: 44, height: 44, borderRadius: 13,
-                      background: isOn ? "#fff" : "var(--cream)",
-                      boxShadow: isOn ? "inset 0 0 0 1px rgba(217,113,30,.35)" : "inset 0 0 0 1px rgba(0,0,0,.05)",
-                    }}
-                    suppressHydrationWarning
-                    dangerouslySetInnerHTML={{ __html: iconSvg }}
-                  />
+                  {/* Illustrated mini-icon — SVG art, uploaded image, or fallback */}
+                  {iconSvg ? (
+                    <span
+                      className="flex-none grid place-items-center overflow-hidden"
+                      style={{
+                        width: 44, height: 44, borderRadius: 13,
+                        background: isOn ? "#fff" : "var(--cream)",
+                        boxShadow: isOn ? "inset 0 0 0 1px rgba(217,113,30,.35)" : "inset 0 0 0 1px rgba(0,0,0,.05)",
+                      }}
+                      suppressHydrationWarning
+                      dangerouslySetInnerHTML={{ __html: iconSvg }}
+                    />
+                  ) : topping.imagen_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={topping.imagen_url}
+                      alt={topping.name}
+                      style={{ width: 44, height: 44, borderRadius: 13, objectFit: "cover", flexShrink: 0, border: isOn ? "1.5px solid var(--orange)" : "1px solid var(--hairline)" }}
+                    />
+                  ) : (
+                    <span
+                      className="flex-none grid place-items-center"
+                      style={{ width: 44, height: 44, borderRadius: 13, background: isOn ? "#fff" : "var(--cream)", fontSize: 22 }}
+                    >
+                      ✨
+                    </span>
+                  )}
                   <span style={{ flex: 1, minWidth: 0 }}>
                     <span className="block font-semibold text-[15px] leading-tight" style={{ color: "var(--ink)" }}>
                       {topping.name}

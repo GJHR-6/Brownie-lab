@@ -2,8 +2,23 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { Ingrediente } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
+
+async function uploadToppingImage(file: File): Promise<string | null> {
+  try {
+    const service = createSupabaseServiceClient();
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const path = `toppings/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const { error } = await service.storage.from('product-images').upload(path, file, { upsert: true });
+    if (error) return null;
+    const { data: { publicUrl } } = service.storage.from('product-images').getPublicUrl(path);
+    return publicUrl;
+  } catch {
+    return null;
+  }
+}
 
 async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
@@ -43,14 +58,20 @@ export async function createIngrediente(
     const es_topping = formData.get('es_topping') === 'true';
     const activo = formData.get('activo') === 'true';
     const notas = (formData.get('notas') as string).trim() || null;
+    const imgFile = formData.get('imagen_file') as File | null;
 
     if (!nombre || isNaN(tamano_paquete) || tamano_paquete <= 0 || isNaN(costo_paquete) || costo_paquete < 0) {
       return { success: false, error: 'Nombre, tamaño de paquete (> 0) y costo (≥ 0) son requeridos.' };
     }
 
+    let imagen_url: string | null = null;
+    if (es_topping && imgFile && imgFile.size > 0) {
+      imagen_url = await uploadToppingImage(imgFile);
+    }
+
     const { data, error } = await supabase
       .from('ingredientes')
-      .insert({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas })
+      .insert({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas, imagen_url })
       .select()
       .single();
 
@@ -83,14 +104,23 @@ export async function updateIngrediente(
     const es_topping = formData.get('es_topping') === 'true';
     const activo = formData.get('activo') === 'true';
     const notas = (formData.get('notas') as string).trim() || null;
+    const imgFile = formData.get('imagen_file') as File | null;
+    const keepExistingImg = (formData.get('imagen_url_existing') as string) || null;
 
     if (!nombre || isNaN(tamano_paquete) || tamano_paquete <= 0 || isNaN(costo_paquete) || costo_paquete < 0) {
       return { success: false, error: 'Nombre, tamaño de paquete (> 0) y costo (≥ 0) son requeridos.' };
     }
 
+    let imagen_url: string | null = keepExistingImg;
+    if (es_topping && imgFile && imgFile.size > 0) {
+      const uploaded = await uploadToppingImage(imgFile);
+      if (uploaded) imagen_url = uploaded;
+    }
+    if (!es_topping) imagen_url = null;
+
     const { data, error } = await supabase
       .from('ingredientes')
-      .update({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas })
+      .update({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas, imagen_url })
       .eq('id', id)
       .select()
       .single();

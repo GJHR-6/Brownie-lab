@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Producto } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
+import { logActividad } from './actividad';
 
 // ── Auth guard reutilizable ────────────────────────────────────────────────────
 
@@ -139,6 +140,7 @@ export async function createProducto(
     revalidatePath('/admin/inventario');
     revalidatePath('/');
     revalidatePath('/menu');
+    await logActividad('producto', `Producto creado: ${fields.nombre}`, { id: data.id });
     return { success: true, data: normalizeProducto(data) };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -198,6 +200,7 @@ export async function updateProducto(
     revalidatePath(`/admin/inventario/${id}`);
     revalidatePath('/');
     revalidatePath('/menu');
+    await logActividad('producto', `Producto actualizado: ${fields.nombre}`, { id });
     return { success: true, data: normalizeProducto(data) };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -221,6 +224,7 @@ export async function toggleDisponible(
     revalidatePath('/admin/inventario');
     revalidatePath('/');
     revalidatePath('/menu');
+    await logActividad('producto', `Producto ${disponible ? 'activado' : 'desactivado'}`, { id });
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -253,6 +257,7 @@ export async function deleteProducto(id: string): Promise<ActionResult> {
     revalidatePath('/admin/inventario');
     revalidatePath('/');
     revalidatePath('/menu');
+    await logActividad('producto', `Producto eliminado (ID: ${id})`, { id });
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
