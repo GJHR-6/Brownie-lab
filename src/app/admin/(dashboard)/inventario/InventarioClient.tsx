@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Pencil, Search } from 'lucide-react';
 import { toggleDisponible } from '@/actions/productos';
@@ -139,10 +140,9 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
 
                   <td style={T.td}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, overflow: 'hidden', background: 'var(--cream)', display: 'grid', placeItems: 'center', color: 'var(--orange-ink)' }}>
+                      <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, overflow: 'hidden', background: 'var(--cream)', display: 'grid', placeItems: 'center', color: 'var(--orange-ink)', position: 'relative' }}>
                         {p.imagen_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={p.imagen_url} alt={p.nombre} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <Image src={p.imagen_url} alt={p.nombre} fill style={{ objectFit: 'cover' }} sizes="46px" />
                         ) : (
                           <span style={{ fontSize: 20 }}>{p.emoji ?? '🍫'}</span>
                         )}

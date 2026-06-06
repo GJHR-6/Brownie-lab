@@ -4,6 +4,9 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { buscarPedidosPorTelefono, type PedidoTracking } from "@/actions/publico";
 import BLIcon from "@/components/BLIcon";
+import { storeConfig } from "@/config/store";
+
+const ACTIVOS: string[] = ['pendiente', 'preparacion', 'listo'];
 
 const ESTADO_LABEL: Record<string, string> = {
   pendiente:   "Pendiente",
@@ -31,12 +34,13 @@ const ORDEN: Record<string, number> = {
 };
 
 export default function SeguimientoPage() {
-  const [telefono, setTelefono] = useState("");
-  const [pedidos, setPedidos] = useState<PedidoTracking[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [searched, setSearched] = useState(false);
-  const [error, setError] = useState("");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [telefono,    setTelefono]   = useState("");
+  const [pedidos,     setPedidos]    = useState<PedidoTracking[]>([]);
+  const [loading,     setLoading]    = useState(false);
+  const [searched,    setSearched]   = useState(false);
+  const [error,       setError]      = useState("");
+  const [openId,      setOpenId]     = useState<string | null>(null);
+  const [soloActivos, setSoloActivos] = useState(false);
 
   useEffect(() => {
     const phone = new URLSearchParams(window.location.search).get("telefono");
@@ -70,6 +74,9 @@ export default function SeguimientoPage() {
     }
     setLoading(false);
   }
+
+  const pedidosFiltrados = soloActivos ? pedidos.filter(p => ACTIVOS.includes(p.estado)) : pedidos;
+  const activosCount = pedidos.filter(p => ACTIVOS.includes(p.estado)).length;
 
   return (
     <>
@@ -186,11 +193,37 @@ export default function SeguimientoPage() {
 
         {pedidos.length > 0 && (
           <div className="mx-auto" style={{ maxWidth: 720 }}>
-            <p className="mb-3.5 text-[14px] font-semibold" style={{ color: "var(--ink-soft)" }}>
-              {pedidos.length} {pedidos.length === 1 ? "pedido" : "pedidos"} encontrados para {pedidos[0].nombre_cliente}
-            </p>
+            <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
+              <p className="text-[14px] font-semibold" style={{ color: "var(--ink-soft)" }}>
+                {pedidosFiltrados.length} {pedidosFiltrados.length === 1 ? "pedido" : "pedidos"}
+                {soloActivos ? " activos" : ""} para {pedidos[0].nombre_cliente}
+              </p>
+              {pedidos.length > 1 && (
+                <div className="inline-flex" style={{ background: "var(--cream-200)", borderRadius: "var(--r-pill)", padding: 3 }}>
+                  {[
+                    { label: "Todos", value: false },
+                    { label: `Activos${activosCount > 0 ? ` (${activosCount})` : ""}`, value: true },
+                  ].map(opt => (
+                    <button
+                      key={String(opt.value)}
+                      onClick={() => setSoloActivos(opt.value)}
+                      style={{
+                        fontSize: 13, fontWeight: 600, padding: "7px 16px",
+                        borderRadius: "var(--r-pill)", border: "none", cursor: "pointer",
+                        background: soloActivos === opt.value ? "var(--paper-card)" : "none",
+                        color: soloActivos === opt.value ? "var(--ink)" : "var(--ink-soft)",
+                        boxShadow: soloActivos === opt.value ? "var(--shadow-sm)" : "none",
+                        transition: ".15s",
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="flex flex-col gap-4">
-              {pedidos.map((p) => {
+              {pedidosFiltrados.map((p) => {
                 const isOpen = openId === p.id;
                 const estadoStyle = ESTADO_STYLE[p.estado] ?? ESTADO_STYLE.pendiente;
                 const currentIdx = ORDEN[p.estado] ?? 0;
@@ -241,7 +274,7 @@ export default function SeguimientoPage() {
                         </span>
                       </div>
                       <div
-                        className="w-[30px] h-[30px] rounded-full grid place-items-center transition-transform flex-none"
+                        className="w-[44px] h-[44px] rounded-full grid place-items-center transition-transform flex-none"
                         style={{
                           border: "1px solid var(--hairline)",
                           color: "var(--ink-soft)",
@@ -349,7 +382,7 @@ export default function SeguimientoPage() {
                             ¿Preguntas? Escríbenos por WhatsApp.
                           </p>
                           <a
-                            href="https://wa.me/50431534704"
+                            href={`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(`Hola! Tengo una pregunta sobre mi pedido #${p.id.slice(0,8).toUpperCase()} 🍪`)}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 font-bold text-[14px] px-4 py-2 rounded-full text-white no-underline"

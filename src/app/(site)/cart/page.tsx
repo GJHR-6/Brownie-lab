@@ -75,6 +75,12 @@ export default function CartPage() {
   const [savedUser, setSavedUser] = useState<Partial<DatosForm> | null>(null);
 
   useEffect(() => {
+    if (!promoError) return;
+    const t = setTimeout(() => setPromoError(""), 5000);
+    return () => clearTimeout(t);
+  }, [promoError]);
+
+  useEffect(() => {
     setMounted(true);
     getConfiguracionBanco().then(setBanco);
     // Load saved user data from previous order
@@ -285,7 +291,7 @@ export default function CartPage() {
               }}
             >
               <span
-                className="w-[30px] h-[30px] rounded-full grid place-items-center text-[14px] font-bold flex-none"
+                className="w-[44px] h-[44px] rounded-full grid place-items-center text-[14px] font-bold flex-none"
                 style={{
                   background: current
                     ? "var(--orange)"

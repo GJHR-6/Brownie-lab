@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import { useRecentStore } from "@/lib/recentStore";
@@ -14,9 +15,10 @@ export default function ProductCard({ product }: { product: Producto }) {
   const isFav = useWishlistStore((s) => s.has(product.id));
   const addRecent = useRecentStore((s) => s.add);
 
-  const [added, setAdded] = useState(false);
-  const [qty, setQty] = useState(1);
-  const [mounted, setMounted] = useState(false);
+  const [added,    setAdded]    = useState(false);
+  const [notified, setNotified] = useState(false);
+  const [qty,      setQty]      = useState(1);
+  const [mounted,  setMounted]  = useState(false);
   const [imgIndex, setImgIndex] = useState(0);
 
   const allImages = [product.imagen_url, ...(product.imagenes ?? [])].filter(Boolean) as string[];
@@ -58,18 +60,19 @@ export default function ProductCard({ product }: { product: Producto }) {
     >
       {/* Media */}
       <div
-        className="relative"
+        className="relative overflow-hidden"
         style={{
           aspectRatio: "4/3",
           ...(agotado && { filter: "grayscale(0.65)", opacity: 0.82 }),
         }}
       >
         {allImages.length > 0 ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={allImages[imgIndex]}
             alt={product.nombre}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             style={{ transition: 'opacity .2s' }}
           />
         ) : (
@@ -221,17 +224,21 @@ export default function ProductCard({ product }: { product: Producto }) {
         <div className="flex items-center gap-2.5 mt-auto pt-1.5">
           {agotado ? (
             <button
-              disabled
-              className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full cursor-not-allowed border"
+              onClick={() => {
+                const msg = `Hola! Me interesa *${product.nombre}* pero está agotado. ¿Pueden avisarme cuando vuelva a estar disponible? 🍪`;
+                window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+                setNotified(true);
+                setTimeout(() => setNotified(false), 3000);
+              }}
+              className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full border-0 cursor-pointer transition-all"
               style={{
-                background: "var(--paper-card)",
-                color: "var(--ink-soft)",
-                borderColor: "var(--hairline)",
-                opacity: 0.75,
+                background: notified ? "rgba(31,170,85,.1)" : "var(--cream)",
+                color: notified ? "#1a7a40" : "var(--orange-ink)",
+                border: `1.5px solid ${notified ? "rgba(31,170,85,.3)" : "var(--amber)"}`,
               }}
             >
-              <BLIcon name="clock" size={16} />
-              Avísame cuando vuelva
+              <BLIcon name={notified ? "mark" : "whatsapp"} size={16} />
+              {notified ? "¡Mensaje enviado!" : "Avísame cuando vuelva"}
             </button>
           ) : product.disponible ? (
             <>

@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import VentasChart from "@/components/admin/VentasChart";
+import DashboardPeriodTabs from "./DashboardPeriodTabs";
 import { storeConfig } from "@/config/store";
 import type { EstadoPedido, ClienteDatos } from "@/types/database";
 
@@ -81,28 +82,52 @@ function StatCard({ type, value, label }: {
   );
 }
 
-export default async function AdminDashboardPage() {
+const PERIODOS: Record<string, string> = { hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes', todo: 'Todo' };
+
+function getPeriodoStart(periodo: string): string | null {
+  const now = new Date();
+  if (periodo === 'hoy')   return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  if (periodo === 'semana') {
+    const d = new Date(now);
+    d.setDate(d.getDate() - 6);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString();
+  }
+  if (periodo === 'mes') return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+  return null;
+}
+
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ periodo?: string }>;
+}) {
+  const { periodo = 'mes' } = await searchParams;
   const supabase = await createSupabaseServerClient();
 
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+  const periodoStart = getPeriodoStart(periodo);
 
-  const [productosRes, pedidosRes, ventasMesRes] = await Promise.all([
+  let ventasQuery = supabase.from("pedidos").select("total, estado");
+  if (periodoStart) ventasQuery = ventasQuery.gte("created_at", periodoStart);
+
+  const [productosRes, pedidosRes, ventasPeriodoRes] = await Promise.all([
     supabase.from("productos").select("id, nombre, stock, disponible"),
     supabase.from("pedidos").select("id, estado, total, cliente_datos, created_at")
       .order("created_at", { ascending: false }),
-    supabase.from("pedidos").select("total").gte("created_at", startOfMonth),
+    ventasQuery,
   ]);
 
   const productos = productosRes.data ?? [];
   const pedidos = pedidosRes.data ?? [];
-  const ventasMes = ventasMesRes.data ?? [];
+  const ventasPeriodo = ventasPeriodoRes.data ?? [];
 
   const productosActivos = productos.filter((p) => p.disponible).length;
   const stockBajo = productos.filter((p) => p.disponible && p.stock > 0 && p.stock <= 5);
   const agotados  = productos.filter((p) => p.disponible && p.stock === 0);
-  const totalVentasMes = ventasMes.reduce((s, p) => s + Number(p.total), 0);
+  const totalVentasPeriodo = ventasPeriodo.reduce((s, p) => s + Number(p.total), 0);
+  const pedidosPeriodo = ventasPeriodo.length;
 
   const porEstado = (["pendiente", "preparacion", "listo", "completado"] as EstadoPedido[]).reduce(
     (acc, e) => ({ ...acc, [e]: pedidos.filter((p) => p.estado === e).length }),
@@ -220,10 +245,13 @@ export default async function AdminDashboardPage() {
         </div>
       )}
 
+      {/* Period tabs */}
+      <DashboardPeriodTabs periodo={periodo} periodos={PERIODOS} />
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard type="sales"    value={`${storeConfig.currencySymbol}${totalVentasMes.toFixed(2)}`} label="Ventas del mes" />
-        <StatCard type="orders"   value={pedidosActivos}  label="Pedidos activos" />
+        <StatCard type="sales"    value={`${storeConfig.currencySymbol}${totalVentasPeriodo.toFixed(2)}`} label={`Ventas — ${PERIODOS[periodo] ?? 'Este mes'}`} />
+        <StatCard type="orders"   value={pedidosPeriodo}  label={`Pedidos — ${PERIODOS[periodo] ?? 'Este mes'}`} />
         <StatCard type="products" value={productosActivos} label="Productos activos" />
         <StatCard type="today"    value={pedidosHoy}       label="Pedidos hoy" />
       </div>
