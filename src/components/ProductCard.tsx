@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import { useRecentStore } from "@/lib/recentStore";
@@ -14,9 +15,13 @@ export default function ProductCard({ product }: { product: Producto }) {
   const isFav = useWishlistStore((s) => s.has(product.id));
   const addRecent = useRecentStore((s) => s.add);
 
-  const [added, setAdded] = useState(false);
-  const [qty, setQty] = useState(1);
-  const [mounted, setMounted] = useState(false);
+  const [added,    setAdded]    = useState(false);
+  const [notified, setNotified] = useState(false);
+  const [qty,      setQty]      = useState(1);
+  const [mounted,  setMounted]  = useState(false);
+  const [imgIndex, setImgIndex] = useState(0);
+
+  const allImages = [product.imagen_url, ...(product.imagenes ?? [])].filter(Boolean) as string[];
 
   const agotado = product.disponible && product.stock === 0;
 
@@ -55,18 +60,20 @@ export default function ProductCard({ product }: { product: Producto }) {
     >
       {/* Media */}
       <div
-        className="relative"
+        className="relative overflow-hidden"
         style={{
           aspectRatio: "4/3",
           ...(agotado && { filter: "grayscale(0.65)", opacity: 0.82 }),
         }}
       >
-        {product.imagen_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.imagen_url}
+        {allImages.length > 0 ? (
+          <Image
+            src={allImages[imgIndex]}
             alt={product.nombre}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            style={{ transition: 'opacity .2s' }}
           />
         ) : (
           <div
@@ -77,6 +84,21 @@ export default function ProductCard({ product }: { product: Producto }) {
             }}
           >
             {product.emoji ?? "🍪"}
+          </div>
+        )}
+
+        {/* Etiquetas badges */}
+        {product.etiquetas && product.etiquetas.length > 0 && (
+          <div className="absolute bottom-2 left-2 flex flex-wrap gap-1 pointer-events-none">
+            {product.etiquetas.slice(0, 2).map(tag => (
+              <span
+                key={tag}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: "var(--choco-900)", color: "var(--amber)", letterSpacing: ".04em" }}
+              >
+                {tag}
+              </span>
+            ))}
           </div>
         )}
 
@@ -101,6 +123,27 @@ export default function ProductCard({ product }: { product: Producto }) {
               Agotado hoy
             </span>
           </>
+        )}
+
+        {/* Image navigation dots */}
+        {allImages.length > 1 && (
+          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-auto">
+            {allImages.map((_, i) => (
+              <button
+                key={i}
+                onClick={e => { e.stopPropagation(); setImgIndex(i); }}
+                aria-label={`Foto ${i + 1}`}
+                style={{
+                  width: i === imgIndex ? 18 : 7,
+                  height: 7, borderRadius: 4,
+                  background: i === imgIndex ? '#fff' : 'rgba(255,255,255,.55)',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                  transition: 'width .2s, background .2s',
+                  boxShadow: '0 1px 3px rgba(0,0,0,.3)',
+                }}
+              />
+            ))}
+          </div>
         )}
 
         {/* Wishlist button */}
@@ -148,6 +191,29 @@ export default function ProductCard({ product }: { product: Producto }) {
           {product.descripcion}
         </p>
 
+        {/* Tiempo de preparación */}
+        {product.tiempo_preparacion && (
+          <p className="flex items-center gap-1.5 text-[12px] font-medium" style={{ color: "var(--ink-soft)" }}>
+            <BLIcon name="clock" size={13} style={{ flexShrink: 0 } as React.CSSProperties} />
+            {product.tiempo_preparacion}
+          </p>
+        )}
+
+        {/* Alergenos */}
+        {product.alergenos && product.alergenos.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {product.alergenos.map(a => (
+              <span
+                key={a}
+                className="text-[11px] font-medium px-2 py-0.5 rounded-full"
+                style={{ background: "rgba(158,59,70,.08)", color: "var(--berry)", border: "1px solid rgba(158,59,70,.15)" }}
+              >
+                {a}
+              </span>
+            ))}
+          </div>
+        )}
+
         {agotado && (
           <p className="text-[13px] font-medium" style={{ color: "var(--ink-soft)" }}>
             Vuelve mañana.
@@ -158,17 +224,21 @@ export default function ProductCard({ product }: { product: Producto }) {
         <div className="flex items-center gap-2.5 mt-auto pt-1.5">
           {agotado ? (
             <button
-              disabled
-              className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full cursor-not-allowed border"
+              onClick={() => {
+                const msg = `Hola! Me interesa *${product.nombre}* pero está agotado. ¿Pueden avisarme cuando vuelva a estar disponible? 🍪`;
+                window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
+                setNotified(true);
+                setTimeout(() => setNotified(false), 3000);
+              }}
+              className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full border-0 cursor-pointer transition-all"
               style={{
-                background: "var(--paper-card)",
-                color: "var(--ink-soft)",
-                borderColor: "var(--hairline)",
-                opacity: 0.75,
+                background: notified ? "rgba(31,170,85,.1)" : "var(--cream)",
+                color: notified ? "#1a7a40" : "var(--orange-ink)",
+                border: `1.5px solid ${notified ? "rgba(31,170,85,.3)" : "var(--amber)"}`,
               }}
             >
-              <BLIcon name="clock" size={16} />
-              Avísame cuando vuelva
+              <BLIcon name={notified ? "mark" : "whatsapp"} size={16} />
+              {notified ? "¡Mensaje enviado!" : "Avísame cuando vuelva"}
             </button>
           ) : product.disponible ? (
             <>

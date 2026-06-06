@@ -3,7 +3,14 @@ import { storeConfig } from "@/config/store";
 import { getConfiguracion } from "@/lib/data";
 import BLIcon from "@/components/BLIcon";
 
-export const metadata: Metadata = { title: "Nosotros" };
+export const metadata: Metadata = {
+  title: "Nosotros",
+  description: "Somos Brownie Lab, una pequeña repostería artesanal en Honduras. Brownies y galletas hechos a mano con los mejores ingredientes.",
+  openGraph: {
+    title: "Nosotros — Brownie Lab",
+    description: "Conoce la historia detrás de cada brownie. Ingredientes reales, elaboración artesanal, amor genuino por la repostería.",
+  },
+};
 
 const VALORES = [
   {

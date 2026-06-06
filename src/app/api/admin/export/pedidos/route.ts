@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Pedido, PedidoItem, ClienteDatos } from '@/types/database';
+import type { ClienteDatos } from '@/types/database';
 
 export async function GET(): Promise<Response> {
   const supabase = await createSupabaseServerClient();
@@ -8,42 +8,40 @@ export async function GET(): Promise<Response> {
   if (!user) return new Response('No autorizado', { status: 401 });
 
   const { data: adminRecord } = await supabase
-    .from('admin_users')
-    .select('user_id')
-    .eq('user_id', user.id)
-    .single();
-
+    .from('admin_users').select('user_id').eq('user_id', user.id).single();
   if (!adminRecord) return new Response('No autorizado', { status: 403 });
 
   const { data, error } = await supabase
     .from('pedidos')
-    .select('*')
+    .select('*, pedido_items(nombre_producto, precio_unitario, cantidad)')
     .order('created_at', { ascending: false });
 
   if (error) return new Response(error.message, { status: 500 });
 
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
 
-  const headers = ['ID', 'Fecha', 'Cliente', 'Telefono', 'Notas', 'Productos', 'Total HNL', 'Estado'];
+  const headerRow = ['ID', 'Fecha', 'Cliente', 'Teléfono', 'Entrega', 'Método pago', 'Notas', 'Productos', 'Total HNL', 'Estado'];
 
-  const rows = (data as Pedido[]).map((p) => {
-    const cd = p.cliente_datos as ClienteDatos;
-    const items = p.items
-      ? (p.items as PedidoItem[]).map((i) => `${i.cantidad}x ${i.nombre}`).join(' | ')
-      : '';
+  const rows = (data ?? []).map((p) => {
+    const cd = (p.cliente_datos ?? {}) as ClienteDatos;
+    const items = ((p.pedido_items ?? []) as Array<{ nombre_producto: string; cantidad: number }>)
+      .map((i) => `${i.cantidad}x ${i.nombre_producto}`)
+      .join(' | ');
     return [
       p.id.slice(0, 8).toUpperCase(),
       new Date(p.created_at).toLocaleString('es-HN'),
-      cd.nombre,
-      cd.telefono,
+      cd.nombre ?? '',
+      cd.telefono ?? '',
+      cd.tipo_entrega === 'domicilio' ? `Domicilio: ${cd.direccion ?? ''}` : 'Pickup',
+      cd.metodo_pago ?? '',
       cd.notas ?? '',
       items,
       Number(p.total).toFixed(2),
       p.estado,
-    ].map((v) => esc(String(v))).join(',');
+    ].map(esc).join(',');
   });
 
-  const csv = '﻿' + [headers.join(','), ...rows].join('\r\n');
+  const csv = '﻿' + [headerRow.join(','), ...rows].join('\r\n');
   const fecha = new Date().toISOString().slice(0, 10);
 
   return new Response(csv, {

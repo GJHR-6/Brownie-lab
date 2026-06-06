@@ -61,6 +61,7 @@ export default function CartPage() {
   const [promoLoading, setPromoLoading] = useState(false);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [orderError, setOrderError] = useState<string | null>(null);
   const [orderId, setOrderId] = useState<string | null>(null);
   const submittingRef = useRef(false);
   const idempotencyKey = useRef(crypto.randomUUID());
@@ -72,6 +73,12 @@ export default function CartPage() {
     direccion: "", fecha_entrega: "", hora_entrega: "", notas: "", metodo_pago: "",
   });
   const [savedUser, setSavedUser] = useState<Partial<DatosForm> | null>(null);
+
+  useEffect(() => {
+    if (!promoError) return;
+    const t = setTimeout(() => setPromoError(""), 5000);
+    return () => clearTimeout(t);
+  }, [promoError]);
 
   useEffect(() => {
     setMounted(true);
@@ -129,6 +136,7 @@ export default function CartPage() {
     if (submittingRef.current) return;
     submittingRef.current = true;
     setSubmitting(true);
+    setOrderError(null);
     try {
       const pedidoItems = items.map(i => ({
         producto_id: i.id, nombre: i.name, precio: i.price,
@@ -142,17 +150,23 @@ export default function CartPage() {
       };
 
       const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo, idempotencyKey.current);
-      const id = result.success ? result.data?.id : undefined;
+
+      if (!result.success) {
+        setOrderError(result.error ?? 'Error al crear el pedido.');
+        submittingRef.current = false;
+        setSubmitting(false);
+        return;
+      }
+
+      const id = result.data?.id;
       if (id) {
         setOrderId(id);
-        // Fire & forget — no bloquea el checkout si falla
         enviarConfirmacionWhatsApp({
           telefono: datos.telefono,
           nombre: datos.nombre,
           orderId: id,
           seguimientoUrl: `${window.location.origin}/seguimiento`,
         });
-        // Subir comprobante si el cliente adjuntó uno
         if (ssFile) {
           const fd = new FormData();
           fd.append('comprobante', ssFile);
@@ -160,14 +174,10 @@ export default function CartPage() {
         }
       }
 
-      // Persist user data keyed by phone for next visit
       try {
         const toSave: Partial<DatosForm> = {
-          nombre:       datos.nombre,
-          telefono:     datos.telefono,
-          tipo_entrega: datos.tipo_entrega,
-          direccion:    datos.direccion,
-          metodo_pago:  datos.metodo_pago,
+          nombre: datos.nombre, telefono: datos.telefono,
+          tipo_entrega: datos.tipo_entrega, direccion: datos.direccion, metodo_pago: datos.metodo_pago,
         };
         localStorage.setItem("brownielab_last_phone", datos.telefono);
         localStorage.setItem(`brownielab_user_${datos.telefono}`, JSON.stringify(toSave));
@@ -178,6 +188,7 @@ export default function CartPage() {
     } catch {
       submittingRef.current = false;
       setSubmitting(false);
+      setOrderError('Error inesperado. Intenta de nuevo.');
     }
   }
 
@@ -280,7 +291,7 @@ export default function CartPage() {
               }}
             >
               <span
-                className="w-[30px] h-[30px] rounded-full grid place-items-center text-[14px] font-bold flex-none"
+                className="w-[44px] h-[44px] rounded-full grid place-items-center text-[14px] font-bold flex-none"
                 style={{
                   background: current
                     ? "var(--orange)"
@@ -1090,6 +1101,15 @@ export default function CartPage() {
                       onChange={(e) => setSsFile(e.target.files?.[0] ?? null)}
                     />
                   </label>
+                </div>
+              )}
+
+              {orderError && (
+                <div
+                  className="rounded-[14px] px-4 py-3 text-[14px] font-medium"
+                  style={{ background: "rgba(158,59,70,.08)", border: "1px solid rgba(158,59,70,.25)", color: "var(--berry)" }}
+                >
+                  {orderError}
                 </div>
               )}
 

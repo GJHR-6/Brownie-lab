@@ -1,6 +1,25 @@
 import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Producto, Especial, Banner, Configuracion, Categoria } from '@/types/database';
+import type { Producto, Especial, Banner, Configuracion, Categoria, Testimonio } from '@/types/database';
+
+const PRODUCTO_SELECT = '*, categorias!categoria_id(slug, nombre)';
+
+function normalizeProducto(p: Record<string, unknown>): Producto {
+  const cat = p.categorias as { slug?: string } | null;
+  return {
+    ...p,
+    categoria_id:          (p.categoria_id as string) ?? '',
+    categoria:             cat?.slug ?? '',
+    imagenes:              Array.isArray(p.imagenes) ? p.imagenes : [],
+    stock_alerta:          (p.stock_alerta as number) ?? 5,
+    alergenos:             Array.isArray(p.alergenos) ? p.alergenos : [],
+    etiquetas:             Array.isArray(p.etiquetas) ? p.etiquetas : [],
+    tiempo_preparacion:    (p.tiempo_preparacion as string | null) ?? null,
+    sku:                   (p.sku as string | null) ?? null,
+    destacado_capricho:    Boolean(p.destacado_capricho),
+    disponible_personaliza: Boolean(p.disponible_personaliza),
+  } as Producto;
+}
 
 export async function getProductosPublicos(): Promise<Producto[]> {
   const supabase = await createSupabaseServerClient();
@@ -8,17 +27,52 @@ export async function getProductosPublicos(): Promise<Producto[]> {
 
   const { data, error } = await supabase
     .from('productos')
-    .select('*')
+    .select(PRODUCTO_SELECT)
     .eq('disponible', true)
     .or(`disponible_desde.is.null,disponible_desde.lte.${today}`)
     .or(`disponible_hasta.is.null,disponible_hasta.gte.${today}`)
-    .order('categoria')
     .order('nombre');
   if (error) {
     console.error('getProductosPublicos:', error.message);
     return [];
   }
-  return data ?? [];
+  return (data ?? []).map(normalizeProducto);
+}
+
+export async function getProductosDestacados(): Promise<Producto[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select(PRODUCTO_SELECT)
+    .eq('disponible', true)
+    .eq('destacado_capricho', true)
+    .order('nombre');
+  if (error) { console.error('getProductosDestacados:', error.message); return []; }
+  return (data ?? []).map(normalizeProducto);
+}
+
+export async function getTestimoniosAprobados(): Promise<Testimonio[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('testimonios')
+    .select('id, autor, texto, estrellas, created_at')
+    .eq('aprobado', true)
+    .order('created_at', { ascending: false })
+    .limit(6);
+  if (error) { console.error('getTestimoniosAprobados:', error.message); return []; }
+  return (data ?? []) as Testimonio[];
+}
+
+export async function getToppingsDinamicos(): Promise<{ id: string; nombre: string; precio_extra: number }[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('ingredientes')
+    .select('id, nombre, precio_extra')
+    .eq('es_topping', true)
+    .eq('activo', true)
+    .order('nombre');
+  if (error) { console.error('getToppingsDinamicos:', error.message); return []; }
+  return (data ?? []).map(d => ({ id: d.id as string, nombre: d.nombre as string, precio_extra: Number(d.precio_extra ?? 0) }));
 }
 
 export async function getCategoriasPublicas(): Promise<Categoria[]> {

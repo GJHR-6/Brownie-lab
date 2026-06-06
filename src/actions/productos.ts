@@ -18,11 +18,13 @@ async function requireAdmin() {
 
 // ── Queries ────────────────────────────────────────────────────────────────────
 
+const PRODUCTO_SELECT = '*, categorias!categoria_id(slug, nombre)';
+
 export async function getProductos(): Promise<Producto[]> {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('productos')
-    .select('*')
+    .select(PRODUCTO_SELECT)
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
@@ -32,7 +34,7 @@ export async function getProductos(): Promise<Producto[]> {
 export async function getProductoById(id: string): Promise<Producto | null> {
   const supabase = await createSupabaseServerClient();
   const [{ data: p }, { data: ing }] = await Promise.all([
-    supabase.from('productos').select('*').eq('id', id).single(),
+    supabase.from('productos').select(PRODUCTO_SELECT).eq('id', id).single(),
     supabase.from('producto_ingredientes').select('ingrediente_id').eq('producto_id', id),
   ]);
   if (!p) return null;
@@ -40,8 +42,11 @@ export async function getProductoById(id: string): Promise<Producto | null> {
 }
 
 function normalizeProducto(p: Record<string, unknown>): Producto {
+  const cat = p.categorias as { slug?: string; nombre?: string } | null;
   return {
     ...p,
+    categoria_id:          (p.categoria_id as string) ?? '',
+    categoria:             cat?.slug ?? (p.categoria as string) ?? '',
     imagenes:              Array.isArray(p.imagenes) ? p.imagenes : [],
     stock_alerta:          (p.stock_alerta as number) ?? 5,
     alergenos:             Array.isArray(p.alergenos) ? p.alergenos : [],
@@ -70,7 +75,7 @@ function parseProductoFormData(formData: FormData) {
     precio:                 parseFloat(formData.get('precio') as string),
     stock:                  parseInt(formData.get('stock') as string, 10),
     stock_alerta:           parseInt(formData.get('stock_alerta') as string, 10) || 5,
-    categoria:              (formData.get('categoria') as string) || 'clasicas',
+    categoria_id:           (formData.get('categoria_id') as string) || '',
     emoji:                  (formData.get('emoji') as string | null)?.trim() || null,
     tiempo_preparacion:     (formData.get('tiempo_preparacion') as string | null)?.trim() || null,
     sku:                    (formData.get('sku') as string | null)?.trim() || null,
@@ -78,6 +83,7 @@ function parseProductoFormData(formData: FormData) {
     destacado_capricho:     formData.get('destacado_capricho') === 'true',
     disponible_personaliza: formData.get('disponible_personaliza') === 'true',
     etiquetas:              (formData.get('etiquetas') as string | null)?.split(',').filter(Boolean) ?? [],
+    alergenos:              (formData.get('alergenos') as string | null)?.split(',').filter(Boolean) ?? [],
     ingredientes_ids:       (formData.get('ingredientes_ids') as string | null)?.split(',').filter(Boolean) ?? [],
     disponible_desde:       (formData.get('disponible_desde') as string) || null,
     disponible_hasta:       (formData.get('disponible_hasta') as string) || null,
@@ -112,13 +118,14 @@ export async function createProducto(
       .from('productos')
       .insert({
         nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio,
-        stock: fields.stock, stock_alerta: fields.stock_alerta, categoria: fields.categoria,
+        stock: fields.stock, stock_alerta: fields.stock_alerta, categoria_id: fields.categoria_id || undefined,
         emoji: fields.emoji, imagen_url, imagenes, tiempo_preparacion: fields.tiempo_preparacion,
         sku: fields.sku, disponible: fields.disponible, destacado_capricho: fields.destacado_capricho,
         disponible_personaliza: fields.disponible_personaliza, etiquetas: fields.etiquetas,
+        alergenos: fields.alergenos,
         disponible_desde: fields.disponible_desde, disponible_hasta: fields.disponible_hasta,
       })
-      .select()
+      .select(PRODUCTO_SELECT)
       .single();
 
     if (error) return { success: false, error: error.message };
@@ -166,14 +173,15 @@ export async function updateProducto(
       .from('productos')
       .update({
         nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio,
-        stock: fields.stock, stock_alerta: fields.stock_alerta, categoria: fields.categoria,
+        stock: fields.stock, stock_alerta: fields.stock_alerta, categoria_id: fields.categoria_id || undefined,
         emoji: fields.emoji, imagen_url, imagenes, tiempo_preparacion: fields.tiempo_preparacion,
         sku: fields.sku, disponible: fields.disponible, destacado_capricho: fields.destacado_capricho,
         disponible_personaliza: fields.disponible_personaliza, etiquetas: fields.etiquetas,
+        alergenos: fields.alergenos,
         disponible_desde: fields.disponible_desde, disponible_hasta: fields.disponible_hasta,
       })
       .eq('id', id)
-      .select()
+      .select(PRODUCTO_SELECT)
       .single();
 
     if (error) return { success: false, error: error.message };

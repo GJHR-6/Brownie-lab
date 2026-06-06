@@ -7,6 +7,34 @@ import { logActividad } from './actividad';
 import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
 
+type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+async function descontarStockPedido(supabase: SupabaseClient, pedidoId: string) {
+  const { data: pedidoItems } = await supabase
+    .from('pedido_items')
+    .select('producto_id, cantidad')
+    .eq('pedido_id', pedidoId)
+    .not('producto_id', 'is', null);
+
+  if (!pedidoItems?.length) return;
+
+  const productoIds = pedidoItems.map((i: { producto_id: string; cantidad: number }) => i.producto_id);
+  const { data: productos } = await supabase
+    .from('productos')
+    .select('id, stock')
+    .in('id', productoIds);
+
+  const stockMap = new Map((productos ?? []).map((p: { id: string; stock: number }) => [p.id, p.stock]));
+
+  await Promise.all(
+    pedidoItems.map((item: { producto_id: string; cantidad: number }) => {
+      const stockActual = stockMap.get(item.producto_id) ?? 0;
+      const nuevoStock = Math.max(0, stockActual - item.cantidad);
+      return supabase.from('productos').update({ stock: nuevoStock }).eq('id', item.producto_id);
+    })
+  );
+}
+
 async function requireAdmin() {
   const supabase = await createSupabaseServerClient();
   const {
@@ -21,11 +49,25 @@ export async function getPedidos(): Promise<Pedido[]> {
 
   const { data, error } = await supabase
     .from('pedidos')
-    .select('*')
+    .select('*, pedido_items(id, producto_id, nombre_producto, precio_unitario, cantidad, subtotal)')
     .order('created_at', { ascending: false });
 
   if (error) throw new Error(error.message);
-  return (data ?? []) as Pedido[];
+  return (data ?? []).map(normalizePedido);
+}
+
+function normalizePedido(p: Record<string, unknown>): Pedido {
+  const rawItems = (p.pedido_items ?? []) as Array<Record<string, unknown>>;
+  return {
+    ...p,
+    items: rawItems.map(i => ({
+      producto_id: (i.producto_id as string) ?? '',
+      nombre:      (i.nombre_producto as string) ?? '',
+      precio:      Number(i.precio_unitario ?? 0),
+      cantidad:    Number(i.cantidad ?? 0),
+      subtotal:    Number(i.subtotal ?? 0),
+    })),
+  } as Pedido;
 }
 
 export async function actualizarEstadoPedido(
@@ -35,7 +77,7 @@ export async function actualizarEstadoPedido(
   try {
     const { supabase } = await requireAdmin();
 
-    // Fetch cliente_datos before update to register loyalty stamp
+    // Fetch datos necesarios antes del update
     let clienteDatos: { telefono?: string; nombre?: string } | null = null;
     if (estado === 'completado') {
       const { data } = await supabase
@@ -53,12 +95,21 @@ export async function actualizarEstadoPedido(
 
     if (error) return { success: false, error: error.message };
 
-    // Registrar sello de fidelización — fallo no bloquea la actualización del pedido
-    if (estado === 'completado' && clienteDatos?.telefono) {
+    if (estado === 'completado') {
+      // Descontar stock de cada producto del pedido
       try {
-        await registrarCompra(clienteDatos.telefono, clienteDatos.nombre);
+        await descontarStockPedido(supabase, id);
       } catch (err) {
-        console.error('[Fidelización] Error registrando compra:', err);
+        console.error('[Stock] Error descontando stock:', err);
+      }
+
+      // Registrar sello de fidelización
+      if (clienteDatos?.telefono) {
+        try {
+          await registrarCompra(clienteDatos.telefono, clienteDatos.nombre);
+        } catch (err) {
+          console.error('[Fidelización] Error registrando compra:', err);
+        }
       }
     }
 
@@ -85,17 +136,18 @@ export async function marcarPedidosCompletados(ids: string[]): Promise<ActionRes
     const { error } = await supabase.from('pedidos').update({ estado: 'completado' }).in('id', ids);
     if (error) return { success: false, error: error.message };
 
-    // Register loyalty stamp for each newly completed order
-    for (const pedido of pedidos ?? []) {
-      const cd = pedido.cliente_datos as { telefono?: string; nombre?: string } | null;
-      if (cd?.telefono) {
-        try {
-          await registrarCompra(cd.telefono, cd.nombre);
-        } catch (err) {
-          console.error('[Fidelización] Error registrando compra:', err);
+    // Descontar stock + registrar fidelización para cada pedido completado
+    await Promise.all(
+      (pedidos ?? []).map(async (pedido) => {
+        try { await descontarStockPedido(supabase, pedido.id); }
+        catch (err) { console.error('[Stock] Error:', err); }
+        const cd = pedido.cliente_datos as { telefono?: string; nombre?: string } | null;
+        if (cd?.telefono) {
+          try { await registrarCompra(cd.telefono, cd.nombre); }
+          catch (err) { console.error('[Fidelización] Error:', err); }
         }
-      }
-    }
+      })
+    );
 
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');

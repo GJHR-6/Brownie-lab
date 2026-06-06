@@ -141,6 +141,27 @@ export async function crearPedidoPublico(
   try {
     const supabase = await createSupabaseServerClient();
 
+    // Validar stock antes de crear el pedido
+    const itemsConProducto = items.filter(i => i.producto_id);
+    if (itemsConProducto.length > 0) {
+      const { data: stocks } = await supabase
+        .from('productos')
+        .select('id, nombre, stock')
+        .in('id', itemsConProducto.map(i => i.producto_id));
+
+      const stockMap = new Map((stocks ?? []).map((p: { id: string; nombre: string; stock: number }) => [p.id, p]));
+      for (const item of itemsConProducto) {
+        const prod = stockMap.get(item.producto_id);
+        if (!prod) continue;
+        if (prod.stock < item.cantidad) {
+          return {
+            success: false,
+            error: `Stock insuficiente para "${item.nombre}". Disponible: ${prod.stock}, solicitado: ${item.cantidad}.`,
+          };
+        }
+      }
+    }
+
     const nota_promo = promo
       ? `Descuento ${sanitizePromoCode(promo.codigo)} (${promo.descuento_porcentaje}%)`
       : undefined;
@@ -149,7 +170,15 @@ export async function crearPedidoPublico(
       ? { ...sanitizedDatos, notas: [sanitizedDatos.notas, nota_promo].filter(Boolean).join(' | ') }
       : sanitizedDatos;
 
-    const row: Record<string, unknown> = { cliente_datos: datos, items, total, estado: 'pendiente' };
+    // Upsert cliente para FK
+    await supabase.from('clientes').upsert(
+      { telefono, nombre },
+      { onConflict: 'telefono', ignoreDuplicates: false }
+    );
+
+    const row: Record<string, unknown> = {
+      cliente_datos: datos, total, estado: 'pendiente', telefono_cliente: telefono,
+    };
     if (idempotencyKey) row.idempotency_key = idempotencyKey;
 
     const { data, error } = await supabase
@@ -169,6 +198,18 @@ export async function crearPedidoPublico(
     }
 
     if (error) return { success: false, error: error.message };
+
+    // Insert items en tabla relacional
+    await supabase.from('pedido_items').insert(
+      items.map(item => ({
+        pedido_id:       data.id,
+        producto_id:     item.producto_id || null,
+        nombre_producto: item.nombre,
+        precio_unitario: item.precio,
+        cantidad:        item.cantidad,
+      }))
+    );
+
     return { success: true, data: { id: data.id } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
