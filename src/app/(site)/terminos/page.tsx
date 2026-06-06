@@ -114,8 +114,8 @@ export default function TerminosPage() {
                   previo aviso.
                 </li>
                 <li>
-                  El pago se realiza según el método acordado al confirmar el pedido (efectivo,
-                  transferencia o Tigo Money).
+                  El pago se realiza según el método acordado al confirmar el pedido (efectivo
+                  o transferencia bancaria).
                 </li>
                 <li>
                   En caso de transferencia, el pedido se procesa al recibir el comprobante de

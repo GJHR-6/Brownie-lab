@@ -23,8 +23,8 @@ const COLUMNAS: Columna[] = [
 ];
 
 function agrupar(pedidos: Pedido[]): Record<EstadoPedido, Pedido[]> {
-  const base: Record<EstadoPedido, Pedido[]> = { pendiente: [], preparacion: [], listo: [], completado: [] };
-  for (const p of pedidos) base[p.estado].push(p);
+  const base: Record<EstadoPedido, Pedido[]> = { pendiente: [], preparacion: [], listo: [], completado: [], cancelado: [] };
+  for (const p of pedidos) { if (p.estado in base) base[p.estado].push(p); }
   return base;
 }
 
@@ -109,6 +109,16 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
   const total = initialPedidos.length;
   const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
+  const handleCancel = useCallback(async (pedidoId: string) => {
+    if (!confirm('¿Cancelar este pedido? Quedará marcado como cancelado y desaparecerá del tablero.')) return;
+    const srcCol = (Object.keys(columns) as EstadoPedido[]).find(k => columns[k].some(p => p.id === pedidoId));
+    if (!srcCol) return;
+    setColumns(prev => ({ ...prev, [srcCol]: prev[srcCol].filter(p => p.id !== pedidoId) }));
+    setErrorMsg(null);
+    const res = await actualizarEstadoPedido(pedidoId, 'cancelado');
+    if (!res.success) { setErrorMsg(`Error al cancelar: ${res.error}`); router.refresh(); }
+  }, [columns, router]);
+
   async function handleBulkComplete() {
     if (!selectedIds.size) return;
     if (!confirm(`¿Marcar ${selectedIds.size} pedido(s) como completado?`)) return;
@@ -121,7 +131,8 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
     ? initialPedidos.filter(p => { const cd = p.cliente_datos as ClienteDatos; const q = search.toLowerCase(); return cd.nombre.toLowerCase().includes(q) || cd.telefono.includes(q); })
     : [];
 
-  const chipStyle = (col: Columna) => ({ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 'var(--r-pill)', background: col.chip, color: col.dot });
+  const CANCELADO_COL = { label: 'Cancelado', chip: '#fce8ea', dot: '#9e3b46' };
+  const chipStyle = (col: Columna | typeof CANCELADO_COL) => ({ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 'var(--r-pill)', background: col.chip, color: col.dot });
 
   return (
     <div className="px-6 md:px-10 py-8 pb-16" style={{ height: '100%', display: 'flex', flexDirection: 'column', maxWidth: 1500 }}>
@@ -218,7 +229,7 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
               {searchResults.map(p => {
                 const cd = p.cliente_datos as ClienteDatos;
                 const checked = selectedIds.has(p.id);
-                const col = COLUMNAS.find(c => c.estado === p.estado)!;
+                const col = COLUMNAS.find(c => c.estado === p.estado) ?? CANCELADO_COL;
                 return (
                   <div key={p.id} onClick={() => toggleSelect(p.id)}
                     style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 'var(--r-md)', border: `1.5px solid ${checked ? 'var(--orange)' : 'var(--hairline)'}`, background: checked ? 'var(--cream)' : 'var(--paper-card)', cursor: 'pointer', transition: '.12s' }}>
@@ -270,7 +281,7 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
                             <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}
                               className="group relative"
                               style={{ transition: snapshot.isDragging ? 'none' : 'box-shadow .15s', transform: snapshot.isDragging ? 'rotate(1deg)' : undefined, ...provided.draggableProps.style }}>
-                              <PedidoCard pedido={pedido} />
+                              <PedidoCard pedido={pedido} onCancel={() => handleCancel(pedido.id)} />
                               {/* Action buttons on hover */}
                               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                 style={{ pointerEvents: 'none' }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.pointerEvents = 'auto'; }}>

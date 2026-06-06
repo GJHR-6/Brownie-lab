@@ -47,12 +47,19 @@ export async function validarPromocion(
 
 // ── Seguimiento de pedido por teléfono ───────────────────────────────────────
 
+export interface PedidoTrackingItem {
+  nombre: string;
+  cantidad: number;
+  subtotal: number;
+}
+
 export interface PedidoTracking {
   id: string;
   estado: EstadoPedido;
   total: number;
   created_at: string;
   nombre_cliente: string;
+  items: PedidoTrackingItem[];
 }
 
 export async function buscarPedidosPorTelefono(
@@ -139,7 +146,7 @@ export async function crearPedidoPublico(
   };
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabaseServiceClient();
 
     // Validar stock antes de crear el pedido
     const itemsConProducto = items.filter(i => i.producto_id);

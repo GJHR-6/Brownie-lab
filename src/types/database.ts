@@ -1,4 +1,4 @@
-export type EstadoPedido = 'pendiente' | 'preparacion' | 'listo' | 'completado';
+export type EstadoPedido = 'pendiente' | 'preparacion' | 'listo' | 'completado' | 'cancelado';
 
 export interface Producto {
   id: string;

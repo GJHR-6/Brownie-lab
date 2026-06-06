@@ -10,6 +10,7 @@ const ESTADO_CONFIG: Record<EstadoPedido, { label: string; fill: string; chip: s
   preparacion: { label: "Preparación", fill: "#3b82f6",         chip: "#dbeafe", dot: "#1d5fb8"  },
   listo:       { label: "Listo",       fill: "var(--green)",    chip: "#d8f0e2", dot: "#157a4d"  },
   completado:  { label: "Completado",  fill: "var(--choco-700)",chip: "#e4ded3", dot: "#6b5743"  },
+  cancelado:   { label: "Cancelado",   fill: "var(--berry)",    chip: "#fce8ea", dot: "#9e3b46"  },
 };
 
 const STAT_ICONS = {
