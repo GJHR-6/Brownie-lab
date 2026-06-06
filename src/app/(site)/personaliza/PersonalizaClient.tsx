@@ -20,6 +20,8 @@ type MainBase = "brownie" | "galleta";
 interface Variant { id: string; name: string; desc: string; price: number; img: string; }
 interface ToppingDef { name: string; price: number; imagen_url?: string | null; }
 
+const MAX_TOPPINGS = 5;
+
 // ── Static data ───────────────────────────────────────────────────────────────
 const BROWNIE_VARIANTS: Variant[] = [
   { id: "clasico",  name: "Clásico",  desc: "Denso y húmedo",     price: 40, img: "/art/brownie-clasico.svg" },
@@ -60,7 +62,13 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
     else setGalletaVariantIdx(i);
   }
   function toggleTopping(name: string) {
-    setSelected(prev => { const n = new Set(prev); n.has(name) ? n.delete(name) : n.add(name); return n; });
+    setSelected(prev => {
+      const n = new Set(prev);
+      if (n.has(name)) { n.delete(name); return n; }
+      if (n.size >= MAX_TOPPINGS) return prev;
+      n.add(name);
+      return n;
+    });
   }
 
   const selectedNames = useMemo(
@@ -99,8 +107,13 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
   function handleAddToCart() {
     const id = `custom-${base}-${Date.now()}`;
     const emoji = base === "brownie" ? "🍫" : "🍪";
+    const sym = storeConfig.currencySymbol;
+    const detalle = [
+      `${activeVariant.name} ${sym}${activeVariant.price}`,
+      ...TOPPINGS.filter(t => selected.has(t.name)).map(t => `${t.name} +${sym}${t.price}`),
+    ].join(" · ");
     for (let i = 0; i < qty; i++)
-      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji });
+      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji, detalle });
     router.push("/cart");
   }
 
@@ -311,11 +324,21 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
           </div>
 
           {/* Toppings */}
-          <h2 className="font-bold mb-1.5" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(22px,2.6vw,28px)", color: "var(--ink)" }}>
-            Elige tus toppings
-          </h2>
+          <div className="flex items-baseline justify-between gap-3 mb-1.5">
+            <h2 className="font-bold" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(22px,2.6vw,28px)", color: "var(--ink)" }}>
+              Elige tus toppings
+            </h2>
+            <span
+              className="text-[13px] font-semibold shrink-0"
+              style={{ color: selected.size >= MAX_TOPPINGS ? "var(--berry)" : "var(--ink-soft)" }}
+            >
+              {selected.size}/{MAX_TOPPINGS}
+            </span>
+          </div>
           <p className="mb-5 text-[15px]" style={{ color: "var(--ink-soft)" }}>
-            Toca cada uno para agregarlo o quitarlo de tu postre.
+            {selected.size >= MAX_TOPPINGS
+              ? "Llegaste al máximo. Quitá uno para cambiar."
+              : "Toca cada uno para agregarlo o quitarlo de tu postre."}
           </p>
 
           <div className="bl-toppings-grid grid gap-3">

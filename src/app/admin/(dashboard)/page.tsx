@@ -110,7 +110,7 @@ export default async function AdminDashboardPage({
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const periodoStart = getPeriodoStart(periodo);
 
-  let ventasQuery = supabase.from("pedidos").select("total, estado");
+  let ventasQuery = supabase.from("pedidos").select("total, estado").neq("estado", "cancelado");
   if (periodoStart) ventasQuery = ventasQuery.gte("created_at", periodoStart);
 
   const [productosRes, pedidosRes, ventasPeriodoRes] = await Promise.all([
@@ -140,7 +140,7 @@ export default async function AdminDashboardPage({
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   const dailyMap: Record<string, number> = {};
-  pedidos.forEach((p) => {
+  pedidos.filter(p => p.estado !== 'cancelado').forEach((p) => {
     const d = new Date(p.created_at);
     if (d >= thirtyDaysAgo) {
       const key = d.toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit" });
@@ -153,7 +153,7 @@ export default async function AdminDashboardPage({
     const fecha = d.toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit" });
     return { fecha, total: dailyMap[fecha] ?? 0 };
   });
-  const pedidosHoy = pedidos.filter((p) => p.created_at >= startOfToday).length;
+  const pedidosHoy = pedidos.filter((p) => p.created_at >= startOfToday && p.estado !== 'cancelado').length;
   const ultimosPedidos = pedidos.slice(0, 6);
 
   const alertIcon = (

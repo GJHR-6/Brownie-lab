@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import { useRecentStore } from "@/lib/recentStore";
@@ -66,6 +67,12 @@ export default function ProductCard({ product }: { product: Producto }) {
           ...(agotado && { filter: "grayscale(0.65)", opacity: 0.82 }),
         }}
       >
+        <Link
+          href={`/menu/${product.id}`}
+          className="absolute inset-0 z-0"
+          aria-label={`Ver detalle de ${product.nombre}`}
+          tabIndex={-1}
+        />
         {allImages.length > 0 ? (
           <Image
             src={allImages[imgIndex]}
@@ -169,8 +176,9 @@ export default function ProductCard({ product }: { product: Producto }) {
         style={{ padding: "18px 20px 20px" }}
       >
         <div className="flex justify-between items-baseline gap-3">
-          <h3
-            className="font-bold"
+          <Link
+            href={`/menu/${product.id}`}
+            className="no-underline font-bold"
             style={{
               fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
               fontSize: 21,
@@ -178,7 +186,7 @@ export default function ProductCard({ product }: { product: Producto }) {
             }}
           >
             {product.nombre}
-          </h3>
+          </Link>
           <span
             className="font-bold text-[18px] whitespace-nowrap"
             style={{ color: "var(--orange-ink)" }}

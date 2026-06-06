@@ -324,7 +324,7 @@ export default function LoyaltySection({ onClienteFound }: { onClienteFound?: (s
   function handleReset() {
     setEstado({ tipo: 'idle' });
     setTelefono('');
-    onClienteFound?.(4);
+    onClienteFound?.(0);
   }
 
   return (

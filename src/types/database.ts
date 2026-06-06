@@ -129,6 +129,7 @@ export interface Especial {
   descripcion: string;
   emoji: string;
   imagen_url: string | null;
+  imagenes: string[];
   fecha_inicio: string;
   duracion_dias: number;
   activo: boolean;

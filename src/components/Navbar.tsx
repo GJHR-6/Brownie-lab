@@ -4,11 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useCartStore } from "@/lib/cartStore";
+import { useWishlistStore } from "@/lib/wishlistStore";
 import BLIcon from "@/components/BLIcon";
 
 export default function Navbar() {
   const pathname = usePathname();
-  const itemCount = useCartStore((s) => s.itemCount());
+  const itemCount      = useCartStore((s) => s.itemCount());
+  const wishlistCount  = useWishlistStore((s) => s.count());
   const [mounted, setMounted] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -81,6 +83,25 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2.5">
+          {/* Favoritos */}
+          <Link
+            href="/favoritos"
+            aria-label="Mis favoritos"
+            title="Mis favoritos"
+            className="relative hidden sm:grid w-10 h-10 rounded-full place-items-center border transition-colors no-underline"
+            style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)", background: "none" }}
+          >
+            <BLIcon name="heart" size={19} />
+            {mounted && wishlistCount > 0 && (
+              <span
+                className="absolute -top-[3px] -right-[3px] text-[10px] font-bold w-[17px] h-[17px] rounded-full grid place-items-center text-white"
+                style={{ background: "var(--berry)" }}
+              >
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+
           {/* Seguimiento */}
           <Link
             href="/seguimiento"
