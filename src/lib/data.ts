@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import type { Producto, Especial, Banner, Configuracion, Categoria, Testimonio } from '@/types/database';
+import type { Producto, Especial, Banner, Configuracion, Categoria, Testimonio, PersonalizaVariante } from '@/types/database';
 
 const PRODUCTO_SELECT = '*, categorias!categoria_id(slug, nombre)';
 
@@ -80,6 +80,35 @@ export async function getTestimoniosAprobados(): Promise<Testimonio[]> {
     .limit(6);
   if (error) { console.error('getTestimoniosAprobados:', error.message); return []; }
   return (data ?? []) as Testimonio[];
+}
+
+function normalizeVariante(v: Record<string, unknown>): PersonalizaVariante {
+  return {
+    id:          v.id as string,
+    base:        v.base as 'brownie' | 'galleta',
+    slug:        v.slug as string,
+    nombre:      v.nombre as string,
+    descripcion: (v.descripcion as string) ?? '',
+    precio:      Number(v.precio ?? 0),
+    imagen_url:  (v.imagen_url as string) ?? '',
+    proximamente: Boolean(v.proximamente),
+    activo:      Boolean(v.activo),
+    orden:       Number(v.orden ?? 0),
+    created_at:  v.created_at as string,
+    updated_at:  v.updated_at as string,
+  };
+}
+
+export async function getPersonalizaVariantes(): Promise<PersonalizaVariante[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('personaliza_variantes')
+    .select('*')
+    .eq('activo', true)
+    .order('base')
+    .order('orden');
+  if (error) { console.error('getPersonalizaVariantes:', error.message); return []; }
+  return (data ?? []).map(normalizeVariante);
 }
 
 export async function getToppingsDinamicos(): Promise<{ id: string; nombre: string; precio_extra: number; imagen_url: string | null }[]> {

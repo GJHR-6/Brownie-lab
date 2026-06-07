@@ -2,7 +2,7 @@ export type BLIconName =
   | "mark" | "brownie" | "cart" | "search" | "nav-menu" | "close"
   | "arrow-right" | "plus" | "minus" | "heart" | "star" | "clock"
   | "sparkle" | "leaf" | "truck" | "pin" | "instagram" | "facebook"
-  | "whatsapp" | "share";
+  | "whatsapp" | "tiktok" | "share";
 
 interface BLIconProps extends React.SVGProps<SVGSVGElement> {
   name: BLIconName;
@@ -108,6 +108,13 @@ const paths: Record<BLIconName, React.ReactNode> = {
       />
     </>
   ),
+  tiktok: (
+    <path
+      fill="currentColor"
+      stroke="none"
+      d="M19.5 8.2a5.5 5.5 0 0 1-3.5-1.2v7.5a5.5 5.5 0 1 1-4-5.3v3.1a2.5 2.5 0 1 0 1.7 2.4V3h3.1a5.5 5.5 0 0 0 2.7 5.2z"
+    />
+  ),
   share: (
     <>
       <circle cx={6} cy={12} r={2.4} />
@@ -138,6 +145,7 @@ const meta: Record<BLIconName, { vb: string; sw: number }> = {
   instagram:   { vb: "0 0 24 24", sw: 1.8 },
   facebook:    { vb: "0 0 24 24", sw: 0 },
   whatsapp:    { vb: "0 0 24 24", sw: 1.8 },
+  tiktok:      { vb: "0 0 24 24", sw: 0 },
   share:       { vb: "0 0 24 24", sw: 1.8 },
 };
 

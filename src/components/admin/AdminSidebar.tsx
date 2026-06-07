@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/admin",                 label: "Dashboard",     icon: "ic-dashboard", exact: true  },
   { href: "/admin/inventario",      label: "Inventario",    icon: "ic-box",        exact: false },
   { href: "/admin/ingredientes",    label: "Ingredientes",  icon: "ic-flask",      exact: false },
+  { href: "/admin/personaliza",     label: "Personaliza",   icon: "ic-sliders",    exact: false },
   { href: "/admin/categorias",      label: "Categorías",    icon: "ic-tag",        exact: false },
   { href: "/admin/galeria",         label: "Galería",       icon: "ic-image",      exact: false },
   { href: "/admin/especiales",      label: "Especiales",    icon: "ic-sparkle",    exact: false },
@@ -42,6 +43,7 @@ function NavIcon({ id }: { id: string }) {
     case "ic-gear":      return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9 5.3 5.3"/></svg>;
     case "ic-loyalty":   return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><circle cx="12" cy="8.5" r="3.5"/><path d="M12 13.5V16M9.5 20.5h5M5.5 20.5l1.8-4h9.4l1.8 4"/></svg>;
     case "ic-bell":      return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><path d="M5.5 10.5a6.5 6.5 0 0 1 13 0V15l1.5 1.5H4L5.5 15v-4.5z"/><path d="M10 16.5a2 2 0 0 0 4 0"/></svg>;
+    case "ic-sliders":   return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><path d="M4 6h16M4 12h10M4 18h13"/><circle cx="16" cy="6" r="2.2" fill="currentColor" stroke="none"/><circle cx="11" cy="12" r="2.2" fill="currentColor" stroke="none"/><circle cx="15" cy="18" r="2.2" fill="currentColor" stroke="none"/></svg>;
     default: return null;
   }
 }

@@ -277,24 +277,24 @@ export default async function NosotrosPage() {
                 desc="Escríbenos para hacer pedidos o preguntas"
               />
             )}
-            {instagram && (
-              <ChannelLink
-                href={instagram}
-                iconBg="linear-gradient(135deg, #b8336a, #e08a3c)"
-                icon="instagram"
-                title="Instagram"
-                desc="Síguenos para ver nuestras creaciones del día"
-              />
-            )}
-            {facebook && (
-              <ChannelLink
-                href={facebook}
-                iconBg="#2566c4"
-                icon="facebook"
-                title="Facebook"
-                desc="Únete a nuestra comunidad"
-              />
-            )}
+            <ChannelComingSoon
+              iconBg="linear-gradient(135deg, #b8336a, #e08a3c)"
+              icon="instagram"
+              title="Instagram"
+              desc="Próximamente — estamos preparando nuestro perfil"
+            />
+            <ChannelComingSoon
+              iconBg="#2566c4"
+              icon="facebook"
+              title="Facebook"
+              desc="Próximamente — estamos preparando nuestra página"
+            />
+            <ChannelComingSoon
+              iconBg="#010101"
+              icon="tiktok"
+              title="TikTok"
+              desc="Próximamente — nuestros videos están en camino"
+            />
           </div>
 
           <div
@@ -319,7 +319,7 @@ function ChannelLink({
 }: {
   href: string;
   iconBg: string;
-  icon: "whatsapp" | "instagram" | "facebook";
+  icon: "whatsapp" | "instagram" | "facebook" | "tiktok";
   title: string;
   desc: string;
 }) {
@@ -353,5 +353,51 @@ function ChannelLink({
       </span>
       <BLIcon name="arrow-right" size={20} style={{ color: "var(--ink-soft)" } as React.CSSProperties} />
     </a>
+  );
+}
+
+function ChannelComingSoon({
+  iconBg,
+  icon,
+  title,
+  desc,
+}: {
+  iconBg: string;
+  icon: "instagram" | "facebook" | "tiktok";
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div
+      className="flex items-center gap-4 rounded-[16px] p-5"
+      style={{
+        background: "var(--paper-card)",
+        border: "1px solid var(--hairline)",
+        opacity: 0.55,
+        cursor: "not-allowed",
+      }}
+    >
+      <span
+        className="w-12 h-12 rounded-[12px] grid place-items-center flex-none text-white"
+        style={{ background: iconBg, filter: "grayscale(0.4)" }}
+      >
+        <BLIcon name={icon} size={24} />
+      </span>
+      <span className="flex-1">
+        <strong
+          className="block text-[19px]"
+          style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", color: "var(--ink)" }}
+        >
+          {title}
+        </strong>
+        <span className="text-[14px]" style={{ color: "var(--ink-soft)" }}>{desc}</span>
+      </span>
+      <span
+        className="text-[11px] font-bold tracking-[0.12em] uppercase px-2.5 py-1 rounded-full"
+        style={{ background: "var(--cream)", color: "var(--ink-soft)" }}
+      >
+        Próximamente
+      </span>
+    </div>
   );
 }
