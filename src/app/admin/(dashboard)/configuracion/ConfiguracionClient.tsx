@@ -196,6 +196,19 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
               </Field>
             </FCard>
 
+            {/* Datos bancarios */}
+            <FCard title="Datos bancarios" sub="Información de transferencia que ve el cliente al pagar.">
+              <Field label="Nombre del banco">
+                <Inp name="banco_nombre" defaultValue={config.banco_nombre} placeholder="Banco Atlántida" disabled={isPending} />
+              </Field>
+              <Field label="Nombre del titular">
+                <Inp name="banco_titular" defaultValue={config.banco_titular} placeholder="María López" disabled={isPending} />
+              </Field>
+              <Field label="Número de cuenta">
+                <Inp name="banco_numero" defaultValue={config.banco_numero} placeholder="0123-4567-8901" disabled={isPending} />
+              </Field>
+            </FCard>
+
             {/* Logo y marca */}
             <FCard title="Logo y marca" sub="Imagen que aparece en el encabezado.">
               <ImageUploadTile
