@@ -288,10 +288,10 @@ export default function ProductoDetailClient({
               También te puede interesar
             </h2>
             <div
-              className="grid gap-6"
-              style={{ gridTemplateColumns: `repeat(${Math.min(similares.length, 4)}, 1fr)` }}
+              className="grid gap-6 bl-grid-3col"
+              style={{ gridTemplateColumns: `repeat(${Math.min(similares.length, 3)}, 1fr)` }}
             >
-              {similares.map((p) => (
+              {similares.slice(0, 3).map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>

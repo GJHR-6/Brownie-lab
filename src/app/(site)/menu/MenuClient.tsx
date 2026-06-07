@@ -178,7 +178,7 @@ export default function MenuClient({
                 const allImgs = [e.imagen_url, ...(Array.isArray(e.imagenes) ? e.imagenes : [])].filter(Boolean) as string[];
                 return (
                   <div key={e.id}
-                    className="flex items-center gap-5 rounded-[20px] overflow-hidden"
+                    className="flex items-center gap-4 rounded-[20px] overflow-hidden"
                     style={{ background: "var(--choco-900)", color: "var(--on-dark)", padding: "clamp(16px,2vw,24px)" }}
                   >
                     {/* Image or emoji */}

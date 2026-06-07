@@ -292,10 +292,10 @@ export default function CartPage() {
               Viste recientemente
             </p>
             <div
-              className="grid gap-6"
-              style={{ gridTemplateColumns: `repeat(${Math.min(recentProducts.length, 4)}, 1fr)` }}
+              className="grid gap-6 bl-grid-3col"
+              style={{ gridTemplateColumns: `repeat(${Math.min(recentProducts.length, 3)}, 1fr)` }}
             >
-              {recentProducts.slice(0, 4).map((p) => (
+              {recentProducts.slice(0, 3).map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>

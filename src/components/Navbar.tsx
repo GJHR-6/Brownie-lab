@@ -213,6 +213,32 @@ export default function Navbar() {
               </Link>
             );
           })}
+          <div style={{ borderTop: "1px solid var(--hairline-dark)", margin: "6px 0 2px" }} />
+          <Link
+            href="/favoritos"
+            onClick={() => setMenuOpen(false)}
+            className="inline-flex items-center gap-1.5 py-2.5 text-[15px] font-medium no-underline transition-colors"
+            style={{ color: pathname.startsWith("/favoritos") ? "var(--amber)" : "var(--on-dark-soft)" }}
+          >
+            <BLIcon name="heart" size={14} />
+            Mis favoritos
+            {mounted && wishlistCount > 0 && (
+              <span
+                className="text-[10px] font-bold w-[16px] h-[16px] rounded-full grid place-items-center text-white"
+                style={{ background: "var(--berry)" }}
+              >
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+          <button
+            onClick={() => { setMenuOpen(false); setSearchOpen(true); }}
+            className="inline-flex items-center gap-1.5 py-2.5 text-[15px] font-medium transition-colors border-0 bg-transparent cursor-pointer"
+            style={{ color: "var(--on-dark-soft)" }}
+          >
+            <BLIcon name="search" size={14} />
+            Buscar
+          </button>
         </div>
       )}
       {/* Search overlay */}
