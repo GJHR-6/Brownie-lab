@@ -46,30 +46,33 @@ export default async function Footer() {
             con los mejores ingredientes. Horneado con amor, cada galleta cuenta.
           </p>
           <div className="flex gap-2.5 mt-5">
-            {instagram && (
-              <a
-                href={instagram}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Instagram"
-                className="w-[42px] h-[42px] rounded-full grid place-items-center border transition-colors no-underline"
-                style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)" }}
-              >
-                <BLIcon name="instagram" size={20} />
-              </a>
-            )}
-            {facebook && (
-              <a
-                href={facebook}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Facebook"
-                className="w-[42px] h-[42px] rounded-full grid place-items-center border transition-colors no-underline"
-                style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)" }}
-              >
-                <BLIcon name="facebook" size={20} />
-              </a>
-            )}
+            {/* Instagram — próximamente */}
+            <span
+              aria-label="Instagram — próximamente"
+              title="Instagram — próximamente"
+              className="w-[42px] h-[42px] rounded-full grid place-items-center border"
+              style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}
+            >
+              <BLIcon name="instagram" size={20} />
+            </span>
+            {/* Facebook — próximamente */}
+            <span
+              aria-label="Facebook — próximamente"
+              title="Facebook — próximamente"
+              className="w-[42px] h-[42px] rounded-full grid place-items-center border"
+              style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}
+            >
+              <BLIcon name="facebook" size={20} />
+            </span>
+            {/* TikTok — próximamente */}
+            <span
+              aria-label="TikTok — próximamente"
+              title="TikTok — próximamente"
+              className="w-[42px] h-[42px] rounded-full grid place-items-center border"
+              style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}
+            >
+              <BLIcon name="tiktok" size={20} />
+            </span>
             {whatsapp && (
               <a
                 href={`https://wa.me/${whatsapp}`}

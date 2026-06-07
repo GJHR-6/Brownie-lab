@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getToppingsDinamicos } from "@/lib/data";
+import { getToppingsDinamicos, getPersonalizaVariantes } from "@/lib/data";
 import PersonalizaClient from "./PersonalizaClient";
 
 export const metadata: Metadata = {
@@ -12,7 +12,24 @@ export const metadata: Metadata = {
 };
 
 export default async function PersonalizaPage() {
-  const toppingsDB = await getToppingsDinamicos();
-  const toppings = toppingsDB.map(t => ({ name: t.nombre, price: t.precio_extra, imagen_url: t.imagen_url }));
-  return <PersonalizaClient toppings={toppings} />;
+  const [toppingsDB, variantesDB] = await Promise.all([
+    getToppingsDinamicos(),
+    getPersonalizaVariantes(),
+  ]);
+
+  const toppings = toppingsDB.map(t => ({
+    name: t.nombre,
+    price: t.precio_extra,
+    imagen_url: t.imagen_url,
+  }));
+
+  const brownies = variantesDB
+    .filter(v => v.base === 'brownie')
+    .map(v => ({ id: v.slug, name: v.nombre, desc: v.descripcion, price: v.precio, img: v.imagen_url, proximamente: v.proximamente }));
+
+  const galletas = variantesDB
+    .filter(v => v.base === 'galleta')
+    .map(v => ({ id: v.slug, name: v.nombre, desc: v.descripcion, price: v.precio, img: v.imagen_url, proximamente: v.proximamente }));
+
+  return <PersonalizaClient toppings={toppings} brownies={brownies} galletas={galletas} />;
 }

@@ -136,6 +136,21 @@ export interface Especial {
   created_at: string;
 }
 
+export interface PersonalizaVariante {
+  id: string;
+  base: 'brownie' | 'galleta';
+  slug: string;
+  nombre: string;
+  descripcion: string;
+  precio: number;
+  imagen_url: string;
+  proximamente: boolean;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Ingrediente {
   id: string;
   nombre: string;

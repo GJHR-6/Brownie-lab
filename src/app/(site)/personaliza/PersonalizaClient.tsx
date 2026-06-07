@@ -22,19 +22,22 @@ interface ToppingDef { name: string; price: number; imagen_url?: string | null; 
 
 const MAX_TOPPINGS = 5;
 
-// ── Static data ───────────────────────────────────────────────────────────────
-const BROWNIE_VARIANTS: Variant[] = [
-  { id: "clasico",  name: "Clásico",  desc: "Denso y húmedo",     price: 40, img: "/art/brownie-clasico.svg" },
-  { id: "con-nuez", name: "Con Nuez", desc: "Con nuez tostada",   price: 45, img: "/art/brownie-nuez.svg" },
-];
-const GALLETA_VARIANTS: Variant[] = [
-  { id: "clasica",    name: "Clásica",    desc: "Mantequilla horneada", price: 35, img: "/art/galleta-clasica.svg" },
-  { id: "mocca",      name: "Mocca",      desc: "Café y chocolate",     price: 35, img: "/art/galleta-mocca.svg",      proximamente: true },
-  { id: "red-velvet", name: "Red Velvet", desc: "Terciopelo rojo",      price: 35, img: "/art/galleta-redvelvet.svg", proximamente: true },
-];
+function minAvailablePrice(variants: Variant[]): number | null {
+  const available = variants.filter(v => !v.proximamente);
+  if (available.length === 0) return null;
+  return Math.min(...available.map(v => v.price));
+}
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[] }) {
+export default function PersonalizaClient({
+  toppings,
+  brownies,
+  galletas,
+}: {
+  toppings: ToppingDef[];
+  brownies: Variant[];
+  galletas: Variant[];
+}) {
   const TOPPINGS = toppings;
   const [base, setBase] = useState<MainBase>("brownie");
   const [brownieVariantIdx, setBrownieVariantIdx] = useState(0);
@@ -47,9 +50,10 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
   const addItem = useCartStore(s => s.addItem);
   const router = useRouter();
 
-  const activeVariants = base === "brownie" ? BROWNIE_VARIANTS : GALLETA_VARIANTS;
+  const activeVariants = base === "brownie" ? brownies : galletas;
   const activeVariantIdx = base === "brownie" ? brownieVariantIdx : galletaVariantIdx;
-  const activeVariant = activeVariants[activeVariantIdx] ?? activeVariants[0];
+  const safeIdx = Math.min(activeVariantIdx, Math.max(0, activeVariants.length - 1));
+  const activeVariant = activeVariants[safeIdx] ?? { id: '', name: '', desc: '', price: 0, img: '' };
   const sym = storeConfig.currencySymbol;
 
   function switchBase(b: MainBase) {
@@ -272,26 +276,33 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
         <div>
           {/* Main base selector */}
           <div className="grid gap-3 mb-[22px]" style={{ gridTemplateColumns: "1fr 1fr" }}>
-            {(["brownie", "galleta"] as const).map(b => (
-              <button
-                key={b}
-                onClick={() => switchBase(b)}
-                style={{
-                  display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2,
-                  padding: "16px 20px", textAlign: "left", cursor: "pointer", transition: "all .15s",
-                  borderRadius: "var(--r-md)", border: "1.5px solid",
-                  background: base === b ? "var(--choco-900)" : "var(--paper-card)",
-                  borderColor: base === b ? "var(--choco-900)" : "var(--hairline)",
-                }}
-              >
-                <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 19, color: base === b ? "var(--on-dark)" : "var(--ink)" }}>
-                  {b === "brownie" ? "Brownie" : "Galleta"}
-                </strong>
-                <span style={{ fontSize: 13, color: base === b ? "var(--on-dark-soft)" : "var(--ink-soft)" }}>
-                  {b === "brownie" ? "Base de chocolate · desde L.40" : "Base de mantequilla · desde L.30"}
-                </span>
-              </button>
-            ))}
+            {(["brownie", "galleta"] as const).map(b => {
+              const variants = b === "brownie" ? brownies : galletas;
+              const desde = minAvailablePrice(variants);
+              const subline = b === "brownie"
+                ? `Base de chocolate${desde != null ? ` · desde ${sym}${desde}` : ""}`
+                : `Base de mantequilla${desde != null ? ` · desde ${sym}${desde}` : ""}`;
+              return (
+                <button
+                  key={b}
+                  onClick={() => switchBase(b)}
+                  style={{
+                    display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2,
+                    padding: "16px 20px", textAlign: "left", cursor: "pointer", transition: "all .15s",
+                    borderRadius: "var(--r-md)", border: "1.5px solid",
+                    background: base === b ? "var(--choco-900)" : "var(--paper-card)",
+                    borderColor: base === b ? "var(--choco-900)" : "var(--hairline)",
+                  }}
+                >
+                  <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 19, color: base === b ? "var(--on-dark)" : "var(--ink)" }}>
+                    {b === "brownie" ? "Brownie" : "Galleta"}
+                  </strong>
+                  <span style={{ fontSize: 13, color: base === b ? "var(--on-dark-soft)" : "var(--ink-soft)" }}>
+                    {subline}
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Variant selector */}
@@ -464,7 +475,7 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
           align-items: start;
         }
         .bl-preview-col { position: sticky; top: 96px; }
-        .bl-variants-grid { grid-template-columns: repeat(${activeVariants.length}, 1fr); }
+        .bl-variants-grid { grid-template-columns: repeat(${Math.max(1, activeVariants.length)}, 1fr); }
         .bl-toppings-grid { grid-template-columns: 1fr 1fr; }
 
         /* Topping drop-in animation */
