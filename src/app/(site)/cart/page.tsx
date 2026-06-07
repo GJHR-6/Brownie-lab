@@ -517,9 +517,59 @@ export default function CartPage() {
                 Tu carrito
               </h1>
 
-              {/* Table */}
+              {/* Items list */}
               <div style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", borderRadius: "var(--r-lg)", boxShadow: "var(--shadow-sm)", overflow: "hidden" }}>
-                <div style={{ overflowX: "auto" }}>
+
+                {/* Mobile: card layout */}
+                <div className="md:hidden">
+                  {items.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      style={{ padding: "16px 20px", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, background: "var(--cream)", display: "grid", placeItems: "center", fontSize: 22 }}>
+                          {item.emoji}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p style={{ fontWeight: 600, color: "var(--ink)", margin: 0, fontSize: 15 }}>{item.name}</p>
+                              {item.detalle && (
+                                <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", lineHeight: 1.4 }}>{item.detalle}</p>
+                              )}
+                              <p style={{ fontSize: 13, color: "var(--ink-soft)", margin: "3px 0 0" }}>{sym}{item.price.toFixed(2)} c/u</p>
+                            </div>
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              style={{ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--paper-card)", border: "1px solid var(--hairline)", color: "var(--ink-soft)", cursor: "pointer", flexShrink: 0, transition: ".14s" }}
+                              onMouseEnter={e => { e.currentTarget.style.color = "var(--berry)"; e.currentTarget.style.borderColor = "var(--berry)"; }}
+                              onMouseLeave={e => { e.currentTarget.style.color = "var(--ink-soft)"; e.currentTarget.style.borderColor = "var(--hairline)"; }}
+                              aria-label="Quitar"
+                            >
+                              <BLIcon name="close" size={13} />
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="inline-flex items-center overflow-hidden" style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}>
+                              <button onClick={() => updateQuantity(item.id, -1)} className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer" style={{ background: "transparent", color: "var(--ink)" }} aria-label="Menos">
+                                <BLIcon name="minus" size={14} />
+                              </button>
+                              <span className="w-[26px] text-center font-bold text-[14px]" style={{ color: "var(--ink)" }}>{item.quantity}</span>
+                              <button onClick={() => updateQuantity(item.id, +1)} className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer" style={{ background: "transparent", color: "var(--ink)" }} aria-label="Más">
+                                <BLIcon name="plus" size={14} />
+                              </button>
+                            </div>
+                            <span style={{ fontWeight: 700, color: "var(--orange-ink)", fontSize: 17 }}>{sym}{(item.price * item.quantity).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop: table layout */}
+                <div className="hidden md:block" style={{ overflowX: "auto" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse" }}>
                     <thead>
                       <tr>
@@ -538,56 +588,36 @@ export default function CartPage() {
                           onMouseLeave={e => (e.currentTarget.style.background = "")}
                           style={{ transition: "background .12s" }}
                         >
-                          {/* Producto */}
                           <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
                             <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                               <div style={{ width: 46, height: 46, borderRadius: 11, flexShrink: 0, background: "var(--cream)", display: "grid", placeItems: "center", fontSize: 22 }}>
                                 {item.emoji}
                               </div>
-                              <p style={{ fontWeight: 600, color: "var(--ink)", margin: 0 }}>{item.name}</p>
-                              {item.detalle && (
-                                <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", lineHeight: 1.4 }}>{item.detalle}</p>
-                              )}
+                              <div>
+                                <p style={{ fontWeight: 600, color: "var(--ink)", margin: 0 }}>{item.name}</p>
+                                {item.detalle && (
+                                  <p style={{ fontSize: 11, color: "var(--ink-soft)", margin: "2px 0 0", lineHeight: 1.4 }}>{item.detalle}</p>
+                                )}
+                              </div>
                             </div>
                           </td>
-
-                          {/* Precio unitario */}
                           <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "right", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
                             <span style={{ color: "var(--ink-soft)" }}>{sym}{item.price.toFixed(2)}</span>
                           </td>
-
-                          {/* Cantidad */}
                           <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "center", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
-                            <div
-                              className="inline-flex items-center overflow-hidden"
-                              style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}
-                            >
-                              <button
-                                onClick={() => updateQuantity(item.id, -1)}
-                                className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer transition-colors"
-                                style={{ background: "transparent", color: "var(--ink)" }}
-                              >
+                            <div className="inline-flex items-center overflow-hidden" style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}>
+                              <button onClick={() => updateQuantity(item.id, -1)} className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer transition-colors" style={{ background: "transparent", color: "var(--ink)" }}>
                                 <BLIcon name="minus" size={14} />
                               </button>
-                              <span className="w-[24px] text-center font-bold text-[14px]" style={{ color: "var(--ink)" }}>
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateQuantity(item.id, +1)}
-                                className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer transition-colors"
-                                style={{ background: "transparent", color: "var(--ink)" }}
-                              >
+                              <span className="w-[24px] text-center font-bold text-[14px]" style={{ color: "var(--ink)" }}>{item.quantity}</span>
+                              <button onClick={() => updateQuantity(item.id, +1)} className="w-[34px] h-[34px] grid place-items-center border-0 cursor-pointer transition-colors" style={{ background: "transparent", color: "var(--ink)" }}>
                                 <BLIcon name="plus" size={14} />
                               </button>
                             </div>
                           </td>
-
-                          {/* Subtotal */}
                           <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "right", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
                             <span style={{ fontWeight: 700, color: "var(--orange-ink)" }}>{sym}{(item.price * item.quantity).toFixed(2)}</span>
                           </td>
-
-                          {/* Eliminar */}
                           <td style={{ padding: "14px 22px", fontSize: 14, color: "var(--ink)", verticalAlign: "middle", textAlign: "right", borderBottom: idx < items.length - 1 ? "1px solid var(--hairline)" : "none" }}>
                             <button
                               onClick={() => removeItem(item.id)}
