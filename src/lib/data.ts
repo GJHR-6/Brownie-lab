@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { Producto, Especial, Banner, Configuracion, Categoria, Testimonio } from '@/types/database';
 
 const PRODUCTO_SELECT = '*, categorias!categoria_id(slug, nombre)';
@@ -21,7 +22,14 @@ function normalizeProducto(p: Record<string, unknown>): Producto {
   } as Producto;
 }
 
-export async function getProductosPublicos(): Promise<Producto[]> {
+// Usada en generateStaticParams (sin cookies — service client)
+export async function getProductoIdsEstaticos(): Promise<string[]> {
+  const supabase = createSupabaseServiceClient();
+  const { data } = await supabase.from('productos').select('id').eq('disponible', true);
+  return (data ?? []).map((p: { id: string }) => p.id);
+}
+
+export const getProductosPublicos = cache(async (): Promise<Producto[]> => {
   const supabase = await createSupabaseServerClient();
   const today = new Date().toISOString().split('T')[0];
 
@@ -37,7 +45,18 @@ export async function getProductosPublicos(): Promise<Producto[]> {
     return [];
   }
   return (data ?? []).map(normalizeProducto);
-}
+});
+
+export const getProductoPublicoById = cache(async (id: string): Promise<Producto | null> => {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('productos')
+    .select(PRODUCTO_SELECT)
+    .eq('id', id)
+    .single();
+  if (error || !data) return null;
+  return normalizeProducto(data);
+});
 
 export async function getProductosDestacados(): Promise<Producto[]> {
   const supabase = await createSupabaseServerClient();
@@ -80,17 +99,6 @@ export async function getToppingsDinamicos(): Promise<{ id: string; nombre: stri
   }));
 }
 
-export async function getProductoPublicoById(id: string): Promise<Producto | null> {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from('productos')
-    .select(PRODUCTO_SELECT)
-    .eq('id', id)
-    .single();
-  if (error || !data) return null;
-  return normalizeProducto(data);
-}
-
 export async function getProductosSimilares(categoriaSlug: string, excludeId: string): Promise<Producto[]> {
   const supabase = await createSupabaseServerClient();
   const today = new Date().toISOString().split('T')[0];
@@ -122,7 +130,7 @@ export async function getCategoriasPublicas(): Promise<Categoria[]> {
   return data ?? [];
 }
 
-export async function getEspecialesActivos(): Promise<Especial[]> {
+export const getEspecialesActivos = cache(async (): Promise<Especial[]> => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('especiales')
@@ -134,9 +142,9 @@ export async function getEspecialesActivos(): Promise<Especial[]> {
     return [];
   }
   return data ?? [];
-}
+});
 
-export async function getBannersActivos(): Promise<Banner[]> {
+export const getBannersActivos = cache(async (): Promise<Banner[]> => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('banners')
@@ -148,7 +156,7 @@ export async function getBannersActivos(): Promise<Banner[]> {
     return [];
   }
   return data ?? [];
-}
+});
 
 // cache() deduplicates DB calls dentro del mismo request render tree
 export const getConfiguracion = cache(async (): Promise<Configuracion | null> => {

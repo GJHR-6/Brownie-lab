@@ -113,9 +113,14 @@ export default async function AdminDashboardPage({
   let ventasQuery = supabase.from("pedidos").select("total, estado").neq("estado", "cancelado");
   if (periodoStart) ventasQuery = ventasQuery.gte("created_at", periodoStart);
 
+  // Límite de 60 días para el dashboard — cubre el gráfico (30d), hoy y últimos pedidos
+  const sixtyDaysAgo = new Date(now);
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 59);
+
   const [productosRes, pedidosRes, ventasPeriodoRes] = await Promise.all([
     supabase.from("productos").select("id, nombre, stock, disponible"),
     supabase.from("pedidos").select("id, estado, total, cliente_datos, created_at")
+      .gte("created_at", sixtyDaysAgo.toISOString())
       .order("created_at", { ascending: false }),
     ventasQuery,
   ]);

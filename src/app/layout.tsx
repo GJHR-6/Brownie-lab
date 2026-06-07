@@ -54,6 +54,11 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="es" className={`${playfair.variable} ${dmSans.variable} h-full`}>
+      <head>
+        {/* Reduce DNS + TCP handshake time to Supabase on first load */}
+        <link rel="preconnect" href="https://qktwbasgiwkconmwiwwk.supabase.co" />
+        <link rel="dns-prefetch" href="https://qktwbasgiwkconmwiwwk.supabase.co" />
+      </head>
       <body
         className="min-h-full flex flex-col antialiased"
         style={{

@@ -1135,7 +1135,15 @@ export default function CartPage() {
                       type="file"
                       accept="image/png,image/jpeg,image/jpg,image/webp"
                       className="sr-only"
-                      onChange={(e) => setSsFile(e.target.files?.[0] ?? null)}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        if (f && f.size > 10 * 1024 * 1024) {
+                          e.target.value = "";
+                          setOrderError("El comprobante no debe superar 10 MB.");
+                          return;
+                        }
+                        setSsFile(f);
+                      }}
                     />
                   </label>
                 </div>
