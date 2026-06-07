@@ -17,7 +17,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 type MainBase = "brownie" | "galleta";
-interface Variant { id: string; name: string; desc: string; price: number; img: string; }
+interface Variant { id: string; name: string; desc: string; price: number; img: string; proximamente?: boolean; }
 interface ToppingDef { name: string; price: number; imagen_url?: string | null; }
 
 const MAX_TOPPINGS = 5;
@@ -29,8 +29,8 @@ const BROWNIE_VARIANTS: Variant[] = [
 ];
 const GALLETA_VARIANTS: Variant[] = [
   { id: "clasica",    name: "Clásica",    desc: "Mantequilla horneada", price: 35, img: "/art/galleta-clasica.svg" },
-  { id: "mocca",      name: "Mocca",      desc: "Café y chocolate",     price: 35, img: "/art/galleta-mocca.svg" },
-  { id: "red-velvet", name: "Red Velvet", desc: "Terciopelo rojo",      price: 35, img: "/art/galleta-redvelvet.svg" },
+  { id: "mocca",      name: "Mocca",      desc: "Café y chocolate",     price: 35, img: "/art/galleta-mocca.svg",      proximamente: true },
+  { id: "red-velvet", name: "Red Velvet", desc: "Terciopelo rojo",      price: 35, img: "/art/galleta-redvelvet.svg", proximamente: true },
 ];
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -301,23 +301,34 @@ export default function PersonalizaClient({ toppings }: { toppings: ToppingDef[]
           <div className="bl-variants-grid grid gap-3 mb-6">
             {activeVariants.map((v, i) => {
               const on = i === activeVariantIdx;
+              const prox = !!v.proximamente;
               return (
                 <button
                   key={v.id}
-                  onClick={() => setVariantIdx(i)}
+                  onClick={() => !prox && setVariantIdx(i)}
+                  disabled={prox}
                   style={{
                     display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 3,
-                    padding: "13px 16px", textAlign: "left", cursor: "pointer", transition: "all .15s",
+                    padding: "13px 16px", textAlign: "left", transition: "all .15s",
                     borderRadius: "var(--r-md)", border: "1.5px solid",
-                    borderColor: on ? "var(--orange)" : "var(--hairline)",
-                    background: on ? "#fcf2e4" : "var(--paper-card)",
-                    boxShadow: on ? "0 0 0 3px rgba(217,113,30,.12)" : "none",
+                    borderColor: prox ? "var(--hairline)" : on ? "var(--orange)" : "var(--hairline)",
+                    background: prox ? "var(--cream-200)" : on ? "#fcf2e4" : "var(--paper-card)",
+                    boxShadow: on && !prox ? "0 0 0 3px rgba(217,113,30,.12)" : "none",
+                    cursor: prox ? "not-allowed" : "pointer",
+                    opacity: prox ? 0.7 : 1,
+                    position: "relative",
                   }}
                 >
-                  <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 17, color: on ? "var(--orange-ink)" : "var(--ink)", lineHeight: 1.08 }}>
+                  <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 17, color: prox ? "var(--ink-soft)" : on ? "var(--orange-ink)" : "var(--ink)", lineHeight: 1.08 }}>
                     {v.name}
                   </strong>
-                  <span style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.3 }}>{v.desc} · {sym}{v.price}</span>
+                  {prox ? (
+                    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-soft)" }}>
+                      Próximamente
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: 12.5, color: "var(--ink-soft)", lineHeight: 1.3 }}>{v.desc} · {sym}{v.price}</span>
+                  )}
                 </button>
               );
             })}

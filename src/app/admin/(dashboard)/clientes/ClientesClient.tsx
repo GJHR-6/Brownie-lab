@@ -236,7 +236,7 @@ export default function ClientesClient({ clientes }: { clientes: ClienteRow[] })
 
       {/* Stats row */}
       {clientes.length > 0 && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 14, marginBottom: 24 }}>
           {[
             { label: 'Total clientes',  value: clientes.length, sub: 'registrados', color: 'var(--orange-ink)', bg: 'rgba(217,113,30,.1)' },
             { label: 'Pedidos totales', value: clientes.reduce((s, c) => s + (c.pedidos[0]?.count ?? 0), 0), sub: 'de todos los clientes', color: '#2f6fdb', bg: 'rgba(47,111,219,.1)' },
