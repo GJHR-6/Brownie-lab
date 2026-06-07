@@ -1,12 +1,23 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductoPublicoById, getProductosSimilares } from "@/lib/data";
+import { getProductoPublicoById, getProductosSimilares, getProductoIdsEstaticos } from "@/lib/data";
 import ProductoDetailClient from "./ProductoDetailClient";
+
+// Revalida cada 10 minutos en background; la página estática se sirve instantáneamente
+export const revalidate = 600;
+
+// Pre-genera HTML estático para todos los productos disponibles en build time
+export async function generateStaticParams() {
+  const ids = await getProductoIdsEstaticos();
+  return ids.map((id) => ({ id }));
+}
 
 interface Props { params: Promise<{ id: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
+  // cache() deduplicates: si generateMetadata y la página llaman a esta función,
+  // solo se hace una sola query a Supabase
   const producto = await getProductoPublicoById(id);
   if (!producto) return { title: "Producto no encontrado" };
   return {
@@ -22,12 +33,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductoPage({ params }: Props) {
   const { id } = await params;
-  const [producto, similares] = await Promise.all([
-    getProductoPublicoById(id),
-    getProductoPublicoById(id).then((p) =>
-      p ? getProductosSimilares(p.categoria, id) : []
-    ),
-  ]);
+  // cache() garantiza que aunque generateMetadata ya llamó getProductoPublicoById(id),
+  // esta segunda llamada no genera una query extra a la DB
+  const producto = await getProductoPublicoById(id);
   if (!producto) notFound();
+
+  const similares = await getProductosSimilares(producto.categoria, id);
+
   return <ProductoDetailClient producto={producto} similares={similares} />;
 }

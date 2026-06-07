@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { buscarPedidosPorTelefono, type PedidoTracking, type PedidoTrackingItem } from "@/actions/publico";
+import { buscarPedidosPorTelefono, buscarPedidoPorCodigo, type PedidoTracking, type PedidoTrackingItem } from "@/actions/publico";
 import BLIcon from "@/components/BLIcon";
 
 const ACTIVOS: string[] = ['pendiente', 'preparacion', 'listo'];
@@ -32,8 +32,11 @@ const ORDEN: Record<string, number> = {
   pendiente: 0, preparacion: 1, listo: 2, completado: 3,
 };
 
+type Modo = "telefono" | "codigo";
+
 export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
-  const [telefono,    setTelefono]   = useState("");
+  const [modo,        setModo]       = useState<Modo>("telefono");
+  const [input,       setInput]      = useState("");
   const [pedidos,     setPedidos]    = useState<PedidoTracking[]>([]);
   const [loading,     setLoading]    = useState(false);
   const [searched,    setSearched]   = useState(false);
@@ -41,37 +44,56 @@ export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
   const [openId,      setOpenId]     = useState<string | null>(null);
   const [soloActivos, setSoloActivos] = useState(false);
 
+  // Auto-buscar si viene ?telefono= o ?codigo= en la URL
   useEffect(() => {
-    const phone = new URLSearchParams(window.location.search).get("telefono");
-    if (!phone) return;
-    setTelefono(phone);
+    const params = new URLSearchParams(window.location.search);
+    const phone = params.get("telefono");
+    const code  = params.get("codigo");
+    if (phone) { setModo("telefono"); setInput(phone); runSearch("telefono", phone); }
+    else if (code) { setModo("codigo"); setInput(code); runSearch("codigo", code); }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function runSearch(m: Modo, val: string) {
     setLoading(true);
-    buscarPedidosPorTelefono(phone).then((result) => {
+    setError("");
+    setPedidos([]);
+    setSearched(false);
+    if (m === "telefono") {
+      const result = await buscarPedidosPorTelefono(val);
       if (result.success) {
         setPedidos(result.data);
         setSearched(true);
         if (result.data.length > 0) setOpenId(result.data[0].id);
       } else {
         setError(result.error);
+        setSearched(true);
       }
-      setLoading(false);
-    });
-  }, []);
+    } else {
+      const result = await buscarPedidoPorCodigo(val);
+      if (result.success && result.data) {
+        setPedidos([result.data]);
+        setSearched(true);
+        setOpenId(result.data.id);
+      } else {
+        setError(!result.success ? result.error : "No encontramos ese pedido.");
+        setSearched(true);
+      }
+    }
+    setLoading(false);
+  }
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
-    if (!telefono.trim()) return;
-    setLoading(true);
+    if (!input.trim()) return;
+    runSearch(modo, input.trim());
+  }
+
+  function switchModo(m: Modo) {
+    setModo(m);
+    setInput("");
+    setPedidos([]);
+    setSearched(false);
     setError("");
-    const result = await buscarPedidosPorTelefono(telefono);
-    if (result.success) {
-      setPedidos(result.data);
-      setSearched(true);
-      if (result.data.length > 0) setOpenId(result.data[0].id);
-    } else {
-      setError(result.error);
-    }
-    setLoading(false);
   }
 
   const pedidosFiltrados = soloActivos ? pedidos.filter(p => ACTIVOS.includes(p.estado)) : pedidos;
@@ -124,9 +146,34 @@ export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
           }}
         >
           <h2 className="mb-1.5" style={{ fontSize: 22 }}>Buscar pedido</h2>
+
+          {/* Modo toggle */}
+          <div className="inline-flex mb-4" style={{ background: "var(--cream-200)", borderRadius: "var(--r-pill)", padding: 3 }}>
+            {(["telefono", "codigo"] as Modo[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => switchModo(m)}
+                style={{
+                  fontSize: 13, fontWeight: 600, padding: "6px 16px",
+                  borderRadius: "var(--r-pill)", border: "none", cursor: "pointer",
+                  background: modo === m ? "var(--paper-card)" : "none",
+                  color: modo === m ? "var(--ink)" : "var(--ink-soft)",
+                  boxShadow: modo === m ? "var(--shadow-sm)" : "none",
+                  transition: ".15s",
+                }}
+              >
+                {m === "telefono" ? "Por teléfono" : "Por código #"}
+              </button>
+            ))}
+          </div>
+
           <p className="mb-4 text-[14px]" style={{ color: "var(--ink-soft)" }}>
-            Ingresa el número que usaste al hacer tu pedido.
+            {modo === "telefono"
+              ? "Ingresa el número que usaste al hacer tu pedido."
+              : "Ingresa el código del pedido (ej: #A1B2C3D4) que recibiste al confirmar."}
           </p>
+
           <form onSubmit={handleSearch} className="flex gap-2.5">
             <div className="flex-1 relative flex items-center">
               <BLIcon
@@ -136,19 +183,21 @@ export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
                 style={{ color: "var(--ink-soft)" } as React.CSSProperties}
               />
               <input
-                type="tel"
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                placeholder="Ej: 9999-0000"
+                type={modo === "telefono" ? "tel" : "text"}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder={modo === "telefono" ? "Ej: 9999-0000" : "Ej: A1B2C3D4"}
                 className="w-full border focus:outline-none"
                 style={{
                   borderRadius: "var(--r-md)",
                   padding: "14px 16px 14px 44px",
-                  fontFamily: "inherit",
+                  fontFamily: modo === "codigo" ? "ui-monospace, monospace" : "inherit",
                   fontSize: 15,
                   color: "var(--ink)",
                   background: "var(--paper)",
                   borderColor: "var(--hairline)",
+                  letterSpacing: modo === "codigo" ? ".08em" : undefined,
+                  textTransform: modo === "codigo" ? "uppercase" : undefined,
                 }}
                 onFocus={(e) => ((e.target as HTMLInputElement).style.borderColor = "var(--orange)")}
                 onBlur={(e) => ((e.target as HTMLInputElement).style.borderColor = "var(--hairline)")}
@@ -156,7 +205,7 @@ export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
             </div>
             <button
               type="submit"
-              disabled={loading || !telefono.trim()}
+              disabled={loading || !input.trim()}
               className="inline-flex items-center gap-2 font-bold text-[15px] px-6 rounded-[16px] text-white border-0 cursor-pointer disabled:opacity-50 transition-colors"
               style={{ background: "var(--orange)" }}
             >

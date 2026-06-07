@@ -1,18 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useState, useRef } from "react";
 import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import BLIcon from "@/components/BLIcon";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const router         = useRouter();
   const itemCount      = useCartStore((s) => s.itemCount());
   const wishlistCount  = useWishlistStore((s) => s.count());
-  const [mounted, setMounted] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [mounted,      setMounted]     = useState(false);
+  const [menuOpen,     setMenuOpen]    = useState(false);
+  const [searchOpen,   setSearchOpen]  = useState(false);
+  const [searchQuery,  setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setSearchOpen(false);
+      if ((e.key === "/" || (e.metaKey && e.key === "k")) && !searchOpen) {
+        e.preventDefault();
+        setSearchOpen(true);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [searchOpen]);
+
+  function handleSearchSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const q = searchQuery.trim();
+    if (!q) return;
+    setSearchOpen(false);
+    setSearchQuery("");
+    router.push(`/menu?q=${encodeURIComponent(q)}`);
+  }
 
   useEffect(() => setMounted(true), []);
 
@@ -83,6 +112,17 @@ export default function Navbar() {
 
         {/* Actions */}
         <div className="flex items-center gap-2.5">
+          {/* Búsqueda global */}
+          <button
+            onClick={() => setSearchOpen(true)}
+            aria-label="Buscar productos"
+            title="Buscar (/ o ⌘K)"
+            className="hidden sm:grid w-10 h-10 rounded-full place-items-center border transition-colors"
+            style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)", background: "none", cursor: "pointer" }}
+          >
+            <BLIcon name="search" size={19} />
+          </button>
+
           {/* Favoritos */}
           <Link
             href="/favoritos"
@@ -173,7 +213,86 @@ export default function Navbar() {
               </Link>
             );
           })}
+          <div style={{ borderTop: "1px solid var(--hairline-dark)", margin: "6px 0 2px" }} />
+          <Link
+            href="/favoritos"
+            onClick={() => setMenuOpen(false)}
+            className="inline-flex items-center gap-1.5 py-2.5 text-[15px] font-medium no-underline transition-colors"
+            style={{ color: pathname.startsWith("/favoritos") ? "var(--amber)" : "var(--on-dark-soft)" }}
+          >
+            <BLIcon name="heart" size={14} />
+            Mis favoritos
+            {mounted && wishlistCount > 0 && (
+              <span
+                className="text-[10px] font-bold w-[16px] h-[16px] rounded-full grid place-items-center text-white"
+                style={{ background: "var(--berry)" }}
+              >
+                {wishlistCount}
+              </span>
+            )}
+          </Link>
+          <button
+            onClick={() => { setMenuOpen(false); setSearchOpen(true); }}
+            className="inline-flex items-center gap-1.5 py-2.5 text-[15px] font-medium transition-colors border-0 bg-transparent cursor-pointer"
+            style={{ color: "var(--on-dark-soft)" }}
+          >
+            <BLIcon name="search" size={14} />
+            Buscar
+          </button>
         </div>
+      )}
+      {/* Search overlay */}
+      {searchOpen && (
+        <>
+          <div
+            className="fixed inset-0 z-50"
+            style={{ background: "rgba(28,18,10,.6)", backdropFilter: "blur(4px)" }}
+            onClick={() => setSearchOpen(false)}
+          />
+          <div
+            className="fixed z-50 w-full"
+            style={{ top: 0, left: 0, right: 0 }}
+          >
+            <form
+              onSubmit={handleSearchSubmit}
+              className="mx-auto flex items-center gap-3 px-4 py-3"
+              style={{
+                maxWidth: 640,
+                background: "var(--choco-900)",
+                boxShadow: "0 8px 32px rgba(0,0,0,.4)",
+                borderRadius: "0 0 24px 24px",
+              }}
+            >
+              <BLIcon name="search" size={20} style={{ color: "var(--amber)", flexShrink: 0 } as React.CSSProperties} />
+              <input
+                ref={searchInputRef}
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar brownies, galletas…"
+                className="flex-1 bg-transparent border-none outline-none text-[16px] font-medium"
+                style={{ color: "var(--on-dark)", caretColor: "var(--amber)" }}
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="grid place-items-center border-none bg-transparent cursor-pointer"
+                  style={{ color: "var(--on-dark-soft)" }}
+                  aria-label="Limpiar búsqueda"
+                >
+                  <BLIcon name="close" size={18} />
+                </button>
+              )}
+              <kbd
+                className="hidden sm:inline text-[11px] font-bold px-2 py-1 rounded"
+                style={{ background: "rgba(255,255,255,.1)", color: "var(--on-dark-soft)" }}
+              >
+                ESC
+              </kbd>
+            </form>
+          </div>
+        </>
       )}
     </header>
   );

@@ -51,6 +51,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
         <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Descripción del paquete</label>
           <input name="descripcion_paquete" defaultValue={inicial?.descripcion_paquete ?? ''} placeholder="Bolsa 1800g, Cartón 30 unidades"
+            maxLength={200}
             style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
 
@@ -139,7 +140,13 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
                   className="sr-only"
                   onChange={e => {
                     const f = e.target.files?.[0];
-                    if (f) setImgPreview(URL.createObjectURL(f));
+                    if (!f) return;
+                    if (f.size > 5 * 1024 * 1024) {
+                      e.target.value = '';
+                      alert('La imagen no debe superar 5 MB.');
+                      return;
+                    }
+                    setImgPreview(URL.createObjectURL(f));
                   }} />
               </label>
             </div>
@@ -148,7 +155,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
 
         <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
-          <textarea name="notas" rows={2} defaultValue={inicial?.notas ?? ''}
+          <textarea name="notas" rows={2} defaultValue={inicial?.notas ?? ''} maxLength={500}
             style={{ ...T.inp, resize: 'vertical', minHeight: 72, lineHeight: 1.6, opacity: pending ? 0.6 : 1 } as React.CSSProperties}
             onFocus={inpFocus} onBlur={inpBlur} />
         </div>

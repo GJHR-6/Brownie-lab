@@ -59,21 +59,36 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
             <div>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Cliente</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {[
-                  { name: 'nombre', label: 'Nombre', required: true, placeholder: 'María López' },
-                  { name: 'telefono', label: 'Teléfono', required: true, placeholder: '9999-0000' },
-                  { name: 'notas', label: 'Notas', required: false, placeholder: 'Sin nueces, para llevar…' },
-                ].map(({ name, label, required, placeholder }) => (
-                  <div key={name} style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                      {label} {required && <span style={{ color: 'var(--berry)' }}>*</span>}
-                    </label>
-                    <input name={name} required={required} disabled={isPending} placeholder={placeholder}
-                      style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
-                      onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
-                      onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
-                  </div>
-                ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                    Nombre <span style={{ color: 'var(--berry)' }}>*</span>
+                  </label>
+                  <input name="nombre" required minLength={2} maxLength={120} disabled={isPending}
+                    placeholder="María López"
+                    style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                    Teléfono <span style={{ color: 'var(--berry)' }}>*</span>
+                  </label>
+                  <input name="telefono" required type="tel" minLength={8} maxLength={20} disabled={isPending}
+                    placeholder="9999-0000"
+                    pattern="[\d\s\-\+\(\)]{8,}"
+                    title="Mínimo 8 dígitos"
+                    style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
+                  <input name="notas" maxLength={500} disabled={isPending}
+                    placeholder="Sin nueces, para llevar…"
+                    style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
+                </div>
               </div>
             </div>
 

@@ -1,34 +1,71 @@
-import Link from "next/link";
 import type { Metadata } from "next";
+import Link from "next/link";
+import BLIcon from "@/components/BLIcon";
 
-export const metadata: Metadata = { title: "Página no encontrada" };
+export const metadata: Metadata = {
+  title: "Página no encontrada",
+  description: "Esta página no existe o se nos quemó en el horno.",
+};
 
 export default function NotFound() {
   return (
-    <div className="max-w-2xl mx-auto px-4 py-24 text-center">
-      <div className="text-7xl mb-6">🍪</div>
-      <h1
-        className="text-4xl font-bold text-amber-800 mb-3"
-        style={{ fontFamily: "var(--font-playfair)" }}
+    <div
+      className="flex flex-col items-center justify-center text-center min-h-[70vh]"
+      style={{ paddingInline: "var(--gutter)", paddingBlock: "clamp(60px, 10vw, 120px)" }}
+    >
+      {/* Icon */}
+      <div
+        className="w-28 h-28 rounded-full grid place-items-center mb-8 text-[56px]"
+        style={{ background: "var(--cream)" }}
+        aria-hidden="true"
       >
-        Página no encontrada
-      </h1>
-      <p className="text-stone-500 text-lg mb-2">
-        Esta página no existe o se nos quemó en el horno.
+        🍪
+      </div>
+
+      {/* Headline */}
+      <p
+        className="text-[11px] font-bold tracking-[.2em] uppercase mb-3"
+        style={{ color: "var(--orange)" }}
+      >
+        Error 404
       </p>
-      <p className="text-stone-400 text-sm mb-10">Error 404</p>
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Link
-          href="/"
-          className="inline-block bg-amber-800 text-white font-semibold px-8 py-3 rounded-full hover:bg-amber-700 transition-colors"
-        >
-          Volver al inicio
-        </Link>
+      <h1
+        className="font-extrabold mb-4"
+        style={{
+          fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)",
+          fontSize: "clamp(30px, 5vw, 52px)",
+          color: "var(--ink)",
+        }}
+      >
+        Esta página se quemó en el horno
+      </h1>
+      <p
+        className="mb-10 mx-auto"
+        style={{ color: "var(--ink-soft)", fontSize: 17, maxWidth: "38ch" }}
+      >
+        La página que buscás no existe o fue removida. Pero nuestros brownies sí existen — y están deliciosos.
+      </p>
+
+      {/* CTAs */}
+      <div className="flex flex-col sm:flex-row items-center gap-3">
         <Link
           href="/menu"
-          className="inline-block border-2 border-amber-800 text-amber-800 font-semibold px-8 py-3 rounded-full hover:bg-amber-50 transition-colors"
+          className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+          style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
         >
-          Ver menú
+          <BLIcon name="brownie" size={16} />
+          Ver el menú
+        </Link>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full no-underline transition-colors"
+          style={{
+            background: "var(--paper-card)",
+            color: "var(--ink)",
+            border: "1.5px solid var(--hairline)",
+          }}
+        >
+          Volver al inicio
         </Link>
       </div>
     </div>

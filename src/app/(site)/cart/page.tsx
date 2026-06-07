@@ -292,10 +292,10 @@ export default function CartPage() {
               Viste recientemente
             </p>
             <div
-              className="grid gap-6"
-              style={{ gridTemplateColumns: `repeat(${Math.min(recentProducts.length, 4)}, 1fr)` }}
+              className="grid gap-6 bl-grid-3col"
+              style={{ gridTemplateColumns: `repeat(${Math.min(recentProducts.length, 3)}, 1fr)` }}
             >
-              {recentProducts.slice(0, 4).map((p) => (
+              {recentProducts.slice(0, 3).map((p) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
@@ -1135,7 +1135,15 @@ export default function CartPage() {
                       type="file"
                       accept="image/png,image/jpeg,image/jpg,image/webp"
                       className="sr-only"
-                      onChange={(e) => setSsFile(e.target.files?.[0] ?? null)}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        if (f && f.size > 10 * 1024 * 1024) {
+                          e.target.value = "";
+                          setOrderError("El comprobante no debe superar 10 MB.");
+                          return;
+                        }
+                        setSsFile(f);
+                      }}
                     />
                   </label>
                 </div>

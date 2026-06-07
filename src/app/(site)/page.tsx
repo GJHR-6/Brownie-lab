@@ -141,17 +141,17 @@ export default async function Home() {
                 }}
               />
             )}
-            {/* Floating chip 1 */}
+            {/* Floating chip 1 — hidden on small screens to avoid overflow */}
             <div
-              className="absolute top-4 -left-3 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
+              className="hidden sm:flex absolute top-4 -left-3 items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
               style={{ color: "var(--ink)", boxShadow: "var(--shadow-md)" }}
             >
               <BLIcon name="leaf" size={16} style={{ color: "var(--orange)" } as React.CSSProperties} />
               Ingredientes reales
             </div>
-            {/* Floating chip 2 */}
+            {/* Floating chip 2 — hidden on small screens to avoid overflow */}
             <div
-              className="absolute bottom-6 -right-2 flex items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
+              className="hidden sm:flex absolute bottom-6 -right-2 items-center gap-2 bg-white rounded-full px-4 py-2.5 text-[13px] font-bold"
               style={{ color: "var(--ink)", boxShadow: "var(--shadow-md)" }}
             >
               <BLIcon name="heart" size={16} style={{ color: "var(--berry)" } as React.CSSProperties} />
@@ -368,7 +368,7 @@ export default async function Home() {
               </p>
             </AnimateIn>
             <div
-              className="grid gap-6"
+              className="grid gap-6 bl-grid-3col"
               style={{ gridTemplateColumns: `repeat(${Math.min(capricho.length, 3)}, 1fr)` }}
             >
               {capricho.map((p) => (

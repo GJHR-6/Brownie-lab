@@ -14,7 +14,12 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function MenuPage() {
+export default async function MenuPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const [productos, categorias, especiales, config] = await Promise.all([
     getProductosPublicos(),
     getCategoriasPublicas(),
@@ -31,5 +36,5 @@ export default async function MenuPage() {
 
   const whatsapp = config?.whatsapp || storeConfig.whatsapp;
 
-  return <MenuClient productos={productos} categorias={categorias} especiales={activos} whatsapp={whatsapp} />;
+  return <MenuClient productos={productos} categorias={categorias} especiales={activos} whatsapp={whatsapp} initialSearch={q ?? ""} />;
 }
