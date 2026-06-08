@@ -189,11 +189,21 @@ export async function crearPedidoManual(
 
     const { data, error } = await supabase
       .from('pedidos')
-      .insert({ cliente_datos, items, total, estado: 'pendiente' })
+      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono })
       .select()
       .single();
 
     if (error) return { success: false, error: error.message };
+
+    await supabase.from('pedido_items').insert(
+      items.map(item => ({
+        pedido_id:       data.id,
+        producto_id:     item.producto_id || null,
+        nombre_producto: item.nombre,
+        precio_unitario: item.precio,
+        cantidad:        item.cantidad,
+      }))
+    );
 
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');
