@@ -187,6 +187,11 @@ export async function crearPedidoManual(
     const total = items.reduce((sum, i) => sum + i.subtotal, 0);
     const cliente_datos = { nombre, telefono, notas };
 
+    await supabase.from('clientes').upsert(
+      { telefono, nombre },
+      { onConflict: 'telefono', ignoreDuplicates: false }
+    );
+
     const { data, error } = await supabase
       .from('pedidos')
       .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono })
