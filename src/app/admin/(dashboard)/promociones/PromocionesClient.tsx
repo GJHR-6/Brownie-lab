@@ -98,7 +98,8 @@ export default function PromocionesClient({ initialPromociones }: { initialPromo
       </div>
 
       <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
           <thead>
             <tr>
               <th style={T.th}>Código</th>
@@ -151,6 +152,7 @@ export default function PromocionesClient({ initialPromociones }: { initialPromo
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {isModalOpen && (

@@ -94,7 +94,8 @@ export default function BannersClient({ initialBanners }: { initialBanners: Bann
       </div>
 
       <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+        <div style={{ overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
           <thead>
             <tr>
               <th style={T.th}>Mensaje</th>
@@ -143,6 +144,7 @@ export default function BannersClient({ initialBanners }: { initialBanners: Bann
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {modal.open && (
