@@ -20,7 +20,7 @@ type MainBase = "brownie" | "galleta";
 interface Variant { id: string; name: string; desc: string; price: number; img: string; proximamente?: boolean; }
 interface ToppingDef { name: string; price: number; imagen_url?: string | null; }
 
-const MAX_TOPPINGS = 5;
+const MAX_TOPPINGS = 2;
 
 function minAvailablePrice(variants: Variant[]): number | null {
   const available = variants.filter(v => !v.proximamente);

@@ -14,6 +14,14 @@ export function sanitizePhone(input: unknown): string {
   return input.replace(/[^\d\s+\-() ]/g, '').trim().slice(0, 25);
 }
 
+// Honduras: 8 digits starting with 2, 3, 8 or 9. Accepts +504 prefix.
+export function isValidHonduranPhone(input: string): boolean {
+  const digits = input.replace(/\D/g, '');
+  // Strip country code 504 if present
+  const local = digits.startsWith('504') && digits.length === 11 ? digits.slice(3) : digits;
+  return /^[2389]\d{7}$/.test(local);
+}
+
 // Promo codes: alphanumeric + hyphen/underscore only.
 export function sanitizePromoCode(input: unknown): string {
   if (typeof input !== 'string') return '';

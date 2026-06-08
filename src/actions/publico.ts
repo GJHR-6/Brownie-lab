@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
-import { sanitizeText, sanitizePhone, sanitizePromoCode } from '@/lib/sanitize';
+import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
 
@@ -155,6 +155,9 @@ export async function crearPedidoPublico(
   if (!nombre || !telefono) {
     return { success: false, error: 'Nombre y teléfono requeridos.' };
   }
+  if (!isValidHonduranPhone(telefono)) {
+    return { success: false, error: 'Ingresa un número de teléfono hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9).' };
+  }
   if (!items.length || items.length > 100) {
     return { success: false, error: 'El carrito está vacío o tiene demasiados items.' };
   }
@@ -210,6 +213,7 @@ export async function crearPedidoPublico(
 
     const row: Record<string, unknown> = {
       cliente_datos: datos, total, estado: 'pendiente', telefono_cliente: telefono,
+      ip_origen: ip,
     };
     if (idempotencyKey) row.idempotency_key = idempotencyKey;
 

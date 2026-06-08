@@ -129,7 +129,9 @@ export default function CartPage() {
   function validateDatos(): boolean {
     const e: Partial<Record<keyof DatosForm, string>> = {};
     if (!datos.nombre.trim() || datos.nombre.trim().length < 2) e.nombre = "Nombre requerido (mín. 2 caracteres)";
-    if (!/^\d{8,}$/.test(datos.telefono.replace(/\D/g, ""))) e.telefono = "Teléfono válido requerido (mín. 8 dígitos)";
+    const digits = datos.telefono.replace(/\D/g, "");
+    const localDigits = digits.startsWith("504") && digits.length === 11 ? digits.slice(3) : digits;
+    if (!/^[2389]\d{7}$/.test(localDigits)) e.telefono = "Ingresa un número hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9)";
     if (datos.tipo_entrega === "domicilio" && !datos.direccion.trim()) e.direccion = "Dirección requerida para entrega a domicilio";
     if (!datos.metodo_pago) e.metodo_pago = "Selecciona un método de pago";
     if (datos.fecha_entrega) {
