@@ -38,7 +38,7 @@ export interface ClienteDatos {
 }
 
 export interface PedidoItem {
-  producto_id: string;
+  producto_id: string | null;
   nombre: string;
   precio: number;
   cantidad: number;
