@@ -134,10 +134,14 @@ export async function getConfiguracionBanco(): Promise<{ banco: string; titular:
 
 // ── Crear pedido desde checkout público ──────────────────────────────────────
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TIPOS_ENTREGA  = new Set(['pickup', 'domicilio', '']);
+const METODOS_PAGO   = new Set(['efectivo', 'transferencia', '']);
+
 export async function crearPedidoPublico(
   clienteDatos: ClienteDatos,
   items: PedidoItem[],
-  total: number,
+  _totalCliente: number,
   promo?: { codigo: string; descuento_porcentaje: number } | null,
   idempotencyKey?: string
 ): Promise<ActionResult<{ id: string }>> {
@@ -146,74 +150,118 @@ export async function crearPedidoPublico(
     return { success: false, error: 'Demasiados pedidos. Intenta más tarde.' };
   }
 
-  // Sanitize all string fields from clienteDatos
+  // ── 1. Sanitizar datos del cliente ──────────────────────────────────────────
   const nombre    = sanitizeText(clienteDatos.nombre,    120);
   const telefono  = sanitizePhone(clienteDatos.telefono);
   const direccion = sanitizeText(clienteDatos.direccion, 300);
   const notas     = sanitizeText(clienteDatos.notas,     500);
 
-  if (!nombre || !telefono) {
-    return { success: false, error: 'Nombre y teléfono requeridos.' };
-  }
-  if (!isValidHonduranPhone(telefono)) {
-    return { success: false, error: 'Ingresa un número de teléfono hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9).' };
-  }
-  if (!items.length || items.length > 100) {
-    return { success: false, error: 'El carrito está vacío o tiene demasiados items.' };
-  }
-  if (typeof total !== 'number' || total <= 0 || total > 1_000_000) {
-    return { success: false, error: 'Total inválido.' };
+  if (!nombre || !telefono)      return { success: false, error: 'Nombre y teléfono requeridos.' };
+  if (!isValidHonduranPhone(telefono)) return { success: false, error: 'Ingresa un número de teléfono hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9).' };
+
+  if (clienteDatos.tipo_entrega && !TIPOS_ENTREGA.has(clienteDatos.tipo_entrega))
+    return { success: false, error: 'Tipo de entrega inválido.' };
+  if (clienteDatos.metodo_pago  && !METODOS_PAGO.has(clienteDatos.metodo_pago))
+    return { success: false, error: 'Método de pago inválido.' };
+
+  if (clienteDatos.fecha_entrega) {
+    const min = new Date(); min.setDate(min.getDate() + 1); min.setHours(0, 0, 0, 0);
+    if (new Date(clienteDatos.fecha_entrega + 'T00:00:00') < min)
+      return { success: false, error: 'La fecha de entrega debe ser mínimo mañana.' };
   }
 
-  const sanitizedDatos: ClienteDatos = {
-    ...clienteDatos,
-    nombre,
-    telefono,
-    direccion,
-    notas,
-  };
+  // ── 2. Validar items ────────────────────────────────────────────────────────
+  if (!items.length || items.length > 100)
+    return { success: false, error: 'El carrito está vacío o tiene demasiados items.' };
+  if (items.some(i => !Number.isInteger(i.cantidad) || i.cantidad < 1 || i.cantidad > 99))
+    return { success: false, error: 'Cantidad inválida (máx. 99 por producto).' };
+
+  const sanitizedDatos: ClienteDatos = { ...clienteDatos, nombre, telefono, direccion, notas };
 
   try {
     const supabase = createSupabaseServiceClient();
 
-    // Validar stock antes de crear el pedido
-    const itemsConProducto = items.filter((i): i is typeof i & { producto_id: string } => !!i.producto_id);
+    // ── 3. Obtener precios reales + validar stock ────────────────────────────
+    const itemsConProducto = items.filter(
+      (i): i is typeof i & { producto_id: string } => !!i.producto_id && UUID_RE.test(i.producto_id)
+    );
+
+    type ProdRow = { id: string; nombre: string; precio: number; stock: number };
+    let prodMap = new Map<string, ProdRow>();
+
     if (itemsConProducto.length > 0) {
-      const { data: stocks } = await supabase
+      const { data: prods } = await supabase
         .from('productos')
-        .select('id, nombre, stock')
+        .select('id, nombre, precio, stock')
         .in('id', itemsConProducto.map(i => i.producto_id));
 
-      const stockMap = new Map((stocks ?? []).map((p: { id: string; nombre: string; stock: number }) => [p.id, p]));
+      prodMap = new Map(
+        (prods ?? []).map((p: ProdRow) => [p.id, { ...p, precio: Number(p.precio) }])
+      );
+
       for (const item of itemsConProducto) {
-        const prod = stockMap.get(item.producto_id);
-        if (!prod) continue;
-        if (prod.stock < item.cantidad) {
-          return {
-            success: false,
-            error: `Stock insuficiente para "${item.nombre}". Disponible: ${prod.stock}, solicitado: ${item.cantidad}.`,
-          };
-        }
+        const prod = prodMap.get(item.producto_id);
+        if (!prod) return { success: false, error: `Producto no encontrado: "${sanitizeText(item.nombre, 80)}".` };
+        if (prod.stock < item.cantidad)
+          return { success: false, error: `Stock insuficiente para "${prod.nombre}". Disponible: ${prod.stock}.` };
       }
     }
 
-    const nota_promo = promo
-      ? `Descuento ${sanitizePromoCode(promo.codigo)} (${promo.descuento_porcentaje}%)`
-      : undefined;
+    // ── 4. Construir items con precios reales y nombres saneados ────────────
+    const sanitizedItems = items.map(item => {
+      const realPrecio = item.producto_id && prodMap.has(item.producto_id)
+        ? prodMap.get(item.producto_id)!.precio
+        : item.precio;
+      return { ...item, precio: realPrecio, nombre: sanitizeText(item.nombre, 200) };
+    });
+
+    // Validar rango de precio para ítems personalizados (sin producto_id)
+    for (const item of sanitizedItems) {
+      if (!item.producto_id) {
+        if (typeof item.precio !== 'number' || item.precio < 1 || item.precio > 1000)
+          return { success: false, error: 'Precio inválido en uno de los productos.' };
+      }
+    }
+
+    // ── 5. Calcular total real en el servidor ────────────────────────────────
+    const subtotalReal = Math.round(
+      sanitizedItems.reduce((s, i) => s + i.precio * i.cantidad, 0) * 100
+    ) / 100;
+
+    // ── 6. Reverificar descuento del promo desde BD ──────────────────────────
+    let descuento = 0;
+    let nota_promo: string | undefined;
+    if (promo) {
+      const cleanCode = sanitizePromoCode(promo.codigo);
+      const { data: promoData } = await supabase
+        .from('promociones')
+        .select('descuento_porcentaje, activa')
+        .eq('codigo', cleanCode.toUpperCase())
+        .single();
+
+      if (!promoData || !promoData.activa)
+        return { success: false, error: 'Código de descuento inválido o inactivo.' };
+
+      descuento  = Math.round(subtotalReal * (promoData.descuento_porcentaje / 100) * 100) / 100;
+      nota_promo = `Descuento ${cleanCode.toUpperCase()} (${promoData.descuento_porcentaje}%)`;
+    }
+
+    const totalReal = Math.round((subtotalReal - descuento) * 100) / 100;
+    if (totalReal <= 0) return { success: false, error: 'Total inválido.' };
 
     const datos = nota_promo
       ? { ...sanitizedDatos, notas: [sanitizedDatos.notas, nota_promo].filter(Boolean).join(' | ') }
       : sanitizedDatos;
 
-    // Upsert cliente para FK
+    // ── 7. Upsert cliente + crear pedido ─────────────────────────────────────
     await supabase.from('clientes').upsert(
       { telefono, nombre },
       { onConflict: 'telefono', ignoreDuplicates: false }
     );
 
     const row: Record<string, unknown> = {
-      cliente_datos: datos, total, estado: 'pendiente', telefono_cliente: telefono,
-      ip_origen: ip,
+      cliente_datos: datos, total: totalReal, estado: 'pendiente',
+      telefono_cliente: telefono, ip_origen: ip,
     };
     if (idempotencyKey) row.idempotency_key = idempotencyKey;
 
@@ -223,7 +271,6 @@ export async function crearPedidoPublico(
       .select('id')
       .single();
 
-    // Unique violation on idempotency_key → return the already-created order.
     if (error?.code === '23505' && idempotencyKey) {
       const { data: existing } = await supabase
         .from('pedidos')
@@ -235,9 +282,8 @@ export async function crearPedidoPublico(
 
     if (error) return { success: false, error: error.message };
 
-    // Insert items en tabla relacional
     await supabase.from('pedido_items').insert(
-      items.map(item => ({
+      sanitizedItems.map(item => ({
         pedido_id:       data.id,
         producto_id:     item.producto_id || null,
         nombre_producto: item.nombre,

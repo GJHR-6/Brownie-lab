@@ -117,7 +117,7 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
 
       <form key={formKey} action={formAction}>
         {/* 2-column layout */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }} className="block lg:grid">
+        <div style={{ gridTemplateColumns: '1fr 320px', gap: 24, alignItems: 'start' }} className="block lg:grid">
 
           {/* ── Left column ── */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

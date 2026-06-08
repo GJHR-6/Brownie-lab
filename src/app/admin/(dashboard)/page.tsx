@@ -255,7 +255,7 @@ export default async function AdminDashboardPage({
       <DashboardPeriodTabs periodo={periodo} periodos={PERIODOS} />
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard type="sales"    value={`${storeConfig.currencySymbol}${totalVentasPeriodo.toFixed(2)}`} label={`Ventas — ${PERIODOS[periodo] ?? 'Este mes'}`} />
         <StatCard type="orders"   value={pedidosPeriodo}  label={`Pedidos — ${PERIODOS[periodo] ?? 'Este mes'}`} />
         <StatCard type="products" value={productosActivos} label="Productos activos" />

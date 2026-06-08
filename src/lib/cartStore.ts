@@ -46,7 +46,7 @@ export const useCartStore = create<CartStore>()(
 
       updateQuantity: (id, delta) => {
         const items = get().items.map((i) =>
-          i.id === id ? { ...i, quantity: i.quantity + delta } : i
+          i.id === id ? { ...i, quantity: Math.min(99, i.quantity + delta) } : i
         );
         set({ items: items.filter((i) => i.quantity > 0) });
       },
