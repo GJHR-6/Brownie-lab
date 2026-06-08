@@ -174,7 +174,7 @@ export async function crearPedidoPublico(
     const supabase = createSupabaseServiceClient();
 
     // Validar stock antes de crear el pedido
-    const itemsConProducto = items.filter(i => i.producto_id);
+    const itemsConProducto = items.filter((i): i is typeof i & { producto_id: string } => !!i.producto_id);
     if (itemsConProducto.length > 0) {
       const { data: stocks } = await supabase
         .from('productos')

@@ -148,8 +148,9 @@ export default function CartPage() {
     setSubmitting(true);
     setOrderError(null);
     try {
+      const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const pedidoItems = items.map(i => ({
-        producto_id: i.id, nombre: i.name, precio: i.price,
+        producto_id: UUID_RE.test(i.id) ? i.id : null, nombre: i.name, precio: i.price,
         cantidad: i.quantity, subtotal: i.price * i.quantity,
       }));
       const clienteDatos = {

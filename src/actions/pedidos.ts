@@ -61,7 +61,7 @@ function normalizePedido(p: Record<string, unknown>): Pedido {
   return {
     ...p,
     items: rawItems.map(i => ({
-      producto_id: (i.producto_id as string) ?? '',
+      producto_id: (i.producto_id as string | null) ?? null,
       nombre:      (i.nombre_producto as string) ?? '',
       precio:      Number(i.precio_unitario ?? 0),
       cantidad:    Number(i.cantidad ?? 0),
