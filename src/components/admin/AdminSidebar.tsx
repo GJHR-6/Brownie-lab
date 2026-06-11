@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { href: "/admin/especiales",      label: "Especiales",    icon: "ic-sparkle",    exact: false },
   { href: "/admin/pedidos",         label: "Pedidos",       icon: "ic-bag",        exact: false },
   { href: "/admin/clientes",        label: "Clientes",      icon: "ic-users",      exact: false },
+  { href: "/admin/reportes",        label: "Reportes",      icon: "ic-report",     exact: false },
   { href: "/admin/fidelizacion",    label: "Fidelización",  icon: "ic-loyalty",    exact: false },
   { href: "/admin/banners",         label: "Banners",       icon: "ic-banner",     exact: false },
   { href: "/admin/promociones",     label: "Promociones",   icon: "ic-percent",    exact: false },
@@ -40,6 +41,7 @@ function NavIcon({ id }: { id: string }) {
     case "ic-chat":      return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><path d="M4 5.5h16a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H9l-4 3.5V17H4a1.5 1.5 0 0 1-1.5-1.5V7A1.5 1.5 0 0 1 4 5.5z"/><path d="M7.5 10h9M7.5 13h6"/></svg>;
     case "ic-users":     return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><circle cx="9" cy="7.5" r="3.2"/><path d="M2.5 20.5c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><circle cx="17.5" cy="8" r="2.4"/><path d="M21.5 20.5c0-2.8-1.8-5.1-4.3-5.9"/></svg>;
     case "ic-activity":  return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><path d="M3 12h4l2.5-6 5 13 2.5-7H21"/></svg>;
+    case "ic-report":    return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><path d="M4 20.5V3.5"/><path d="M4 20.5H21"/><path d="M8 16v-5M12.5 16V8M17 16v-3.5"/></svg>;
     case "ic-gear":      return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v2.2M12 19.3v2.2M21.5 12h-2.2M4.7 12H2.5M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6M18.7 18.7l-1.6-1.6M6.9 6.9 5.3 5.3"/></svg>;
     case "ic-loyalty":   return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><circle cx="12" cy="8.5" r="3.5"/><path d="M12 13.5V16M9.5 20.5h5M5.5 20.5l1.8-4h9.4l1.8 4"/></svg>;
     case "ic-bell":      return <svg viewBox="0 0 24 24" {...S} className="w-[19px] h-[19px] flex-none"><path d="M5.5 10.5a6.5 6.5 0 0 1 13 0V15l1.5 1.5H4L5.5 15v-4.5z"/><path d="M10 16.5a2 2 0 0 0 4 0"/></svg>;
