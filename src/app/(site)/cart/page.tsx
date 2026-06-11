@@ -5,15 +5,16 @@ import Link from "next/link";
 import {
   Loader2, Tag, X, CheckCircle, ChevronDown, ChevronUp,
   Package, MapPin, Clock, Wallet, Phone, User, FileText,
-  Home, Store,
+  Home, Store, LocateFixed,
 } from "lucide-react";
 import BLIcon from "@/components/BLIcon";
 import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
-import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, subirComprobante } from "@/actions/publico";
+import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, subirComprobante } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
+import { calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from "@/lib/envio";
 
 function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -78,6 +79,13 @@ export default function CartPage() {
   });
   const [savedUser, setSavedUser] = useState<Partial<DatosForm> | null>(null);
 
+  // ── Envío a domicilio ──
+  const [envioCfg, setEnvioCfg] = useState<ConfigEnvio | null>(null);
+  const [envioCoords, setEnvioCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [envioSede, setEnvioSede] = useState("");          // fallback manual sin GPS
+  const [envioLoading, setEnvioLoading] = useState(false);
+  const [envioError, setEnvioError] = useState("");
+
   useEffect(() => {
     if (!promoError) return;
     const t = setTimeout(() => setPromoError(""), 5000);
@@ -87,6 +95,7 @@ export default function CartPage() {
   useEffect(() => {
     setMounted(true);
     getConfiguracionBanco().then(setBanco);
+    getConfiguracionEnvio().then(setEnvioCfg).catch(() => {});
     // Load saved user data from previous order
     try {
       const lastPhone = localStorage.getItem("brownielab_last_phone");
@@ -100,8 +109,40 @@ export default function CartPage() {
 
   const subtotal = total();
   const descuento = promo ? Math.round(subtotal * (promo.descuento_porcentaje / 100) * 100) / 100 : 0;
-  const totalFinal = subtotal - descuento;
+
+  // Envío: mismo cálculo que el servidor (lib/envio) — el server siempre revalida
+  const envioActivo = datos.tipo_entrega === "domicilio" && !!envioCfg && envioCfg.sedes.length > 0;
+  const envioCalc = envioActivo
+    ? (envioCoords
+        ? calcularEnvio(envioCfg!, envioCoords.lat, envioCoords.lng, subtotal - descuento)
+        : envioSede
+          ? calcularEnvioPorSede(envioCfg!, envioSede, subtotal - descuento)
+          : null)
+    : null;
+  const costoEnvio = envioCalc && !envioCalc.fueraDeRango ? envioCalc.costo : 0;
+  const totalFinal = subtotal - descuento + costoEnvio;
   const sym = storeConfig.currencySymbol;
+
+  function handleUsarUbicacion() {
+    if (!("geolocation" in navigator)) {
+      setEnvioError("Tu navegador no soporta ubicación. Elige tu ciudad abajo.");
+      return;
+    }
+    setEnvioLoading(true);
+    setEnvioError("");
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setEnvioCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        setEnvioSede("");
+        setEnvioLoading(false);
+      },
+      () => {
+        setEnvioLoading(false);
+        setEnvioError("No pudimos obtener tu ubicación. Elige tu ciudad abajo (tarifa base).");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  }
 
   function fillFromSaved() {
     if (!savedUser) return;
@@ -133,6 +174,8 @@ export default function CartPage() {
     const localDigits = digits.startsWith("504") && digits.length === 11 ? digits.slice(3) : digits;
     if (!/^[2389]\d{7}$/.test(localDigits)) e.telefono = "Ingresa un número hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9)";
     if (datos.tipo_entrega === "domicilio" && !datos.direccion.trim()) e.direccion = "Dirección requerida para entrega a domicilio";
+    if (envioActivo && !envioCalc) setEnvioError("Calcula tu envío con tu ubicación o elige tu ciudad.");
+    if (envioCalc?.fueraDeRango) setEnvioError(`Tu ubicación está fuera de nuestra zona de entrega (máx. ${envioCfg?.km_max} km). Escríbenos por WhatsApp para coordinar.`);
     if (!datos.metodo_pago) e.metodo_pago = "Selecciona un método de pago";
     if (datos.fecha_entrega) {
       const min = new Date(); min.setDate(min.getDate() + 1); min.setHours(0, 0, 0, 0);
@@ -141,7 +184,8 @@ export default function CartPage() {
       }
     }
     setFormErrors(e);
-    return Object.keys(e).length === 0;
+    const envioBloquea = envioActivo && (!envioCalc || envioCalc.fueraDeRango);
+    return Object.keys(e).length === 0 && !envioBloquea;
   }
 
   async function handleConfirm() {
@@ -162,7 +206,11 @@ export default function CartPage() {
         fecha_entrega: datos.fecha_entrega || undefined, hora_entrega: datos.hora_entrega || undefined,
       };
 
-      const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo, idempotencyKey.current);
+      const envioInput = datos.tipo_entrega === "domicilio"
+        ? (envioCoords ?? (envioSede ? { sede: envioSede } : null))
+        : null;
+
+      const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo, idempotencyKey.current, envioInput);
 
       if (!result.success) {
         setOrderError(result.error ?? 'Error al crear el pedido.');
@@ -410,6 +458,12 @@ export default function CartPage() {
           <div className="flex justify-between text-[15px]" style={{ color: "#1a7a40" }}>
             <span>Descuento</span>
             <span>−{sym}{descuento.toFixed(2)}</span>
+          </div>
+        )}
+        {envioActivo && envioCalc && !envioCalc.fueraDeRango && (
+          <div className="flex justify-between text-[15px]" style={{ color: envioCalc.gratis ? "#1a7a40" : "var(--ink-soft)" }}>
+            <span>Envío ({envioCalc.sede.nombre})</span>
+            <span>{envioCalc.gratis ? "GRATIS" : `${sym}${costoEnvio.toFixed(2)}`}</span>
           </div>
         )}
       </div>
@@ -872,6 +926,77 @@ export default function CartPage() {
                         />
                       </div>
                     </Field>
+
+                    {/* Costo de envío */}
+                    {envioActivo && (
+                      <div className="mt-4 rounded-[14px] p-4" style={{ background: "var(--cream)", border: "1px solid var(--hairline)" }}>
+                        <p className="text-sm font-medium text-stone-700 mb-2.5">Costo de envío</p>
+
+                        <div className="flex flex-wrap items-center gap-2.5">
+                          <button
+                            type="button"
+                            onClick={handleUsarUbicacion}
+                            disabled={envioLoading}
+                            className="inline-flex items-center gap-2 font-bold text-[13.5px] px-4 py-2.5 rounded-full cursor-pointer transition-all"
+                            style={{
+                              background: envioCoords ? "rgba(31,138,91,.12)" : "var(--orange)",
+                              color: envioCoords ? "var(--green)" : "#fff",
+                              border: envioCoords ? "1.5px solid var(--green)" : "1.5px solid transparent",
+                              opacity: envioLoading ? 0.7 : 1,
+                            }}
+                          >
+                            {envioLoading
+                              ? <Loader2 className="w-4 h-4 animate-spin" />
+                              : <LocateFixed className="w-4 h-4" />}
+                            {envioCoords ? "Ubicación detectada ✓" : envioLoading ? "Obteniendo ubicación…" : "Calcular con mi ubicación"}
+                          </button>
+
+                          <span className="text-[12.5px]" style={{ color: "var(--ink-soft)" }}>ó</span>
+
+                          <select
+                            value={envioSede}
+                            onChange={(e) => { setEnvioSede(e.target.value); setEnvioCoords(null); setEnvioError(""); }}
+                            className="text-[13.5px] font-semibold px-3.5 py-2.5 rounded-full cursor-pointer"
+                            style={{ border: "1.5px solid var(--hairline)", background: "var(--paper-card)", color: "var(--ink)", outline: "none" }}
+                            aria-label="Elegir ciudad de entrega"
+                          >
+                            <option value="">Elegir mi ciudad…</option>
+                            {envioCfg!.sedes.map((s) => (
+                              <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {envioError && (
+                          <p className="text-red-500 text-xs mt-2.5">{envioError}</p>
+                        )}
+
+                        {envioCalc && !envioCalc.fueraDeRango && (
+                          <div className="flex items-center justify-between gap-3 mt-3 pt-3" style={{ borderTop: "1px dashed var(--hairline)" }}>
+                            <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                              Desde {envioCalc.sede.nombre}
+                              {envioCalc.distancia_km > 0 && ` · ~${envioCalc.distancia_km} km`}
+                              {envioCalc.distancia_km === 0 && " · tarifa base"}
+                            </span>
+                            <span className="font-extrabold text-[16px]" style={{ color: envioCalc.gratis ? "var(--green)" : "var(--orange-ink)" }}>
+                              {envioCalc.gratis ? "GRATIS 🎉" : `${sym}${envioCalc.costo.toFixed(2)}`}
+                            </span>
+                          </div>
+                        )}
+
+                        {envioCalc?.fueraDeRango && (
+                          <p className="text-[13px] mt-3 rounded-[10px] px-3 py-2.5" style={{ background: "#fdf4dc", border: "1px solid #f0dca6", color: "var(--choco-700)" }}>
+                            ⚠️ Tu ubicación está a ~{envioCalc.distancia_km} km — fuera de nuestra zona de entrega (máx. {envioCfg!.km_max} km). Escríbenos por WhatsApp para coordinar.
+                          </p>
+                        )}
+
+                        {!envioCalc && !envioError && envioCfg!.gratis_desde > 0 && (
+                          <p className="text-[12px] mt-2.5" style={{ color: "var(--ink-soft)" }}>
+                            💡 Envío gratis en pedidos desde {sym}{envioCfg!.gratis_desde.toFixed(2)}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

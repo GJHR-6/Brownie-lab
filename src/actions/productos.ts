@@ -93,6 +93,46 @@ function parseProductoFormData(formData: FormData) {
   };
 }
 
+// Actualización masiva de costos de producción (editor /admin/costos)
+export async function actualizarCostos(
+  updates: Array<{ id: string; costo: number }>
+): Promise<ActionResult<{ actualizados: number }>> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    if (!Array.isArray(updates) || updates.length === 0) {
+      return { success: false, error: 'No hay cambios para guardar.' };
+    }
+    if (updates.length > 500) {
+      return { success: false, error: 'Demasiados cambios en una sola operación.' };
+    }
+
+    const validos = updates.filter(u =>
+      typeof u.id === 'string' && u.id.length > 0 &&
+      Number.isFinite(u.costo) && u.costo >= 0 && u.costo <= 100_000
+    );
+    if (validos.length === 0) return { success: false, error: 'Costos inválidos.' };
+
+    const resultados = await Promise.all(
+      validos.map(u =>
+        supabase.from('productos').update({ costo: Math.round(u.costo * 100) / 100 }).eq('id', u.id)
+      )
+    );
+    const fallidos = resultados.filter(r => r.error);
+    if (fallidos.length > 0) {
+      return { success: false, error: `Error al guardar ${fallidos.length} producto(s): ${fallidos[0].error?.message}` };
+    }
+
+    revalidatePath('/admin/costos');
+    revalidatePath('/admin/reportes');
+    revalidatePath('/admin/inventario');
+    await logActividad('producto', `Costos de producción actualizados (${validos.length} productos)`);
+    return { success: true, data: { actualizados: validos.length } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
 export async function createProducto(
   _prevState: ActionResult<Producto> | null,
   formData: FormData

@@ -27,6 +27,13 @@ export interface Producto {
   updated_at: string;
 }
 
+export interface EnvioDatos {
+  sede: string;            // sede de despacho asignada
+  distancia_km: number;    // 0 si fue selección manual de sede (sin GPS)
+  costo: number;
+  gratis: boolean;
+}
+
 export interface ClienteDatos {
   nombre: string;
   telefono: string;
@@ -36,6 +43,7 @@ export interface ClienteDatos {
   direccion?: string;
   fecha_entrega?: string;
   hora_entrega?: string;
+  envio?: EnvioDatos;
 }
 
 export interface PedidoItem {
@@ -56,6 +64,7 @@ export interface Pedido {
   telefono_cliente?: string | null;
   metodo_pago?: 'efectivo' | 'transferencia' | null;
   descuento?: number;
+  costo_envio?: number;
   created_at: string;
   updated_at: string;
 }
@@ -127,6 +136,11 @@ export interface Configuracion {
   banco_nombre: string;
   banco_titular: string;
   banco_numero: string;
+  envio_sedes: Array<{ nombre: string; lat: number; lng: number; tarifa_base: number }>;
+  envio_por_km: number;
+  envio_factor_ruta: number;
+  envio_km_max: number;
+  envio_gratis_monto: number;
   updated_at: string;
 }
 

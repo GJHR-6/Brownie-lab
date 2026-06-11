@@ -7,6 +7,7 @@ import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
+import { parseConfigEnvio, calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from '@/lib/envio';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
 
@@ -132,18 +133,37 @@ export async function getConfiguracionBanco(): Promise<{ banco: string; titular:
   }
 }
 
+export async function getConfiguracionEnvio(): Promise<ConfigEnvio> {
+  const vacio: ConfigEnvio = { sedes: [], por_km: 0, factor_ruta: 1.3, km_max: 0, gratis_desde: 0 };
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from('configuracion')
+      .select('envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto')
+      .eq('id', 1)
+      .single();
+    return data ? parseConfigEnvio(data) : vacio;
+  } catch {
+    return vacio;
+  }
+}
+
 // ── Crear pedido desde checkout público ──────────────────────────────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const TIPOS_ENTREGA  = new Set(['pickup', 'domicilio', '']);
 const METODOS_PAGO   = new Set(['efectivo', 'transferencia', '']);
 
+// Ubicación GPS del cliente o sede elegida a mano (fallback sin GPS)
+export type EnvioInput = { lat: number; lng: number } | { sede: string };
+
 export async function crearPedidoPublico(
   clienteDatos: ClienteDatos,
   items: PedidoItem[],
   _totalCliente: number,
   promo?: { codigo: string; descuento_porcentaje: number } | null,
-  idempotencyKey?: string
+  idempotencyKey?: string,
+  envioInput?: EnvioInput | null
 ): Promise<ActionResult<{ id: string }>> {
   const ip = getIpFromHeaders(await headers());
   if (!rateLimit(`order:${ip}`, 5, 60 * 60 * 1000)) {
@@ -246,7 +266,50 @@ export async function crearPedidoPublico(
       nota_promo = `Descuento ${cleanCode.toUpperCase()} (${promoData.descuento_porcentaje}%)`;
     }
 
-    const totalReal = Math.round((subtotalReal - descuento) * 100) / 100;
+    // ── 6.5 Calcular envío en el servidor (nunca confiar en el costo del cliente) ──
+    let costoEnvio = 0;
+    if (sanitizedDatos.tipo_entrega === 'domicilio') {
+      const { data: cfgRaw } = await supabase
+        .from('configuracion')
+        .select('envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto')
+        .eq('id', 1)
+        .single();
+      const cfgEnvio = parseConfigEnvio(cfgRaw ?? {});
+
+      if (cfgEnvio.sedes.length > 0) {
+        const subtotalConDescuento = Math.round((subtotalReal - descuento) * 100) / 100;
+        let resultado = null;
+
+        if (envioInput && 'lat' in envioInput) {
+          const { lat, lng } = envioInput;
+          // Bounds aproximados de Honduras — rechaza coords basura
+          if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 12.9 || lat > 16.6 || lng < -89.5 || lng > -83) {
+            return { success: false, error: 'Ubicación de entrega inválida.' };
+          }
+          resultado = calcularEnvio(cfgEnvio, lat, lng, subtotalConDescuento);
+          if (resultado?.fueraDeRango) {
+            return { success: false, error: `Lo sentimos, tu ubicación está fuera de nuestra zona de entrega (máx. ${cfgEnvio.km_max} km).` };
+          }
+        } else if (envioInput && 'sede' in envioInput) {
+          resultado = calcularEnvioPorSede(cfgEnvio, sanitizeText(envioInput.sede, 80), subtotalConDescuento);
+          if (!resultado) return { success: false, error: 'Ciudad de entrega inválida.' };
+        } else {
+          return { success: false, error: 'Calcula el costo de envío antes de confirmar el pedido.' };
+        }
+
+        if (resultado) {
+          costoEnvio = resultado.costo;
+          sanitizedDatos.envio = {
+            sede: resultado.sede.nombre,
+            distancia_km: resultado.distancia_km,
+            costo: resultado.costo,
+            gratis: resultado.gratis,
+          };
+        }
+      }
+    }
+
+    const totalReal = Math.round((subtotalReal - descuento + costoEnvio) * 100) / 100;
     if (totalReal <= 0) return { success: false, error: 'Total inválido.' };
 
     const datos = nota_promo
@@ -265,6 +328,7 @@ export async function crearPedidoPublico(
       // Columnas contables (además del JSON, para reportes queryables)
       metodo_pago: METODOS_PAGO.has(clienteDatos.metodo_pago ?? '') ? clienteDatos.metodo_pago : null,
       descuento,
+      costo_envio: costoEnvio,
     };
     if (idempotencyKey) row.idempotency_key = idempotencyKey;
 

@@ -21,6 +21,7 @@ interface DiaResumen {
   pedidos: number;
   ventas: number;
   descuentos: number;
+  envios: number;
   efectivo: number;
   transferencia: number;
   sinMetodo: number;
@@ -28,7 +29,7 @@ interface DiaResumen {
   gastos: number;
 }
 
-const DIA_VACIO: DiaResumen = { pedidos: 0, ventas: 0, descuentos: 0, efectivo: 0, transferencia: 0, sinMetodo: 0, cogs: 0, gastos: 0 };
+const DIA_VACIO: DiaResumen = { pedidos: 0, ventas: 0, descuentos: 0, envios: 0, efectivo: 0, transferencia: 0, sinMetodo: 0, cogs: 0, gastos: 0 };
 
 export async function GET(request: NextRequest): Promise<Response> {
   const supabase = await createSupabaseServerClient();
@@ -48,7 +49,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const [pedidosRes, gastosRes, productosRes] = await Promise.all([
     supabase
       .from('pedidos')
-      .select('total, descuento, estado, metodo_pago, cliente_datos, created_at, pedido_items(producto_id, cantidad)')
+      .select('total, descuento, costo_envio, estado, metodo_pago, cliente_datos, created_at, pedido_items(producto_id, cantidad)')
       .neq('estado', 'cancelado')
       .gte('created_at', `${desde}T00:00:00${TZ_OFFSET}`)
       .lte('created_at', `${hasta}T23:59:59.999${TZ_OFFSET}`)
@@ -76,7 +77,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   };
 
   type PedidoExport = {
-    total: number; descuento: number | null; metodo_pago: string | null;
+    total: number; descuento: number | null; costo_envio: number | null; metodo_pago: string | null;
     cliente_datos: { metodo_pago?: string } | null; created_at: string;
     pedido_items: Array<{ producto_id: string | null; cantidad: number }> | null;
   };
@@ -87,6 +88,7 @@ export async function GET(request: NextRequest): Promise<Response> {
     d.pedidos += 1;
     d.ventas += total;
     d.descuentos += Number(p.descuento ?? 0);
+    d.envios += Number(p.costo_envio ?? 0);
 
     const metodo = p.metodo_pago ?? p.cliente_datos?.metodo_pago ?? '';
     if (metodo === 'efectivo') d.efectivo += total;
@@ -106,7 +108,7 @@ export async function GET(request: NextRequest): Promise<Response> {
   const num = (n: number) => n.toFixed(2);
 
   const headerRow = [
-    'Fecha', 'Pedidos', 'Ventas HNL', 'Descuentos HNL', 'Efectivo HNL', 'Transferencia HNL',
+    'Fecha', 'Pedidos', 'Ventas HNL', 'Descuentos HNL', 'Envíos cobrados HNL', 'Efectivo HNL', 'Transferencia HNL',
     'Sin método HNL', 'Costo producción HNL', 'Gastos HNL', 'Utilidad del día HNL',
   ];
 
@@ -118,19 +120,20 @@ export async function GET(request: NextRequest): Promise<Response> {
     totales.pedidos += d.pedidos;
     totales.ventas += d.ventas;
     totales.descuentos += d.descuentos;
+    totales.envios += d.envios;
     totales.efectivo += d.efectivo;
     totales.transferencia += d.transferencia;
     totales.sinMetodo += d.sinMetodo;
     totales.cogs += d.cogs;
     totales.gastos += d.gastos;
     const utilidad = d.ventas - d.cogs - d.gastos;
-    return [fecha, d.pedidos, num(d.ventas), num(d.descuentos), num(d.efectivo), num(d.transferencia), num(d.sinMetodo), num(d.cogs), num(d.gastos), num(utilidad)]
+    return [fecha, d.pedidos, num(d.ventas), num(d.descuentos), num(d.envios), num(d.efectivo), num(d.transferencia), num(d.sinMetodo), num(d.cogs), num(d.gastos), num(utilidad)]
       .map(esc).join(',');
   });
 
   const utilidadTotal = totales.ventas - totales.cogs - totales.gastos;
   const totalRow = [
-    'TOTALES', totales.pedidos, num(totales.ventas), num(totales.descuentos), num(totales.efectivo),
+    'TOTALES', totales.pedidos, num(totales.ventas), num(totales.descuentos), num(totales.envios), num(totales.efectivo),
     num(totales.transferencia), num(totales.sinMetodo), num(totales.cogs), num(totales.gastos), num(utilidadTotal),
   ].map(esc).join(',');
 

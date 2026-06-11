@@ -177,9 +177,20 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
                 </div>
               )}
               {cd.metodo_pago && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14, borderBottom: cd.envio ? '1px dashed var(--hairline)' : 0 }}>
                   <span style={{ color: 'var(--ink-soft)' }}>Método de pago</span>
                   <span style={{ fontWeight: 600 }}>{cd.metodo_pago === 'efectivo' ? '💵 Efectivo' : '🏦 Transferencia'}</span>
+                </div>
+              )}
+              {cd.envio && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', fontSize: 14 }}>
+                  <span style={{ color: 'var(--ink-soft)' }}>Envío</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {cd.envio.sede}
+                    {cd.envio.distancia_km > 0 && ` · ~${cd.envio.distancia_km} km`}
+                    {' · '}
+                    {cd.envio.gratis ? 'GRATIS' : `L.${Number(cd.envio.costo).toFixed(2)}`}
+                  </span>
                 </div>
               )}
             </div>
