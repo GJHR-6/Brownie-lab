@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import DashboardPeriodTabs from "../DashboardPeriodTabs";
 import ExportCsvRange from "./ExportCsvRange";
@@ -17,8 +18,9 @@ interface PedidoRow {
   total: number;
   estado: string;
   cliente_datos: ClienteDatos;
+  metodo_pago: string | null;
   created_at: string;
-  pedido_items: Array<{ nombre_producto: string; precio_unitario: number; cantidad: number; subtotal: number }> | null;
+  pedido_items: Array<{ producto_id: string | null; nombre_producto: string; precio_unitario: number; cantidad: number; subtotal: number }> | null;
 }
 
 function getPeriodoStart(periodo: string): Date | null {
@@ -34,9 +36,14 @@ function getPeriodoStart(periodo: string): Date | null {
   return null;
 }
 
-function metodoKey(cd: ClienteDatos): string {
-  const m = (cd.metodo_pago ?? '').toLowerCase();
+// Columna real primero; fallback al JSON para pedidos viejos sin backfill.
+function metodoKey(p: PedidoRow): string {
+  const m = (p.metodo_pago ?? p.cliente_datos?.metodo_pago ?? '').toLowerCase();
   return m === 'efectivo' || m === 'transferencia' ? m : 'otro';
+}
+
+function fechaLocal(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function fmtMoney(n: number): string {
@@ -57,12 +64,21 @@ export default async function ReportesPage({
 
   let query = supabase
     .from("pedidos")
-    .select("id, total, estado, cliente_datos, created_at, pedido_items(nombre_producto, precio_unitario, cantidad, subtotal)")
+    .select("id, total, estado, cliente_datos, metodo_pago, created_at, pedido_items(producto_id, nombre_producto, precio_unitario, cantidad, subtotal)")
     .order("created_at", { ascending: false });
   if (periodoStart) query = query.gte("created_at", periodoStart.toISOString());
 
-  const { data } = await query;
+  let gastosQuery = supabase.from("gastos").select("categoria, monto, fecha");
+  if (periodoStart) gastosQuery = gastosQuery.gte("fecha", fechaLocal(periodoStart));
+
+  const [{ data }, { data: gastosData }, { data: costosData }] = await Promise.all([
+    query,
+    gastosQuery,
+    supabase.from("productos").select("id, costo"),
+  ]);
   const pedidos = (data ?? []) as unknown as PedidoRow[];
+  const gastos = (gastosData ?? []) as Array<{ categoria: string; monto: number; fecha: string }>;
+  const costoMap = new Map((costosData ?? []).map((p: { id: string; costo: number | null }) => [p.id, Number(p.costo ?? 0)]));
 
   const ventas = pedidos.filter(p => p.estado !== 'cancelado');
   const cancelados = pedidos.filter(p => p.estado === 'cancelado');
@@ -72,9 +88,25 @@ export default async function ReportesPage({
   const ticketPromedio = ventas.length > 0 ? totalVentas / ventas.length : 0;
   const totalCancelado = cancelados.reduce((s, p) => s + Number(p.total), 0);
 
+  /* ── Estado de resultados (P&L simple) ── */
+  // COGS: costo actual del producto × unidades vendidas (aprox. — costo histórico no se guarda)
+  let cogs = 0;
+  let unidadesSinCosto = 0;
+  for (const p of ventas) {
+    for (const item of p.pedido_items ?? []) {
+      const costo = item.producto_id ? costoMap.get(item.producto_id) ?? 0 : 0;
+      if (costo > 0) cogs += costo * Number(item.cantidad);
+      else unidadesSinCosto += Number(item.cantidad);
+    }
+  }
+  const totalGastos = gastos.reduce((s, g) => s + Number(g.monto), 0);
+  const margenBruto = totalVentas - cogs;
+  const utilidadNeta = margenBruto - totalGastos;
+  const margenPct = totalVentas > 0 ? Math.round((utilidadNeta / totalVentas) * 100) : 0;
+
   /* ── Desglose por método de pago ── */
   const porMetodo = ventas.reduce((acc, p) => {
-    const k = metodoKey(p.cliente_datos ?? {} as ClienteDatos);
+    const k = metodoKey(p);
     acc[k] = acc[k] ?? { monto: 0, count: 0 };
     acc[k].monto += Number(p.total);
     acc[k].count += 1;
@@ -85,7 +117,7 @@ export default async function ReportesPage({
   const ventasHoy = ventas.filter(p => p.created_at >= startOfToday);
   // Si el período no incluye hoy (no pasa con los períodos actuales), corte queda en cero.
   const cortePorMetodo = ventasHoy.reduce((acc, p) => {
-    const k = metodoKey(p.cliente_datos ?? {} as ClienteDatos);
+    const k = metodoKey(p);
     acc[k] = acc[k] ?? { monto: 0, count: 0 };
     acc[k].monto += Number(p.total);
     acc[k].count += 1;
@@ -157,6 +189,69 @@ export default async function ReportesPage({
             <p className="text-[13px] font-[500] mt-2" style={{ color: "var(--ink-soft)" }}>{sub}</p>
           </div>
         ))}
+      </div>
+
+      {/* Estado de resultados */}
+      <div className="rounded-[20px] p-[26px]" style={cardStyle}>
+        <div className="flex items-baseline justify-between gap-3 flex-wrap mb-5">
+          <h2 className="font-[700] text-[16px]" style={{ color: "var(--ink)" }}>
+            Estado de resultados — {PERIODOS[periodo] ?? 'Este mes'}
+          </h2>
+          <Link href="/admin/gastos" className="text-[13px] font-[700]" style={{ color: "var(--orange-ink)" }}>
+            Gestionar gastos →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div>
+            {[
+              { label: "Ventas", value: totalVentas, sign: "" },
+              { label: "Costo de producción (COGS)", value: cogs, sign: "−" },
+              { label: "Margen bruto", value: margenBruto, sign: "=", strong: true },
+              { label: "Gastos operativos", value: totalGastos, sign: "−" },
+            ].map(({ label, value, sign, strong }) => (
+              <div
+                key={label}
+                className="flex items-center justify-between gap-3 py-[12px]"
+                style={{ borderBottom: "1px dashed var(--hairline)" }}
+              >
+                <span className="text-[14.5px]" style={{ color: "var(--ink)", fontWeight: strong ? 700 : 500 }}>
+                  {sign && <span style={{ color: "var(--ink-soft)", marginRight: 6, fontFamily: "ui-monospace,monospace" }}>{sign}</span>}
+                  {label}
+                </span>
+                <span
+                  className="font-[700] text-[16px]"
+                  style={{ fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)", color: sign === "−" ? "var(--berry)" : "var(--ink)" }}
+                >
+                  {fmtMoney(value)}
+                </span>
+              </div>
+            ))}
+            <div
+              className="flex items-center justify-between gap-3 mt-4 rounded-[14px] px-4 py-3"
+              style={{ background: utilidadNeta >= 0 ? "rgba(31,138,91,.1)" : "rgba(158,59,70,.1)", border: "1px solid var(--hairline)" }}
+            >
+              <span className="text-[15px] font-[700]" style={{ color: "var(--ink)" }}>Utilidad neta</span>
+              <span
+                className="font-[700] text-[22px]"
+                style={{ fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)", color: utilidadNeta >= 0 ? "var(--green)" : "var(--berry)" }}
+              >
+                {fmtMoney(utilidadNeta)} <span className="text-[14px]">({margenPct}%)</span>
+              </span>
+            </div>
+          </div>
+          <div className="text-[13.5px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
+            <p className="font-[700] text-[13px] uppercase tracking-[.08em] mb-2" style={{ color: "var(--ink-soft)" }}>Cómo se calcula</p>
+            <p>COGS = costo de producción por unidad (definido en cada producto del inventario) × unidades vendidas en el período. Gastos = registros de la sección Gastos cuya fecha cae en el período.</p>
+            {unidadesSinCosto > 0 && (
+              <p
+                className="mt-3 rounded-[12px] px-4 py-3"
+                style={{ background: "#fdf4dc", border: "1px solid #f0dca6", color: "var(--choco-700)" }}
+              >
+                ⚠️ {unidadesSinCosto} unidad{unidadesSinCosto !== 1 ? 'es' : ''} vendida{unidadesSinCosto !== 1 ? 's' : ''} sin costo definido — el margen real es menor al mostrado. Define el costo en <Link href="/admin/inventario" style={{ fontWeight: 700, color: "var(--orange-ink)" }}>Inventario</Link>.
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

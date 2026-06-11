@@ -82,6 +82,17 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                     onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Método de pago</label>
+                  <select name="metodo_pago" disabled={isPending} defaultValue=""
+                    style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}
+                    onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
+                    onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}>
+                    <option value="">Sin especificar</option>
+                    <option value="efectivo">💵 Efectivo</option>
+                    <option value="transferencia">🏦 Transferencia</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
                   <input name="notas" maxLength={500} disabled={isPending}
                     placeholder="Sin nueces, para llevar…"

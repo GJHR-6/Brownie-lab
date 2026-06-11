@@ -262,6 +262,9 @@ export async function crearPedidoPublico(
     const row: Record<string, unknown> = {
       cliente_datos: datos, total: totalReal, estado: 'pendiente',
       telefono_cliente: telefono, ip_origen: ip,
+      // Columnas contables (además del JSON, para reportes queryables)
+      metodo_pago: METODOS_PAGO.has(clienteDatos.metodo_pago ?? '') ? clienteDatos.metodo_pago : null,
+      descuento,
     };
     if (idempotencyKey) row.idempotency_key = idempotencyKey;
 

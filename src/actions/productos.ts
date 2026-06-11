@@ -48,6 +48,7 @@ function normalizeProducto(p: Record<string, unknown>): Producto {
     ...p,
     categoria_id:          (p.categoria_id as string) ?? '',
     categoria:             cat?.slug ?? (p.categoria as string) ?? '',
+    costo:                 Number(p.costo ?? 0),
     imagenes:              Array.isArray(p.imagenes) ? p.imagenes : [],
     stock_alerta:          (p.stock_alerta as number) ?? 5,
     alergenos:             Array.isArray(p.alergenos) ? p.alergenos : [],
@@ -74,6 +75,7 @@ function parseProductoFormData(formData: FormData) {
     nombre:                 (formData.get('nombre') as string).trim(),
     descripcion:            (formData.get('descripcion') as string | null)?.trim() || null,
     precio:                 parseFloat(formData.get('precio') as string),
+    costo:                  Math.max(0, parseFloat((formData.get('costo') as string) || '0') || 0),
     stock:                  parseInt(formData.get('stock') as string, 10),
     stock_alerta:           parseInt(formData.get('stock_alerta') as string, 10) || 5,
     categoria_id:           (formData.get('categoria_id') as string) || '',
@@ -118,7 +120,7 @@ export async function createProducto(
     const { data, error } = await supabase
       .from('productos')
       .insert({
-        nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio,
+        nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio, costo: fields.costo,
         stock: fields.stock, stock_alerta: fields.stock_alerta, categoria_id: fields.categoria_id || undefined,
         emoji: fields.emoji, imagen_url, imagenes, tiempo_preparacion: fields.tiempo_preparacion,
         sku: fields.sku, disponible: fields.disponible, destacado_capricho: fields.destacado_capricho,
@@ -174,7 +176,7 @@ export async function updateProducto(
     const { data, error } = await supabase
       .from('productos')
       .update({
-        nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio,
+        nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio, costo: fields.costo,
         stock: fields.stock, stock_alerta: fields.stock_alerta, categoria_id: fields.categoria_id || undefined,
         emoji: fields.emoji, imagen_url, imagenes, tiempo_preparacion: fields.tiempo_preparacion,
         sku: fields.sku, disponible: fields.disponible, destacado_capricho: fields.destacado_capricho,

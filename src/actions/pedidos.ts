@@ -167,6 +167,8 @@ export async function crearPedidoManual(
     const nombre = (formData.get('nombre') as string).trim();
     const telefono = (formData.get('telefono') as string).trim();
     const notas = (formData.get('notas') as string).trim() || undefined;
+    const metodoPagoRaw = (formData.get('metodo_pago') as string | null)?.trim();
+    const metodo_pago = metodoPagoRaw === 'efectivo' || metodoPagoRaw === 'transferencia' ? metodoPagoRaw : null;
     const itemsJson = formData.get('items_json') as string;
 
     if (!nombre || !telefono) {
@@ -185,7 +187,7 @@ export async function crearPedidoManual(
     }
 
     const total = items.reduce((sum, i) => sum + i.subtotal, 0);
-    const cliente_datos = { nombre, telefono, notas };
+    const cliente_datos = { nombre, telefono, notas, ...(metodo_pago ? { metodo_pago } : {}) };
 
     await supabase.from('clientes').upsert(
       { telefono, nombre },
@@ -194,7 +196,7 @@ export async function crearPedidoManual(
 
     const { data, error } = await supabase
       .from('pedidos')
-      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono })
+      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono, metodo_pago })
       .select()
       .single();
 
