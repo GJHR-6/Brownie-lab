@@ -5,6 +5,7 @@ export interface Producto {
   nombre: string;
   descripcion: string | null;
   precio: number;
+  costo: number;               // costo de producción por unidad (0 = sin definir)
   imagen_url: string | null;
   imagenes: string[];
   stock: number;
@@ -53,6 +54,20 @@ export interface Pedido {
   estado: EstadoPedido;
   comprobante_url?: string | null;
   telefono_cliente?: string | null;
+  metodo_pago?: 'efectivo' | 'transferencia' | null;
+  descuento?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type GastoCategoria = 'ingredientes' | 'empaque' | 'delivery' | 'servicios' | 'equipo' | 'marketing' | 'otros';
+
+export interface Gasto {
+  id: string;
+  fecha: string;               // YYYY-MM-DD
+  categoria: GastoCategoria;
+  monto: number;
+  nota: string | null;
   created_at: string;
   updated_at: string;
 }

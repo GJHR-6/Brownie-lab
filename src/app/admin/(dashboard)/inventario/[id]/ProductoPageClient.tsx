@@ -215,6 +215,16 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                 </div>
 
                 <div>
+                  <label style={T.label}>Costo de producción <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>(opcional — para calcular margen en Reportes)</span></label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: 'var(--ink-soft)', pointerEvents: 'none' }}>L.</span>
+                    <input name="costo" type="number" step="0.01" min="0" defaultValue={producto?.costo || ''}
+                      placeholder="Ingredientes + empaque por unidad"
+                      style={{ ...T.inp, paddingLeft: 32 }} onFocus={inpFocus} onBlur={inpBlur} />
+                  </div>
+                </div>
+
+                <div>
                   <label style={T.label}>Tiempo de preparación <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>(opcional)</span></label>
                   <input name="tiempo_preparacion" defaultValue={producto?.tiempo_preparacion ?? ''} placeholder="Ej. 24 horas de anticipación"
                     style={T.inp} onFocus={inpFocus} onBlur={inpBlur} />

@@ -44,16 +44,36 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
-export async function getPedidos(): Promise<Pedido[]> {
+// No exportar: archivos 'use server' solo permiten exportar funciones async.
+// El tamaño de página viaja en el resultado (pageSize).
+const PEDIDOS_PAGE_SIZE = 100;
+
+export interface PedidosPaginados {
+  pedidos: Pedido[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function getPedidos(page = 1): Promise<PedidosPaginados> {
   const { supabase } = await requireAdmin();
 
-  const { data, error } = await supabase
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const from = (safePage - 1) * PEDIDOS_PAGE_SIZE;
+
+  const { data, error, count } = await supabase
     .from('pedidos')
-    .select('*, pedido_items(id, producto_id, nombre_producto, precio_unitario, cantidad, subtotal)')
-    .order('created_at', { ascending: false });
+    .select('*, pedido_items(id, producto_id, nombre_producto, precio_unitario, cantidad, subtotal)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, from + PEDIDOS_PAGE_SIZE - 1);
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map(normalizePedido);
+  return {
+    pedidos: (data ?? []).map(normalizePedido),
+    total: count ?? 0,
+    page: safePage,
+    pageSize: PEDIDOS_PAGE_SIZE,
+  };
 }
 
 function normalizePedido(p: Record<string, unknown>): Pedido {
@@ -167,6 +187,8 @@ export async function crearPedidoManual(
     const nombre = (formData.get('nombre') as string).trim();
     const telefono = (formData.get('telefono') as string).trim();
     const notas = (formData.get('notas') as string).trim() || undefined;
+    const metodoPagoRaw = (formData.get('metodo_pago') as string | null)?.trim();
+    const metodo_pago = metodoPagoRaw === 'efectivo' || metodoPagoRaw === 'transferencia' ? metodoPagoRaw : null;
     const itemsJson = formData.get('items_json') as string;
 
     if (!nombre || !telefono) {
@@ -185,7 +207,7 @@ export async function crearPedidoManual(
     }
 
     const total = items.reduce((sum, i) => sum + i.subtotal, 0);
-    const cliente_datos = { nombre, telefono, notas };
+    const cliente_datos = { nombre, telefono, notas, ...(metodo_pago ? { metodo_pago } : {}) };
 
     await supabase.from('clientes').upsert(
       { telefono, nombre },
@@ -194,7 +216,7 @@ export async function crearPedidoManual(
 
     const { data, error } = await supabase
       .from('pedidos')
-      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono })
+      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono, metodo_pago })
       .select()
       .single();
 

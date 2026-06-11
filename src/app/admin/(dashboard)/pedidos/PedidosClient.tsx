@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useTransition } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Download, Search, X, MessageCircle, Bell } from 'lucide-react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
@@ -315,9 +315,12 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
 }
 
 /* ── Main component ── */
-export default function PedidosClient({ initialPedidos, productos }: { initialPedidos: Pedido[]; productos: Producto[] }) {
+export default function PedidosClient({ initialPedidos, productos, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>(initialPedidos);
+
+  // Sincroniza con datos nuevos del servidor tras router.refresh()
+  useEffect(() => { setPedidos(initialPedidos); }, [initialPedidos]);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
@@ -387,7 +390,8 @@ export default function PedidosClient({ initialPedidos, productos }: { initialPe
             Pedidos recibidos por el sitio y WhatsApp.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {viewSwitcher}
           <a href="/api/admin/export/pedidos" download>
             <button style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' }}>
               <Download style={{ width: 16, height: 16 }} />CSV
@@ -525,6 +529,9 @@ export default function PedidosClient({ initialPedidos, productos }: { initialPe
           </table>
         </div>
       </div>
+
+      {/* Paginación */}
+      {footer}
 
       {/* Drawer */}
       {selectedPedido && (

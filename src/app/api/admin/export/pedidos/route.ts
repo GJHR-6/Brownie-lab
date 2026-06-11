@@ -1,7 +1,14 @@
+import type { NextRequest } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { ClienteDatos } from '@/types/database';
 
-export async function GET(): Promise<Response> {
+// Valida YYYY-MM-DD y que sea una fecha real.
+function parseFecha(raw: string | null): string | null {
+  if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return null;
+  return Number.isNaN(new Date(`${raw}T00:00:00`).getTime()) ? null : raw;
+}
+
+export async function GET(request: NextRequest): Promise<Response> {
   const supabase = await createSupabaseServerClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -11,10 +18,19 @@ export async function GET(): Promise<Response> {
     .from('admin_users').select('user_id').eq('user_id', user.id).single();
   if (!adminRecord) return new Response('No autorizado', { status: 403 });
 
-  const { data, error } = await supabase
+  const desde = parseFecha(request.nextUrl.searchParams.get('desde'));
+  const hasta = parseFecha(request.nextUrl.searchParams.get('hasta'));
+
+  let query = supabase
     .from('pedidos')
     .select('*, pedido_items(nombre_producto, precio_unitario, cantidad)')
     .order('created_at', { ascending: false });
+
+  // Honduras UTC-6 (sin DST) — el día contable corta a medianoche local.
+  if (desde) query = query.gte('created_at', `${desde}T00:00:00-06:00`);
+  if (hasta) query = query.lte('created_at', `${hasta}T23:59:59.999-06:00`);
+
+  const { data, error } = await query;
 
   if (error) return new Response(error.message, { status: 500 });
 
@@ -42,12 +58,14 @@ export async function GET(): Promise<Response> {
   });
 
   const csv = '﻿' + [headerRow.join(','), ...rows].join('\r\n');
-  const fecha = new Date().toISOString().slice(0, 10);
+  const sufijo = desde || hasta
+    ? `${desde ?? 'inicio'}_a_${hasta ?? 'hoy'}`
+    : new Date().toISOString().slice(0, 10);
 
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': `attachment; filename="pedidos-${fecha}.csv"`,
+      'Content-Disposition': `attachment; filename="pedidos-${sufijo}.csv"`,
     },
   });
 }

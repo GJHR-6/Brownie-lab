@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 interface Props {
   periodo: string;
   periodos: Record<string, string>;
+  basePath?: string;
 }
 
-export default function DashboardPeriodTabs({ periodo, periodos }: Props) {
+export default function DashboardPeriodTabs({ periodo, periodos, basePath = '/admin' }: Props) {
   const router = useRouter();
 
   return (
@@ -17,7 +18,7 @@ export default function DashboardPeriodTabs({ periodo, periodos }: Props) {
         return (
           <button
             key={key}
-            onClick={() => router.push(`/admin?periodo=${key}`)}
+            onClick={() => router.push(`${basePath}?periodo=${key}`)}
             style={{
               fontSize: 13, fontWeight: 600, padding: '7px 18px',
               borderRadius: 'var(--r-pill)', border: 'none', cursor: 'pointer',
