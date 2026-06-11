@@ -16,7 +16,10 @@ export default function ExportCsvRange() {
   const params = new URLSearchParams();
   if (desde) params.set('desde', desde);
   if (hasta) params.set('hasta', hasta);
-  const href = `/api/admin/export/pedidos${params.size ? `?${params}` : ''}`;
+  const qs = params.size ? `?${params}` : '';
+  const hrefPedidos = `/api/admin/export/pedidos${qs}`;
+  // Sin rango, el contable exporta el mes actual por defecto
+  const hrefContable = `/api/admin/export/contable${qs}`;
 
   if (!open) {
     return (
@@ -41,10 +44,16 @@ export default function ExportCsvRange() {
         Hasta
         <input type="date" value={hasta} min={desde || undefined} onChange={e => setHasta(e.target.value)} style={inp} />
       </label>
-      <a href={href} download>
+      <a href={hrefPedidos} download title="Detalle de cada pedido del rango">
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 15px', borderRadius: 'var(--r-pill)', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', cursor: 'pointer' }}>
           <Download style={{ width: 14, height: 14 }} />
-          Descargar
+          Pedidos
+        </span>
+      </a>
+      <a href={hrefContable} download title="Resumen diario para el contador: ventas, métodos de pago, costos, gastos y utilidad por día">
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 15px', borderRadius: 'var(--r-pill)', background: 'var(--choco-900)', color: '#fff', cursor: 'pointer' }}>
+          <Download style={{ width: 14, height: 14 }} />
+          Contable
         </span>
       </a>
       <button

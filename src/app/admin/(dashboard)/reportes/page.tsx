@@ -71,14 +71,27 @@ export default async function ReportesPage({
   let gastosQuery = supabase.from("gastos").select("categoria, monto, fecha");
   if (periodoStart) gastosQuery = gastosQuery.gte("fecha", fechaLocal(periodoStart));
 
-  const [{ data }, { data: gastosData }, { data: costosData }] = await Promise.all([
+  // Ventana anterior de igual longitud, terminando donde empieza la actual (para comparativa)
+  const prevStart = periodoStart
+    ? new Date(periodoStart.getTime() - (now.getTime() - periodoStart.getTime()))
+    : null;
+  const prevQuery = periodoStart && prevStart
+    ? supabase.from("pedidos").select("total, estado")
+        .gte("created_at", prevStart.toISOString())
+        .lt("created_at", periodoStart.toISOString())
+        .neq("estado", "cancelado")
+    : null;
+
+  const [{ data }, { data: gastosData }, { data: costosData }, prevRes] = await Promise.all([
     query,
     gastosQuery,
     supabase.from("productos").select("id, costo"),
+    prevQuery ?? Promise.resolve({ data: null }),
   ]);
   const pedidos = (data ?? []) as unknown as PedidoRow[];
   const gastos = (gastosData ?? []) as Array<{ categoria: string; monto: number; fecha: string }>;
   const costoMap = new Map((costosData ?? []).map((p: { id: string; costo: number | null }) => [p.id, Number(p.costo ?? 0)]));
+  const ventasPrev = (prevRes.data ?? null) as Array<{ total: number; estado: string }> | null;
 
   const ventas = pedidos.filter(p => p.estado !== 'cancelado');
   const cancelados = pedidos.filter(p => p.estado === 'cancelado');
@@ -87,6 +100,21 @@ export default async function ReportesPage({
   const totalVentas = ventas.reduce((s, p) => s + Number(p.total), 0);
   const ticketPromedio = ventas.length > 0 ? totalVentas / ventas.length : 0;
   const totalCancelado = cancelados.reduce((s, p) => s + Number(p.total), 0);
+
+  /* ── Comparativa vs ventana anterior ── */
+  // null = sin datos para comparar (período 'todo' o ventana anterior vacía)
+  function delta(actual: number, anterior: number): number | null {
+    if (ventasPrev === null || anterior === 0) return null;
+    return Math.round(((actual - anterior) / anterior) * 100);
+  }
+  const totalVentasPrev = (ventasPrev ?? []).reduce((s, p) => s + Number(p.total), 0);
+  const pedidosPrevCount = (ventasPrev ?? []).length;
+  const ticketPrev = pedidosPrevCount > 0 ? totalVentasPrev / pedidosPrevCount : 0;
+  const dVentas = delta(totalVentas, totalVentasPrev);
+  const dPedidos = delta(ventas.length, pedidosPrevCount);
+  const dTicket = delta(ticketPromedio, ticketPrev);
+  const PREV_LABEL: Record<string, string> = { hoy: 'vs ayer', semana: 'vs semana anterior', mes: 'vs período anterior' };
+  const prevLabel = PREV_LABEL[periodo] ?? 'vs período anterior';
 
   /* ── Estado de resultados (P&L simple) ── */
   // COGS: costo actual del producto × unidades vendidas (aprox. — costo histórico no se guarda)
@@ -103,6 +131,11 @@ export default async function ReportesPage({
   const margenBruto = totalVentas - cogs;
   const utilidadNeta = margenBruto - totalGastos;
   const margenPct = totalVentas > 0 ? Math.round((utilidadNeta / totalVentas) * 100) : 0;
+
+  /* ── ISV 15% (informativo) — asume precios con ISV incluido ── */
+  const ISV_RATE = 0.15;
+  const baseImponible = totalVentas / (1 + ISV_RATE);
+  const isvIncluido = totalVentas - baseImponible;
 
   /* ── Desglose por método de pago ── */
   const porMetodo = ventas.reduce((acc, p) => {
@@ -173,13 +206,27 @@ export default async function ReportesPage({
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {[
-          { label: "Ventas", value: fmtMoney(totalVentas), sub: `${ventas.length} pedido${ventas.length !== 1 ? 's' : ''}` },
-          { label: "Ticket promedio", value: fmtMoney(ticketPromedio), sub: "por pedido" },
-          { label: "Entrega", value: `${pickup} / ${domicilio}`, sub: "pickup / domicilio" },
-          { label: "Cancelados", value: fmtMoney(totalCancelado), sub: `${cancelados.length} pedido${cancelados.length !== 1 ? 's' : ''} no realizados` },
-        ].map(({ label, value, sub }) => (
+          { label: "Ventas", value: fmtMoney(totalVentas), sub: `${ventas.length} pedido${ventas.length !== 1 ? 's' : ''}`, delta: dVentas },
+          { label: "Ticket promedio", value: fmtMoney(ticketPromedio), sub: "por pedido", delta: dTicket },
+          { label: "Pedidos", value: ventas.length, sub: `${pickup} pickup / ${domicilio} domicilio`, delta: dPedidos },
+          { label: "Cancelados", value: fmtMoney(totalCancelado), sub: `${cancelados.length} pedido${cancelados.length !== 1 ? 's' : ''} no realizados`, delta: null },
+        ].map(({ label, value, sub, delta: d }) => (
           <div key={label} className="p-6 rounded-[20px]" style={cardStyle}>
-            <p className="text-[12px] font-[700] uppercase tracking-[.08em]" style={{ color: "var(--ink-soft)" }}>{label}</p>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[12px] font-[700] uppercase tracking-[.08em]" style={{ color: "var(--ink-soft)" }}>{label}</p>
+              {d !== null && (
+                <span
+                  className="text-[11.5px] font-[700] px-[9px] py-[3px] rounded-full whitespace-nowrap"
+                  style={{
+                    background: d >= 0 ? "rgba(31,138,91,.12)" : "rgba(158,59,70,.12)",
+                    color: d >= 0 ? "var(--green)" : "var(--berry)",
+                  }}
+                  title={prevLabel}
+                >
+                  {d >= 0 ? '▲' : '▼'} {Math.abs(d)}%
+                </span>
+              )}
+            </div>
             <p
               className="font-[700] text-[28px] leading-none mt-2.5"
               style={{ fontFamily: "var(--font-playfair, 'Playfair Display', Georgia, serif)", color: "var(--ink)" }}
@@ -190,6 +237,11 @@ export default async function ReportesPage({
           </div>
         ))}
       </div>
+      {dVentas !== null && (
+        <p className="text-[12.5px] -mt-3" style={{ color: "var(--ink-soft)" }}>
+          Comparativa {prevLabel}: {fmtMoney(totalVentasPrev)} en {pedidosPrevCount} pedido{pedidosPrevCount !== 1 ? 's' : ''}.
+        </p>
+      )}
 
       {/* Estado de resultados */}
       <div className="rounded-[20px] p-[26px]" style={cardStyle}>
@@ -242,6 +294,22 @@ export default async function ReportesPage({
           <div className="text-[13.5px] leading-relaxed" style={{ color: "var(--ink-soft)" }}>
             <p className="font-[700] text-[13px] uppercase tracking-[.08em] mb-2" style={{ color: "var(--ink-soft)" }}>Cómo se calcula</p>
             <p>COGS = costo de producción por unidad (definido en cada producto del inventario) × unidades vendidas en el período. Gastos = registros de la sección Gastos cuya fecha cae en el período.</p>
+
+            {/* ISV informativo */}
+            <div className="mt-4 rounded-[14px] px-4 py-3" style={{ background: "var(--cream)", border: "1px solid var(--hairline)" }}>
+              <p className="font-[700] text-[13px] uppercase tracking-[.08em] mb-2" style={{ color: "var(--ink-soft)" }}>ISV 15% — informativo</p>
+              <div className="flex justify-between py-[5px]" style={{ borderBottom: "1px dashed var(--hairline)" }}>
+                <span>Base imponible</span>
+                <span className="font-[700]" style={{ color: "var(--ink)" }}>{fmtMoney(baseImponible)}</span>
+              </div>
+              <div className="flex justify-between py-[5px]">
+                <span>ISV incluido en ventas</span>
+                <span className="font-[700]" style={{ color: "var(--ink)" }}>{fmtMoney(isvIncluido)}</span>
+              </div>
+              <p className="text-[12px] mt-2" style={{ color: "var(--ink-soft)" }}>
+                Asume precios con ISV incluido. Ignora este bloque si no facturás con ISV.
+              </p>
+            </div>
             {unidadesSinCosto > 0 && (
               <p
                 className="mt-3 rounded-[12px] px-4 py-3"
