@@ -84,3 +84,54 @@ export async function updateConfiguracion(
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }
 }
+
+// ── Envíos a domicilio (página /admin/envios) ────────────────────────────────
+
+export async function updateConfiguracionEnvios(
+  _prevState: ActionResult | null,
+  formData: FormData
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const num = (field: string, fallback: number, min = 0) => {
+      const v = parseFloat(formData.get(field) as string ?? '');
+      return Number.isFinite(v) && v >= min ? v : fallback;
+    };
+    const envio_por_km       = num('envio_por_km', 0);
+    const envio_factor_ruta  = num('envio_factor_ruta', 1.3, 1);
+    const envio_km_max       = num('envio_km_max', 0);
+    const envio_gratis_monto = num('envio_gratis_monto', 0);
+
+    let envio_sedes: Array<{ nombre: string; lat: number; lng: number; tarifa_base: number }> = [];
+    try {
+      const parsed = JSON.parse((formData.get('envio_sedes_json') as string) ?? '[]');
+      if (!Array.isArray(parsed)) throw new Error();
+      envio_sedes = parsed
+        .filter((s: Record<string, unknown>) =>
+          typeof s.nombre === 'string' && s.nombre.trim().length > 0 &&
+          Number.isFinite(Number(s.lat)) && Number.isFinite(Number(s.lng)))
+        .map((s: Record<string, unknown>) => ({
+          nombre: (s.nombre as string).trim().slice(0, 80),
+          lat: Number(s.lat),
+          lng: Number(s.lng),
+          tarifa_base: Math.max(0, Number(s.tarifa_base ?? 0)),
+        }));
+    } catch {
+      return { success: false, error: 'Datos de sedes de envío inválidos.' };
+    }
+
+    const { error } = await supabase
+      .from('configuracion')
+      .update({ envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto })
+      .eq('id', 1);
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath('/admin/envios');
+    revalidatePath('/cart');
+    await logActividad('config', `Configuración de envíos actualizada (${envio_sedes.length} sedes)`);
+    return { success: true, data: undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}

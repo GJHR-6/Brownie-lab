@@ -143,7 +143,7 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
             {/* Operación */}
             <FCard title="Operación" sub="Reglas de pedidos y envío.">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Field label="Envío gratis desde">
+                <Field label={<>Envío gratis desde <span style={{ color: 'var(--ink-soft)', fontWeight: 500, fontSize: 12 }}>(texto informativo — el monto real se define en Envíos)</span></>}>
                   <div style={{ position: 'relative' }}>
                     <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--ink-soft)', fontFamily: 'var(--font-display)', fontSize: 14, pointerEvents: 'none' }}>
                       L.
@@ -159,6 +159,15 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
                 <Inp name="horario_atencion" defaultValue={config.horario_atencion} placeholder="Lun–Sáb · 9:00 a.m. – 7:00 p.m." disabled={isPending} />
               </Field>
             </FCard>
+
+            {/* Envíos → gestionados en su propia página */}
+            <div style={{ background: 'var(--cream)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--orange-ink)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7z"/><circle cx="7" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/></svg>
+              <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: 0 }}>
+                Las sedes y tarifas de envío a domicilio se gestionan en{' '}
+                <a href="/admin/envios" style={{ color: 'var(--orange-ink)', fontWeight: 700 }}>Envíos</a>.
+              </p>
+            </div>
 
             {/* Mensajes del sitio */}
             <FCard title="Mensajes del sitio" sub="Textos que se muestran a los clientes.">

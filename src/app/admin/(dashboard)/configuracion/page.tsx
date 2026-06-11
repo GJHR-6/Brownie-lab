@@ -26,6 +26,11 @@ const DEFAULT_CONFIG: Configuracion = {
   banco_nombre: '',
   banco_titular: '',
   banco_numero: '',
+  envio_sedes: [],
+  envio_por_km: 10,
+  envio_factor_ruta: 1.3,
+  envio_km_max: 0,
+  envio_gratis_monto: 0,
   updated_at: new Date().toISOString(),
 };
 
