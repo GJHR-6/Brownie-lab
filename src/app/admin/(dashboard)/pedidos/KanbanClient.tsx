@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
 import { Bell } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
@@ -68,13 +68,16 @@ function printPedido(pedido: Pedido) {
   win.document.close();
 }
 
-export default function KanbanClient({ initialPedidos, productos }: { initialPedidos: Pedido[]; productos: Producto[] }) {
+export default function KanbanClient({ initialPedidos, productos, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [columns, setColumns] = useState<Record<EstadoPedido, Pedido[]>>(() => agrupar(initialPedidos));
+
+  // Sincroniza con datos nuevos del servidor tras router.refresh()
+  useEffect(() => { setColumns(agrupar(initialPedidos)); }, [initialPedidos]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [nuevosCount, setNuevosCount] = useState(0);
 
@@ -168,6 +171,7 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          {viewSwitcher}
           {/* Search */}
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <Search style={{ position: 'absolute', left: 14, width: 17, height: 17, color: 'var(--ink-soft)', pointerEvents: 'none' }} />
@@ -312,6 +316,9 @@ export default function KanbanClient({ initialPedidos, productos }: { initialPed
           </div>
         </DragDropContext>
       )}
+
+      {/* Paginación */}
+      {footer}
     </div>
   );
 }

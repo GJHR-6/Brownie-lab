@@ -44,16 +44,36 @@ async function requireAdmin() {
   return { supabase, user };
 }
 
-export async function getPedidos(): Promise<Pedido[]> {
+// No exportar: archivos 'use server' solo permiten exportar funciones async.
+// El tamaño de página viaja en el resultado (pageSize).
+const PEDIDOS_PAGE_SIZE = 100;
+
+export interface PedidosPaginados {
+  pedidos: Pedido[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+export async function getPedidos(page = 1): Promise<PedidosPaginados> {
   const { supabase } = await requireAdmin();
 
-  const { data, error } = await supabase
+  const safePage = Math.max(1, Math.floor(page) || 1);
+  const from = (safePage - 1) * PEDIDOS_PAGE_SIZE;
+
+  const { data, error, count } = await supabase
     .from('pedidos')
-    .select('*, pedido_items(id, producto_id, nombre_producto, precio_unitario, cantidad, subtotal)')
-    .order('created_at', { ascending: false });
+    .select('*, pedido_items(id, producto_id, nombre_producto, precio_unitario, cantidad, subtotal)', { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, from + PEDIDOS_PAGE_SIZE - 1);
 
   if (error) throw new Error(error.message);
-  return (data ?? []).map(normalizePedido);
+  return {
+    pedidos: (data ?? []).map(normalizePedido),
+    total: count ?? 0,
+    page: safePage,
+    pageSize: PEDIDOS_PAGE_SIZE,
+  };
 }
 
 function normalizePedido(p: Record<string, unknown>): Pedido {
