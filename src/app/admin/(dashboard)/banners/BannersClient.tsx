@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useCallback, useTransition, useActionState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react';
@@ -71,8 +73,10 @@ export default function BannersClient({ initialBanners }: { initialBanners: Bann
     refresh();
   }
 
+  const confirmar = useConfirm();
+
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este banner?')) return;
+    if (!(await confirmar({ mensaje: 'Este banner se eliminará y dejará de mostrarse en el sitio.', confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(id);
     await deleteBanner(id);
     setDeletingId(null);

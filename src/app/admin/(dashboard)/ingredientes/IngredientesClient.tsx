@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useCallback, useTransition, useActionState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Pencil, Loader2, X, FlaskConical, TrendingUp, ShoppingBag, Package, Sparkles } from 'lucide-react';
@@ -243,8 +245,10 @@ export default function IngredientesClient({ initialIngredientes }: { initialIng
   const refresh       = useCallback(() => { startTransition(() => { router.refresh(); }); }, [router]);
   const handleSuccess = useCallback(() => { setModal({ open: false }); refresh(); }, [refresh]);
 
+  const confirmar = useConfirm();
+
   async function handleDelete(id: string, nombre: string) {
-    if (!confirm(`¿Eliminar "${nombre}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ mensaje: `El ingrediente "${nombre}" se eliminará permanentemente. Esta acción no se puede deshacer.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(id);
     await deleteIngrediente(id);
     setDeletingId(null);

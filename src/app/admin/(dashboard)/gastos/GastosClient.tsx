@@ -4,6 +4,8 @@ import { useState, useEffect, useActionState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Loader2, Trash2, X } from 'lucide-react';
 import { crearGasto, eliminarGasto } from '@/actions/gastos';
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import type { Gasto, GastoCategoria } from '@/types/database';
 
 const CATEGORIA_CFG: Record<GastoCategoria, { label: string; icon: string; chip: string; dot: string }> = {
@@ -33,6 +35,7 @@ function hoyLocal(): string {
 
 function CrearGastoModal({ onSuccess, onClose }: { onSuccess: () => void; onClose: () => void }) {
   const [state, formAction, isPending] = useActionState(crearGasto, null);
+  useModalA11y(onClose);
 
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
@@ -41,7 +44,8 @@ function CrearGastoModal({ onSuccess, onClose }: { onSuccess: () => void; onClos
       style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column' }}>
+      <div role="dialog" aria-modal="true" aria-label="Registrar gasto"
+        style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 440, display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', borderRadius: 'var(--r-lg) var(--r-lg) 0 0' }}>
           <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>Registrar gasto</h3>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
@@ -98,13 +102,14 @@ function CrearGastoModal({ onSuccess, onClose }: { onSuccess: () => void; onClos
 
 export default function GastosClient({ initialGastos }: { initialGastos: Gasto[] }) {
   const router = useRouter();
+  const confirmar = useConfirm();
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   async function handleDelete(g: Gasto) {
-    if (!confirm(`¿Eliminar gasto de ${fmtMoney(g.monto)} (${CATEGORIA_CFG[g.categoria]?.label ?? g.categoria})?`)) return;
+    if (!(await confirmar({ mensaje: `El gasto de ${fmtMoney(g.monto)} (${CATEGORIA_CFG[g.categoria]?.label ?? g.categoria}) se eliminará permanentemente.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(g.id);
     setErrorMsg(null);
     const res = await eliminarGasto(g.id);

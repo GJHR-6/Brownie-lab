@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useCallback, useTransition, useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X } from 'lucide-react';
@@ -75,8 +77,10 @@ export default function PromocionesClient({ initialPromociones }: { initialPromo
     refresh();
   }
 
+  const confirmar = useConfirm();
+
   async function handleDelete(id: string, codigo: string) {
-    if (!confirm(`¿Eliminar el código "${codigo}"?`)) return;
+    if (!(await confirmar({ mensaje: `El código "${codigo}" se eliminará y dejará de funcionar en el checkout.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(id);
     await deletePromocion(id);
     setDeletingId(null);

@@ -4,28 +4,61 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 
-const NAV_ITEMS = [
-  { href: "/admin",                 label: "Dashboard",     icon: "ic-dashboard", exact: true  },
-  { href: "/admin/inventario",      label: "Inventario",    icon: "ic-box",        exact: false },
-  { href: "/admin/ingredientes",    label: "Ingredientes",  icon: "ic-flask",      exact: false },
-  { href: "/admin/personaliza",     label: "Personaliza",   icon: "ic-sliders",    exact: false },
-  { href: "/admin/categorias",      label: "Categorías",    icon: "ic-tag",        exact: false },
-  { href: "/admin/galeria",         label: "Galería",       icon: "ic-image",      exact: false },
-  { href: "/admin/especiales",      label: "Especiales",    icon: "ic-sparkle",    exact: false },
-  { href: "/admin/pedidos",         label: "Pedidos",       icon: "ic-bag",        exact: false },
-  { href: "/admin/clientes",        label: "Clientes",      icon: "ic-users",      exact: false },
-  { href: "/admin/reportes",        label: "Reportes",      icon: "ic-report",     exact: false },
-  { href: "/admin/gastos",          label: "Gastos",        icon: "ic-wallet",     exact: false },
-  { href: "/admin/costos",          label: "Costos",        icon: "ic-coin",       exact: false },
-  { href: "/admin/envios",          label: "Envíos",        icon: "ic-truck",      exact: false },
-  { href: "/admin/fidelizacion",    label: "Fidelización",  icon: "ic-loyalty",    exact: false },
-  { href: "/admin/banners",         label: "Banners",       icon: "ic-banner",     exact: false },
-  { href: "/admin/promociones",     label: "Promociones",   icon: "ic-percent",    exact: false },
-  { href: "/admin/testimonios",     label: "Testimonios",   icon: "ic-chat",       exact: false },
-  { href: "/admin/notificaciones",  label: "Notificaciones", icon: "ic-bell",      exact: false },
-  { href: "/admin/actividad",       label: "Actividad",     icon: "ic-activity",   exact: false },
-  { href: "/admin/configuracion",   label: "Configuración", icon: "ic-gear",       exact: false },
-] as const;
+interface NavItem { href: string; label: string; icon: string; exact: boolean }
+interface NavGroup { title: string | null; items: NavItem[] }
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    title: null,
+    items: [
+      { href: "/admin",                label: "Dashboard",      icon: "ic-dashboard", exact: true },
+    ],
+  },
+  {
+    title: "Ventas",
+    items: [
+      { href: "/admin/pedidos",        label: "Pedidos",        icon: "ic-bag",      exact: false },
+      { href: "/admin/clientes",       label: "Clientes",       icon: "ic-users",    exact: false },
+      { href: "/admin/envios",         label: "Envíos",         icon: "ic-truck",    exact: false },
+      { href: "/admin/fidelizacion",   label: "Fidelización",   icon: "ic-loyalty",  exact: false },
+    ],
+  },
+  {
+    title: "Finanzas",
+    items: [
+      { href: "/admin/reportes",       label: "Reportes",       icon: "ic-report",   exact: false },
+      { href: "/admin/gastos",         label: "Gastos",         icon: "ic-wallet",   exact: false },
+      { href: "/admin/costos",         label: "Costos",         icon: "ic-coin",     exact: false },
+    ],
+  },
+  {
+    title: "Catálogo",
+    items: [
+      { href: "/admin/inventario",     label: "Inventario",     icon: "ic-box",      exact: false },
+      { href: "/admin/ingredientes",   label: "Ingredientes",   icon: "ic-flask",    exact: false },
+      { href: "/admin/personaliza",    label: "Personaliza",    icon: "ic-sliders",  exact: false },
+      { href: "/admin/categorias",     label: "Categorías",     icon: "ic-tag",      exact: false },
+      { href: "/admin/especiales",     label: "Especiales",     icon: "ic-sparkle",  exact: false },
+    ],
+  },
+  {
+    title: "Marketing",
+    items: [
+      { href: "/admin/banners",        label: "Banners",        icon: "ic-banner",   exact: false },
+      { href: "/admin/promociones",    label: "Promociones",    icon: "ic-percent",  exact: false },
+      { href: "/admin/testimonios",    label: "Testimonios",    icon: "ic-chat",     exact: false },
+      { href: "/admin/galeria",        label: "Galería",        icon: "ic-image",    exact: false },
+    ],
+  },
+  {
+    title: "Sistema",
+    items: [
+      { href: "/admin/notificaciones", label: "Notificaciones", icon: "ic-bell",     exact: false },
+      { href: "/admin/actividad",      label: "Actividad",      icon: "ic-activity", exact: false },
+      { href: "/admin/configuracion",  label: "Configuración",  icon: "ic-gear",     exact: false },
+    ],
+  },
+];
 
 /* Inline SVG icons matching the design sprite */
 function NavIcon({ id }: { id: string }) {
@@ -127,39 +160,51 @@ export default function AdminSidebar({ isOpen, onClose }: AdminSidebarProps) {
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto px-[14px] py-[16px] flex flex-col gap-[3px]">
-          {NAV_ITEMS.map(({ href, label, icon, exact }) => {
-            const isActive = exact ? pathname === href : pathname.startsWith(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                onClick={onClose}
-                className="flex items-center gap-[13px] px-[14px] py-[11px] rounded-[10px] text-[14.5px] font-[500] transition-all duration-150"
-                style={isActive ? {
-                  background: "var(--orange)",
-                  color: "#fff",
-                  boxShadow: "0 6px 16px rgba(217,113,30,.34)",
-                } : {
-                  color: "var(--on-dark-soft)",
-                }}
-                onMouseEnter={e => {
-                  if (!isActive) {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "rgba(246,234,212,.06)";
-                    (e.currentTarget as HTMLAnchorElement).style.color = "var(--on-dark)";
-                  }
-                }}
-                onMouseLeave={e => {
-                  if (!isActive) {
-                    (e.currentTarget as HTMLAnchorElement).style.background = "";
-                    (e.currentTarget as HTMLAnchorElement).style.color = "var(--on-dark-soft)";
-                  }
-                }}
-              >
-                <NavIcon id={icon} />
-                <span className="flex-1">{label}</span>
-              </Link>
-            );
-          })}
+          {NAV_GROUPS.map((group, gi) => (
+            <div key={group.title ?? gi} className="flex flex-col gap-[3px]">
+              {group.title && (
+                <p
+                  className="text-[10.5px] font-[700] uppercase tracking-[0.13em] px-[14px] mt-[16px] mb-[5px]"
+                  style={{ color: "rgba(205,183,154,.55)" }}
+                >
+                  {group.title}
+                </p>
+              )}
+              {group.items.map(({ href, label, icon, exact }) => {
+                const isActive = exact ? pathname === href : pathname.startsWith(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={onClose}
+                    className="flex items-center gap-[13px] px-[14px] py-[10px] rounded-[10px] text-[14.5px] font-[500] transition-all duration-150"
+                    style={isActive ? {
+                      background: "var(--orange)",
+                      color: "#fff",
+                      boxShadow: "0 6px 16px rgba(217,113,30,.34)",
+                    } : {
+                      color: "var(--on-dark-soft)",
+                    }}
+                    onMouseEnter={e => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLAnchorElement).style.background = "rgba(246,234,212,.06)";
+                        (e.currentTarget as HTMLAnchorElement).style.color = "var(--on-dark)";
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      if (!isActive) {
+                        (e.currentTarget as HTMLAnchorElement).style.background = "";
+                        (e.currentTarget as HTMLAnchorElement).style.color = "var(--on-dark-soft)";
+                      }
+                    }}
+                  >
+                    <NavIcon id={icon} />
+                    <span className="flex-1">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div

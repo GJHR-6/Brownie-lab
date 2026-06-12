@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Plus, Download, Search, X, MessageCircle, Bell } from 'lucide-react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
 import { actualizarEstadoPedido } from '@/actions/pedidos';
+import { abrirWhatsAppPedido } from '@/lib/whatsappPedido';
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import CrearPedidoModal from './CrearPedidoModal';
 import type { Pedido, EstadoPedido, Producto, PedidoItem } from '@/types/database';
 import type { ClienteDatos } from '@/types/database';
@@ -45,15 +49,6 @@ function Chip({ estado }: { estado: EstadoPedido }) {
   );
 }
 
-function sendWhatsApp(pedido: Pedido) {
-  const cd = pedido.cliente_datos as ClienteDatos;
-  const tel = cd.telefono.replace(/\D/g, '');
-  const origen = typeof window !== 'undefined' ? window.location.origin : '';
-  const id = pedido.id.slice(0, 8).toUpperCase();
-  const msg = [`¡Hola ${cd.nombre}! 🍪`, '', `Tu pedido *#${id}* ha sido confirmado y está siendo preparado con mucho amor. 💛`, '', `📍 Rastrea tu pedido:`, `${origen}/seguimiento`, '', '¡Gracias por tu compra en Brownie Lab! 🍪'].join('\n');
-  window.open(`https://wa.me/${tel}?text=${encodeURIComponent(msg)}`, '_blank');
-}
-
 /* ── Section title helper ── */
 function DrawerSecTitle({ children }: { children: React.ReactNode }) {
   return <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 12px' }}>{children}</p>;
@@ -61,6 +56,8 @@ function DrawerSecTitle({ children }: { children: React.ReactNode }) {
 
 /* ── Drawer ── */
 function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose: () => void; onUpdated: (updated: Pedido) => void }) {
+  const confirmar = useConfirm();
+  useModalA11y(onClose);
   const cd = pedido.cliente_datos as ClienteDatos;
   const items = (pedido.items ?? []) as PedidoItem[];
   const [savingEstado, setSavingEstado] = useState<EstadoPedido | null>(null);
@@ -75,6 +72,7 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
     setSavingEstado(null);
     if (res.success) {
       onUpdated({ ...pedido, estado: localEstado });
+      onClose(); // comportamiento consistente: guardar siempre cierra
     } else {
       setErrorMsg(res.error ?? 'Error al guardar');
       setLocalEstado(pedido.estado);
@@ -82,7 +80,7 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
   }
 
   async function handleCancelar() {
-    if (!confirm('¿Cancelar este pedido? Quedará marcado como cancelado.')) return;
+    if (!(await confirmar({ titulo: 'Cancelar pedido', mensaje: 'El pedido quedará marcado como cancelado. Podés revertirlo cambiando el estado.', confirmLabel: 'Cancelar pedido', cancelLabel: 'Volver', peligro: true }))) return;
     setSavingEstado('cancelado');
     setErrorMsg(null);
     const res = await actualizarEstadoPedido(pedido.id, 'cancelado');
@@ -107,7 +105,8 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
       />
 
       {/* Drawer panel */}
-      <aside style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 'min(460px, 94vw)', background: 'var(--paper)', boxShadow: 'var(--shadow-lg)', zIndex: 90, display: 'flex', flexDirection: 'column' }}>
+      <aside role="dialog" aria-modal="true" aria-label={`Pedido #${pedido.id.slice(0, 8).toUpperCase()}`}
+        style={{ position: 'fixed', top: 0, right: 0, height: '100vh', width: 'min(460px, 94vw)', background: 'var(--paper)', boxShadow: 'var(--shadow-lg)', zIndex: 90, display: 'flex', flexDirection: 'column' }}>
 
         {/* Head */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', flexShrink: 0 }}>
@@ -237,10 +236,13 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
             <div style={{ marginBottom: 24 }}>
               <DrawerSecTitle>Comprobante de pago</DrawerSecTitle>
               <a href={pedido.comprobante_url} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-                <img
+                <Image
                   src={pedido.comprobante_url}
                   alt="Comprobante de pago"
-                  style={{ width: '100%', borderRadius: 'var(--r-md)', border: '1px solid var(--hairline)', display: 'block' }}
+                  width={0}
+                  height={0}
+                  sizes="(max-width: 460px) 94vw, 460px"
+                  style={{ width: '100%', height: 'auto', borderRadius: 'var(--r-md)', border: '1px solid var(--hairline)', display: 'block' }}
                 />
               </a>
               <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>
@@ -296,7 +298,8 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
         {/* Footer */}
         <div style={{ padding: '14px 24px', borderTop: '1px solid var(--hairline)', background: 'var(--paper-card)', display: 'flex', gap: 8, flexShrink: 0, flexWrap: 'wrap' }}>
           <button
-            onClick={() => sendWhatsApp(pedido)}
+            onClick={() => abrirWhatsAppPedido(pedido, localEstado)}
+            title="El mensaje se adapta al estado actual del pedido"
             style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 14px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--choco-900)', color: '#fff', transition: '.16s' }}
           >
             <MessageCircle style={{ width: 15, height: 15, color: '#58d684' }} />
@@ -329,24 +332,42 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
 export default function PedidosClient({ initialPedidos, productos, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>(initialPedidos);
-
-  // Sincroniza con datos nuevos del servidor tras router.refresh()
-  useEffect(() => { setPedidos(initialPedidos); }, [initialPedidos]);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoPedido | 'todos'>('todos');
   const [, startTransition] = useTransition();
   const [nuevosCount, setNuevosCount] = useState(0);
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sincroniza con datos nuevos del servidor tras router.refresh()
+  // (ajuste de estado durante render — patrón recomendado por React, sin effect)
+  const [prevInitial, setPrevInitial] = useState(initialPedidos);
+  if (prevInitial !== initialPedidos) {
+    setPrevInitial(initialPedidos);
+    setPedidos(initialPedidos);
+    setNuevosCount(0);
+  }
 
   const refresh = useCallback(() => {
     startTransition(() => { router.refresh(); });
     setNuevosCount(0);
   }, [router]);
 
-  useRealtimePedidos(useCallback(() => {
-    setNuevosCount(n => n + 1);
-  }, []));
+  // Auto-refresh con debounce: agrupa ráfagas de eventos en un solo refresh
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => {
+      startTransition(() => { router.refresh(); });
+    }, 1200);
+  }, [router]);
+
+  useEffect(() => () => { if (refreshTimer.current) clearTimeout(refreshTimer.current); }, []);
+
+  useRealtimePedidos(useCallback((tipo) => {
+    if (tipo === 'insert') setNuevosCount(n => n + 1);
+    scheduleRefresh(); // INSERTs y UPDATEs (cambios desde otro dispositivo)
+  }, [scheduleRefresh]));
 
   function handleUpdated(updated: Pedido) {
     setPedidos(prev => prev.map(p => p.id === updated.id ? updated : p));
@@ -381,7 +402,7 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Bell style={{ width: 17, height: 17, color: 'var(--amber)', flexShrink: 0 }} />
             <span style={{ fontSize: 14, fontWeight: 600 }}>
-              {nuevosCount === 1 ? '1 nuevo pedido recibido' : `${nuevosCount} nuevos pedidos recibidos`}
+              {nuevosCount === 1 ? '1 nuevo pedido recibido' : `${nuevosCount} nuevos pedidos recibidos`} — actualizando…
             </span>
           </div>
           <button
@@ -403,10 +424,9 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {viewSwitcher}
-          <a href="/api/admin/export/pedidos" download>
-            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' }}>
-              <Download style={{ width: 16, height: 16 }} />CSV
-            </button>
+          <a href="/api/admin/export/pedidos" download
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s', textDecoration: 'none' }}>
+            <Download style={{ width: 16, height: 16 }} />CSV
           </a>
           <button
             onClick={() => setIsCrearOpen(true)}

@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useActionState, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trash2, ChevronLeft, Upload, X } from 'lucide-react';
@@ -97,6 +99,7 @@ interface Props {
 
 export default function ProductoPageClient({ producto, categorias, ingredientes }: Props) {
   const router = useRouter();
+  const confirmar = useConfirm();
   const isEditing = !!producto;
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,7 +122,8 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
   }, [state, router]);
 
   async function handleDelete() {
-    if (!producto || !confirm(`¿Eliminar "${producto.nombre}"? No se puede deshacer.`)) return;
+    if (!producto) return;
+    if (!(await confirmar({ mensaje: `El producto "${producto.nombre}" se eliminará permanentemente. No se puede deshacer.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(true);
     await deleteProducto(producto.id);
     router.push('/admin/inventario');

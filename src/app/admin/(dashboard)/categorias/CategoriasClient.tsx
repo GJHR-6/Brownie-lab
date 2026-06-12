@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useCallback, useTransition, useActionState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react';
@@ -86,8 +88,10 @@ export default function CategoriasClient({ initialCategorias }: { initialCategor
 
   const refresh = useCallback(() => { startTransition(() => { router.refresh(); }); }, [router]);
 
+  const confirmar = useConfirm();
+
   async function handleDelete(id: string, slug: string, nombre: string) {
-    if (!confirm(`¿Eliminar la categoría "${nombre}"?`)) return;
+    if (!(await confirmar({ mensaje: `La categoría "${nombre}" se eliminará permanentemente.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(id); setDeleteError(null);
     const { deleteCategoria: del } = await import('@/actions/categorias');
     const result = await del(id, slug);

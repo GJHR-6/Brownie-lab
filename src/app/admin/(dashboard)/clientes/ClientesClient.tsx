@@ -51,20 +51,25 @@ function SecTitle({ children }: { children: React.ReactNode }) {
 
 /* ── Drawer de detalle del cliente ── */
 function ClienteDrawer({ cliente, onClose }: { cliente: ClienteRow; onClose: () => void }) {
-  const [loading, setLoading] = useState(true);
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
-  const [cupones, setCupones] = useState<CuponFidelizacion[]>([]);
+  // loading derivado: null = cargando (evita setState síncrono en effect)
+  const [datos, setDatos] = useState<{ pedidos: Pedido[]; cupones: CuponFidelizacion[] } | null>(null);
+  const loading = datos === null;
+  const pedidos = datos?.pedidos ?? [];
+  const cupones = datos?.cupones ?? [];
 
   useEffect(() => {
-    setLoading(true);
+    let activo = true;
     Promise.all([
       getPedidosPorTelefono(cliente.telefono),
       buscarCliente(cliente.telefono),
     ]).then(([peds, clienteResult]) => {
-      setPedidos(peds);
-      if (clienteResult.success) setCupones(clienteResult.data.cupones);
-      setLoading(false);
+      if (!activo) return;
+      setDatos({
+        pedidos: peds,
+        cupones: clienteResult.success ? clienteResult.data.cupones : [],
+      });
     });
+    return () => { activo = false; };
   }, [cliente.telefono]);
 
   const initials = cliente.nombre.trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
@@ -171,7 +176,7 @@ function ClienteDrawer({ cliente, onClose }: { cliente: ClienteRow; onClose: () 
                             </div>
                           )}
                           {cd.notas && (
-                            <p style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', margin: '0 0 6px' }}>"{cd.notas}"</p>
+                            <p style={{ fontSize: 12, color: 'var(--ink-soft)', fontStyle: 'italic', margin: '0 0 6px' }}>&ldquo;{cd.notas}&rdquo;</p>
                           )}
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ fontSize: 12, color: 'var(--ink-soft)' }}>

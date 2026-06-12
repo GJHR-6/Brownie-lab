@@ -189,6 +189,12 @@ export async function crearPedidoManual(
     const notas = (formData.get('notas') as string).trim() || undefined;
     const metodoPagoRaw = (formData.get('metodo_pago') as string | null)?.trim();
     const metodo_pago = metodoPagoRaw === 'efectivo' || metodoPagoRaw === 'transferencia' ? metodoPagoRaw : null;
+    const tipoEntregaRaw = (formData.get('tipo_entrega') as string | null)?.trim();
+    const tipo_entrega = tipoEntregaRaw === 'pickup' || tipoEntregaRaw === 'domicilio' ? tipoEntregaRaw : undefined;
+    const direccion = (formData.get('direccion') as string | null)?.trim().slice(0, 300) || undefined;
+    const fechaRaw = (formData.get('fecha_entrega') as string | null)?.trim();
+    const fecha_entrega = fechaRaw && /^\d{4}-\d{2}-\d{2}$/.test(fechaRaw) ? fechaRaw : undefined;
+    const hora_entrega = (formData.get('hora_entrega') as string | null)?.trim().slice(0, 20) || undefined;
     const itemsJson = formData.get('items_json') as string;
 
     if (!nombre || !telefono) {
@@ -207,7 +213,14 @@ export async function crearPedidoManual(
     }
 
     const total = items.reduce((sum, i) => sum + i.subtotal, 0);
-    const cliente_datos = { nombre, telefono, notas, ...(metodo_pago ? { metodo_pago } : {}) };
+    const cliente_datos = {
+      nombre, telefono, notas,
+      ...(metodo_pago ? { metodo_pago } : {}),
+      ...(tipo_entrega ? { tipo_entrega } : {}),
+      ...(tipo_entrega === 'domicilio' && direccion ? { direccion } : {}),
+      ...(fecha_entrega ? { fecha_entrega } : {}),
+      ...(hora_entrega ? { hora_entrega } : {}),
+    };
 
     await supabase.from('clientes').upsert(
       { telefono, nombre },

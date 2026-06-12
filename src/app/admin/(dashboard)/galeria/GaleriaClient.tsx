@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Loader2, Upload, ImageOff } from 'lucide-react';
@@ -138,9 +140,11 @@ export default function GaleriaClient({ files, siteSlots }: { files: FileInfo[];
   const [isPending, startTransition] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const confirmar = useConfirm();
+
   async function handleDelete(name: string, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!confirm(`¿Eliminar "${name}"? Esta acción no se puede deshacer.`)) return;
+    if (!(await confirmar({ mensaje: `La imagen "${name}" se eliminará permanentemente. Esta acción no se puede deshacer.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingName(name);
     const result = await eliminarImagenGaleria(name);
     setDeletingName(null);

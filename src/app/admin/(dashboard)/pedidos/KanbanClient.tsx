@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
 import { Bell } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
@@ -11,6 +11,8 @@ import { useRouter } from 'next/navigation';
 import { Plus, Download, Printer, Search, X, CheckSquare, Square, Loader2, MessageCircle } from 'lucide-react';
 import type { ClienteDatos, PedidoItem } from '@/types/database';
 import { marcarPedidosCompletados } from '@/actions/pedidos';
+import { abrirWhatsAppPedido } from '@/lib/whatsappPedido';
+import { useConfirm } from '@/components/admin/ConfirmProvider';
 import type { Pedido, EstadoPedido, Producto } from '@/types/database';
 
 interface Columna { estado: EstadoPedido; label: string; accent: string; chip: string; dot: string }
@@ -26,20 +28,6 @@ function agrupar(pedidos: Pedido[]): Record<EstadoPedido, Pedido[]> {
   const base: Record<EstadoPedido, Pedido[]> = { pendiente: [], preparacion: [], listo: [], completado: [], cancelado: [] };
   for (const p of pedidos) { if (p.estado in base) base[p.estado].push(p); }
   return base;
-}
-
-function sendWhatsAppCliente(pedido: Pedido) {
-  const cd = pedido.cliente_datos as ClienteDatos;
-  const telefono = cd.telefono.replace(/\D/g, '');
-  const origen = typeof window !== 'undefined' ? window.location.origin : '';
-  const id = pedido.id.slice(0, 8).toUpperCase();
-  const lineas = [
-    `¡Hola ${cd.nombre}! 🍪`, '',
-    `Tu pedido *#${id}* ha sido confirmado y está siendo preparado con mucho amor. 💛`, '',
-    `📍 Puedes rastrear el estado de tu pedido aquí:`, `${origen}/seguimiento`, '',
-    '¡Gracias por tu compra en Brownie Lab! 🍪',
-  ];
-  window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(lineas.join('\n'))}`, '_blank');
 }
 
 function printPedido(pedido: Pedido) {
@@ -70,25 +58,42 @@ function printPedido(pedido: Pedido) {
 
 export default function KanbanClient({ initialPedidos, productos, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
+  const confirmar = useConfirm();
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [columns, setColumns] = useState<Record<EstadoPedido, Pedido[]>>(() => agrupar(initialPedidos));
-
-  // Sincroniza con datos nuevos del servidor tras router.refresh()
-  useEffect(() => { setColumns(agrupar(initialPedidos)); }, [initialPedidos]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [nuevosCount, setNuevosCount] = useState(0);
+
+  // Sincroniza con datos nuevos del servidor tras router.refresh()
+  // (ajuste de estado durante render — patrón recomendado por React, sin effect)
+  const [prevInitial, setPrevInitial] = useState(initialPedidos);
+  if (prevInitial !== initialPedidos) {
+    setPrevInitial(initialPedidos);
+    setColumns(agrupar(initialPedidos));
+    setNuevosCount(0);
+  }
 
   const refresh = useCallback(() => {
     router.refresh();
     setNuevosCount(0);
   }, [router]);
 
-  useRealtimePedidos(useCallback(() => {
-    setNuevosCount(n => n + 1);
-  }, []));
+  // Auto-refresh con debounce: agrupa ráfagas de eventos en un solo refresh
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current);
+    refreshTimer.current = setTimeout(() => { router.refresh(); }, 1200);
+  }, [router]);
+
+  useEffect(() => () => { if (refreshTimer.current) clearTimeout(refreshTimer.current); }, []);
+
+  useRealtimePedidos(useCallback((tipo) => {
+    if (tipo === 'insert') setNuevosCount(n => n + 1);
+    scheduleRefresh(); // INSERTs y UPDATEs (cambios desde otro dispositivo)
+  }, [scheduleRefresh]));
 
   const handleDragEnd = useCallback(async (result: DropResult) => {
     const { source, destination, draggableId } = result;
@@ -113,18 +118,18 @@ export default function KanbanClient({ initialPedidos, productos, viewSwitcher, 
   const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
 
   const handleCancel = useCallback(async (pedidoId: string) => {
-    if (!confirm('¿Cancelar este pedido? Quedará marcado como cancelado y desaparecerá del tablero.')) return;
+    if (!(await confirmar({ titulo: 'Cancelar pedido', mensaje: 'El pedido quedará marcado como cancelado y desaparecerá del tablero.', confirmLabel: 'Cancelar pedido', cancelLabel: 'Volver', peligro: true }))) return;
     const srcCol = (Object.keys(columns) as EstadoPedido[]).find(k => columns[k].some(p => p.id === pedidoId));
     if (!srcCol) return;
     setColumns(prev => ({ ...prev, [srcCol]: prev[srcCol].filter(p => p.id !== pedidoId) }));
     setErrorMsg(null);
     const res = await actualizarEstadoPedido(pedidoId, 'cancelado');
     if (!res.success) { setErrorMsg(`Error al cancelar: ${res.error}`); router.refresh(); }
-  }, [columns, router]);
+  }, [columns, router, confirmar]);
 
   async function handleBulkComplete() {
     if (!selectedIds.size) return;
-    if (!confirm(`¿Marcar ${selectedIds.size} pedido(s) como completado?`)) return;
+    if (!(await confirmar({ titulo: 'Completar pedidos', mensaje: `${selectedIds.size} pedido(s) se marcarán como completados y se descontará stock.`, confirmLabel: 'Completar' }))) return;
     setBulkLoading(true);
     await marcarPedidosCompletados([...selectedIds]);
     setSelectedIds(new Set()); setBulkLoading(false); router.refresh();
@@ -150,7 +155,7 @@ export default function KanbanClient({ initialPedidos, productos, viewSwitcher, 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <Bell style={{ width: 17, height: 17, color: 'var(--amber)', flexShrink: 0 }} />
             <span style={{ fontSize: 14, fontWeight: 600 }}>
-              {nuevosCount === 1 ? '1 nuevo pedido recibido' : `${nuevosCount} nuevos pedidos recibidos`}
+              {nuevosCount === 1 ? '1 nuevo pedido recibido' : `${nuevosCount} nuevos pedidos recibidos`} — actualizando…
             </span>
           </div>
           <button
@@ -187,10 +192,9 @@ export default function KanbanClient({ initialPedidos, productos, viewSwitcher, 
               </button>
             )}
           </div>
-          <a href="/api/admin/export/pedidos" download>
-            <button style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' }}>
-              <Download style={{ width: 16, height: 16 }} />CSV
-            </button>
+          <a href="/api/admin/export/pedidos" download
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s', textDecoration: 'none' }}>
+            <Download style={{ width: 16, height: 16 }} />CSV
           </a>
           <button onClick={() => setIsCrearOpen(true)}
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' }}>
@@ -289,8 +293,8 @@ export default function KanbanClient({ initialPedidos, productos, viewSwitcher, 
                               {/* Action buttons on hover */}
                               <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                 style={{ pointerEvents: 'none' }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.pointerEvents = 'auto'; }}>
-                                <button onMouseDown={e => e.stopPropagation()} onClick={() => sendWhatsAppCliente(pedido)}
-                                  title="Enviar confirmación por WhatsApp"
+                                <button onMouseDown={e => e.stopPropagation()} onClick={() => abrirWhatsAppPedido(pedido)}
+                                  title="Avisar al cliente por WhatsApp (mensaje según estado)"
                                   style={{ width: 28, height: 28, borderRadius: 7, background: 'var(--paper-card)', border: '1px solid var(--hairline)', color: '#1aad56', cursor: 'pointer', display: 'grid', placeItems: 'center', boxShadow: 'var(--shadow-sm)' }}>
                                   <MessageCircle style={{ width: 13, height: 13 }} />
                                 </button>

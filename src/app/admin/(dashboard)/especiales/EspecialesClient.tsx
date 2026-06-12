@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useCallback, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X, Upload } from 'lucide-react';
@@ -194,8 +196,10 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
     refresh();
   }
 
+  const confirmar = useConfirm();
+
   async function handleDelete(id: string, nombre: string) {
-    if (!confirm(`¿Eliminar "${nombre}"?`)) return;
+    if (!(await confirmar({ mensaje: `El especial "${nombre}" se eliminará permanentemente.`, confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(id);
     await deleteEspecial(id);
     setDeletingId(null);
