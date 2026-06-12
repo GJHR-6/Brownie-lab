@@ -16,6 +16,9 @@ export default function NotificacionesPage() {
   const [mensaje, setMensaje] = useState('');
 
   useEffect(() => {
+    // Limpia el form cuando la server action reporta éxito — sincronización
+    // con un resultado externo, no un cascading render evitable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (state?.success) { setTitulo(''); setMensaje(''); }
   }, [state]);
 

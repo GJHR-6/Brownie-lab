@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useActionState, useEffect } from 'react';
-import { Loader2, X, Plus, Minus } from 'lucide-react';
+import { Loader2, X, Plus, Minus, Search } from 'lucide-react';
 import { crearPedidoManual } from '@/actions/pedidos';
+import { useModalA11y } from '@/hooks/useModalA11y';
 import type { Producto, PedidoItem } from '@/types/database';
 
 const T = {
@@ -11,7 +12,10 @@ const T = {
 
 export default function CrearPedidoModal({ productos, onSuccess, onClose }: { productos: Producto[]; onSuccess: () => void; onClose: () => void }) {
   const [cantidades, setCantidades] = useState<Record<string, number>>({});
+  const [busqueda, setBusqueda] = useState('');
+  const [tipoEntrega, setTipoEntrega] = useState<'pickup' | 'domicilio'>('pickup');
   const [state, formAction, isPending] = useActionState(crearPedidoManual, null);
+  useModalA11y(onClose);
 
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
@@ -37,7 +41,8 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
       style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+      <div role="dialog" aria-modal="true" aria-label="Nuevo pedido manual"
+        style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', flexShrink: 0, borderRadius: 'var(--r-lg) var(--r-lg) 0 0' }}>
@@ -82,6 +87,37 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                     onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Tipo de entrega</label>
+                  <select name="tipo_entrega" value={tipoEntrega} disabled={isPending}
+                    onChange={e => setTipoEntrega(e.target.value as 'pickup' | 'domicilio')}
+                    style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}>
+                    <option value="pickup">📍 Recoger en tienda</option>
+                    <option value="domicilio">🚚 A domicilio</option>
+                  </select>
+                </div>
+                {tipoEntrega === 'domicilio' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Dirección</label>
+                    <input name="direccion" maxLength={300} disabled={isPending}
+                      placeholder="Col. Palmira, Calle Principal #123…"
+                      style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
+                      onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
+                      onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }} />
+                  </div>
+                )}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Fecha entrega</label>
+                    <input name="fecha_entrega" type="date" disabled={isPending}
+                      style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Hora</label>
+                    <input name="hora_entrega" maxLength={20} disabled={isPending} placeholder="3:00 PM"
+                      style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Método de pago</label>
                   <select name="metodo_pago" disabled={isPending} defaultValue=""
                     style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}
@@ -106,8 +142,32 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
             {/* Productos */}
             <div>
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Productos</p>
+              {/* Buscador */}
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+                <Search style={{ position: 'absolute', left: 12, width: 15, height: 15, color: 'var(--ink-soft)', pointerEvents: 'none' }} />
+                <input
+                  type="text"
+                  value={busqueda}
+                  onChange={e => setBusqueda(e.target.value)}
+                  placeholder="Buscar producto…"
+                  disabled={isPending}
+                  style={{ ...T.inp, paddingLeft: 36, opacity: isPending ? 0.6 : 1 }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}
+                />
+                {busqueda && (
+                  <button type="button" onClick={() => setBusqueda('')}
+                    style={{ position: 'absolute', right: 10, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-soft)', display: 'grid', placeItems: 'center' }}>
+                    <X style={{ width: 13, height: 13 }} />
+                  </button>
+                )}
+              </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {productos.filter(p => p.disponible).map(p => {
+                {productos
+                  .filter(p => p.disponible)
+                  // Seleccionados siempre visibles aunque no matcheen la búsqueda
+                  .filter(p => !busqueda.trim() || (cantidades[p.id] ?? 0) > 0 || p.nombre.toLowerCase().includes(busqueda.toLowerCase()))
+                  .map(p => {
                   const qty = cantidades[p.id] ?? 0;
                   return (
                     <div key={p.id}

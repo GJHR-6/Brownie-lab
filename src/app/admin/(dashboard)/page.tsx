@@ -277,7 +277,7 @@ export default async function AdminDashboardPage({
           }}
         >
           <h2 className="font-[700] text-[16px] mb-5" style={{ color: "var(--ink)" }}>
-            Pedidos por estado
+            Pedidos por estado <span className="font-[500] text-[12.5px]" style={{ color: "var(--ink-soft)" }}>· últimos 60 días</span>
           </h2>
           <div className="flex flex-col gap-[22px]">
             {(Object.entries(porEstado) as [EstadoPedido, number][]).map(([estado, count]) => {
@@ -303,7 +303,7 @@ export default async function AdminDashboardPage({
           </div>
           <p className="text-[13px] font-[500] mt-4 pt-[18px]"
             style={{ borderTop: "1px solid var(--hairline)", color: "var(--ink-soft)" }}>
-            {pedidos.length} pedidos en total
+            {pedidos.length} pedidos en los últimos 60 días
           </p>
         </div>
 

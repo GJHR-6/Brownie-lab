@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useCallback, useTransition, useActionState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X } from 'lucide-react';
@@ -78,8 +80,10 @@ export default function TestimoniosClient({ initialTestimonios }: { initialTesti
     refresh();
   }
 
+  const confirmar = useConfirm();
+
   async function handleDelete(id: string) {
-    if (!confirm('¿Eliminar este testimonio?')) return;
+    if (!(await confirmar({ mensaje: 'Este testimonio se eliminará permanentemente.', confirmLabel: 'Eliminar', peligro: true }))) return;
     setDeletingId(id);
     await deleteTestimonio(id);
     setDeletingId(null);

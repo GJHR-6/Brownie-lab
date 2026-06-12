@@ -1,5 +1,7 @@
 'use client';
 
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+
 import { useState, useTransition } from 'react';
 import { Search, Loader2, Plus, Award } from 'lucide-react';
 import { buscarCliente, registrarCompraAdmin, type ClienteFidelizacion, type CuponFidelizacion } from '@/actions/fidelizacion';
@@ -48,9 +50,11 @@ export default function FidelizacionPage() {
     });
   }
 
+  const confirmar = useConfirm();
+
   async function handleAgregarCompra() {
     if (estado.tipo !== 'found') return;
-    if (!confirm(`¿Registrar una compra manual para ${estado.cliente.nombre}?`)) return;
+    if (!(await confirmar({ titulo: 'Registrar compra', mensaje: `Se registrará una compra manual para ${estado.cliente.nombre} y avanzará su tarjeta de fidelidad.`, confirmLabel: 'Registrar' }))) return;
     setAdding(true);
     setAddMsg(null);
     const result = await registrarCompraAdmin(estado.cliente.telefono);

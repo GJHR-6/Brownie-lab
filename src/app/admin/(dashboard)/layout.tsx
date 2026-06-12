@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import AdminShell from "@/components/admin/AdminShell";
+import ConfirmProvider from "@/components/admin/ConfirmProvider";
 
 export default async function AdminDashboardLayout({
   children,
@@ -26,7 +27,9 @@ export default async function AdminDashboardLayout({
 
   return (
     <AdminShell userEmail={user.email ?? ""}>
-      {children}
+      <ConfirmProvider>
+        {children}
+      </ConfirmProvider>
     </AdminShell>
   );
 }
