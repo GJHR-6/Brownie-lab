@@ -24,6 +24,8 @@ const DEFAULT_CONFIG: Configuracion = {
   banco_nombre: '',
   banco_titular: '',
   banco_numero: '',
+  horas_entrega: ['10:00 AM', '3:00 PM'],
+  hora_corte: '19:00',
   envio_sedes: [],
   envio_por_km: 10,
   envio_factor_ruta: 1.3,

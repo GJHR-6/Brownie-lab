@@ -15,6 +15,8 @@ import { storeConfig } from "@/config/store";
 import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, subirComprobante } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 import { calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from "@/lib/envio";
+import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
+import { getConfiguracionPedidos } from "@/actions/publico";
 
 function Field({ label, error, hint, children }: { label: string; error?: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -47,7 +49,6 @@ const METODOS_PAGO = [
   { id: "transferencia", label: "Transferencia bancaria", icon: "🏦", desc: "Te enviamos los datos al confirmar" },
 ] as const;
 
-const HORAS = ["9:00 AM","10:00 AM","11:00 AM","12:00 PM","1:00 PM","2:00 PM","3:00 PM","4:00 PM","5:00 PM","6:00 PM"];
 
 const STEPS = [
   { n: 1, label: "Carrito" },
@@ -86,6 +87,9 @@ export default function CartPage() {
   const [envioLoading, setEnvioLoading] = useState(false);
   const [envioError, setEnvioError] = useState("");
 
+  // Horarios de entrega configurables (franjas + hora de corte)
+  const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);
+
   useEffect(() => {
     if (!promoError) return;
     const t = setTimeout(() => setPromoError(""), 5000);
@@ -96,6 +100,7 @@ export default function CartPage() {
     setMounted(true);
     getConfiguracionBanco().then(setBanco);
     getConfiguracionEnvio().then(setEnvioCfg).catch(() => {});
+    getConfiguracionPedidos().then(setCfgPedidos).catch(() => {});
     // Load saved user data from previous order
     try {
       const lastPhone = localStorage.getItem("brownielab_last_phone");
@@ -178,9 +183,9 @@ export default function CartPage() {
     if (envioCalc?.fueraDeRango) setEnvioError(`Tu ubicación está fuera de nuestra zona de entrega (máx. ${envioCfg?.km_max} km). Escríbenos por WhatsApp para coordinar.`);
     if (!datos.metodo_pago) e.metodo_pago = "Selecciona un método de pago";
     if (datos.fecha_entrega) {
-      const min = new Date(); min.setDate(min.getDate() + 1); min.setHours(0, 0, 0, 0);
-      if (new Date(datos.fecha_entrega + "T00:00:00") < min) {
-        e.fecha_entrega = "La fecha debe ser mínimo mañana (24 h de anticipación)";
+      const minFecha = fechaMinimaEntrega(cfgPedidos.hora_corte);
+      if (datos.fecha_entrega < minFecha) {
+        e.fecha_entrega = `Por la hora, la entrega más próxima es el ${new Date(minFecha + "T12:00:00").toLocaleDateString("es-HN", { weekday: "long", day: "numeric", month: "long" })}`;
       }
     }
     setFormErrors(e);
@@ -1001,11 +1006,11 @@ export default function CartPage() {
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Fecha preferida" hint="Preparamos con mínimo 24 h de anticipación">
+                  <Field label="Fecha preferida" error={formErrors.fecha_entrega} hint="Preparamos con mínimo 24 h de anticipación. Pedidos después del corte del día pasan al siguiente.">
                     <input
                       type="date"
                       value={datos.fecha_entrega}
-                      min={(() => { const d = new Date(); d.setDate(d.getDate() + 1); return d.toISOString().split("T")[0]; })()}
+                      min={fechaMinimaEntrega(cfgPedidos.hora_corte)}
                       onChange={(e) => setDatos((d) => ({ ...d, fecha_entrega: e.target.value }))}
                       style={inputStyle}
                     />
@@ -1025,7 +1030,7 @@ export default function CartPage() {
                         style={{ ...inputStyle, paddingLeft: 42 }}
                       >
                         <option value="">Cualquier hora</option>
-                        {HORAS.map((h) => (
+                        {cfgPedidos.horas_entrega.map((h) => (
                           <option key={h} value={h}>{h}</option>
                         ))}
                       </select>

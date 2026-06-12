@@ -47,6 +47,8 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   line-height: 1.6;
+  /* iOS Safari ignora overflow-x en <html> — refuerzo en body */
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4 {

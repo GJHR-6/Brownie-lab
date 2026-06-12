@@ -253,6 +253,96 @@ export async function crearPedidoManual(
   }
 }
 
+// ── Editar pedido existente (cliente se equivocó) ────────────────────────────
+
+export async function actualizarPedidoManual(
+  pedidoId: string,
+  _prevState: ActionResult<Pedido> | null,
+  formData: FormData
+): Promise<ActionResult<Pedido>> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const { data: existente } = await supabase
+      .from('pedidos')
+      .select('id, cliente_datos, costo_envio, estado')
+      .eq('id', pedidoId)
+      .single();
+    if (!existente) return { success: false, error: 'Pedido no encontrado.' };
+
+    const nombre = (formData.get('nombre') as string ?? '').trim();
+    const telefono = (formData.get('telefono') as string ?? '').trim();
+    const notas = (formData.get('notas') as string ?? '').trim() || undefined;
+    const metodoPagoRaw = (formData.get('metodo_pago') as string | null)?.trim();
+    const metodo_pago = metodoPagoRaw === 'efectivo' || metodoPagoRaw === 'transferencia' ? metodoPagoRaw : null;
+    const tipoEntregaRaw = (formData.get('tipo_entrega') as string | null)?.trim();
+    const tipo_entrega = tipoEntregaRaw === 'pickup' || tipoEntregaRaw === 'domicilio' ? tipoEntregaRaw : undefined;
+    const direccion = (formData.get('direccion') as string | null)?.trim().slice(0, 300) || undefined;
+    const fechaRaw = (formData.get('fecha_entrega') as string | null)?.trim();
+    const fecha_entrega = fechaRaw && /^\d{4}-\d{2}-\d{2}$/.test(fechaRaw) ? fechaRaw : undefined;
+    const hora_entrega = (formData.get('hora_entrega') as string | null)?.trim().slice(0, 20) || undefined;
+    const itemsJson = formData.get('items_json') as string;
+
+    if (!nombre || !telefono) {
+      return { success: false, error: 'Nombre y teléfono del cliente son requeridos.' };
+    }
+
+    let items: PedidoItem[] = [];
+    try {
+      items = JSON.parse(itemsJson);
+    } catch {
+      return { success: false, error: 'Error al procesar los productos seleccionados.' };
+    }
+    if (!items.length) {
+      return { success: false, error: 'El pedido debe tener al menos un producto.' };
+    }
+
+    // Total = items nuevos + envío que ya tenía el pedido (no se recalcula aquí)
+    const costoEnvio = Number(existente.costo_envio ?? 0);
+    const total = Math.round((items.reduce((s, i) => s + i.subtotal, 0) + costoEnvio) * 100) / 100;
+
+    // Conserva datos no editables del JSON original (ej. detalle de envío)
+    const datosPrevios = (existente.cliente_datos ?? {}) as Record<string, unknown>;
+    const cliente_datos = {
+      ...datosPrevios,
+      nombre, telefono, notas,
+      metodo_pago: metodo_pago ?? undefined,
+      tipo_entrega,
+      direccion: tipo_entrega === 'domicilio' ? direccion : undefined,
+      fecha_entrega,
+      hora_entrega,
+    };
+
+    const { data, error } = await supabase
+      .from('pedidos')
+      .update({ cliente_datos, total, telefono_cliente: telefono, metodo_pago })
+      .eq('id', pedidoId)
+      .select()
+      .single();
+    if (error) return { success: false, error: error.message };
+
+    // Reemplaza las líneas del pedido
+    await supabase.from('pedido_items').delete().eq('pedido_id', pedidoId);
+    const { error: itemsError } = await supabase.from('pedido_items').insert(
+      items.map(item => ({
+        pedido_id:       pedidoId,
+        producto_id:     item.producto_id || null,
+        nombre_producto: item.nombre,
+        precio_unitario: item.precio,
+        cantidad:        item.cantidad,
+      }))
+    );
+    if (itemsError) return { success: false, error: `Pedido actualizado pero falló al guardar productos: ${itemsError.message}` };
+
+    await logActividad('pedido', `Pedido #${pedidoId.slice(0, 8).toUpperCase()} editado`, { id: pedidoId });
+    revalidatePath('/admin/pedidos');
+    revalidatePath('/admin');
+    return { success: true, data: data as Pedido };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
 export async function getPedidosPorTelefono(telefono: string): Promise<Pedido[]> {
   const { supabase } = await requireAdmin();
   const { data } = await supabase

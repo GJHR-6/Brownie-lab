@@ -205,7 +205,7 @@ export default function GaleriaClient({ files, siteSlots }: { files: FileInfo[];
         <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '0 0 20px' }}>
           Aparecen en secciones específicas del sitio público. Click en la imagen para reemplazar.
         </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="grid-cols-1 sm:grid-cols-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3" style={{ gap: 24 }}>
           {siteSlots.map(slot => (
             <SiteSlotTile key={slot.key} slot={slot} onUploaded={() => startTransition(() => { router.refresh(); })} />
           ))}

@@ -35,6 +35,17 @@ export async function updateConfiguracion(
     const anticipacion_minima = (formData.get('anticipacion_minima') as string ?? '').trim();
     const horario_atencion    = (formData.get('horario_atencion') as string ?? '').trim();
     const mensaje_bienvenida  = (formData.get('mensaje_bienvenida') as string ?? '').trim();
+
+    // Franjas de entrega + hora de corte
+    const horas_entrega = [
+      (formData.get('hora_entrega_1') as string ?? '').trim(),
+      (formData.get('hora_entrega_2') as string ?? '').trim(),
+    ].filter(Boolean).slice(0, 4);
+    const horaCorteRaw = (formData.get('hora_corte') as string ?? '').trim();
+    const hora_corte = /^\d{1,2}:\d{2}$/.test(horaCorteRaw) ? horaCorteRaw : '19:00';
+    if (horas_entrega.length === 0) {
+      return { success: false, error: 'Define al menos una franja de entrega.' };
+    }
     // Legacy fields kept for backwards compat
     const tagline       = (formData.get('tagline') as string ?? '').trim();
     const descripcion   = (formData.get('descripcion') as string ?? '').trim() || null;
@@ -64,6 +75,7 @@ export async function updateConfiguracion(
       id: 1, nombre, whatsapp, correo, ubicacion,
       instagram, facebook, tiktok,
       anticipacion_minima, horario_atencion, mensaje_bienvenida,
+      horas_entrega, hora_corte,
       tagline, descripcion, banco_nombre, banco_titular, banco_numero,
     };
     if (logo_url !== undefined)                  payload.logo_url = logo_url;
