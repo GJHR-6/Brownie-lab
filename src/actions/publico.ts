@@ -8,6 +8,7 @@ import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone } 
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
 import { parseConfigEnvio, calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from '@/lib/envio';
+import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
 
@@ -148,6 +149,20 @@ export async function getConfiguracionEnvio(): Promise<ConfigEnvio> {
   }
 }
 
+export async function getConfiguracionPedidos(): Promise<ConfigPedidos> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from('configuracion')
+      .select('horas_entrega, hora_corte')
+      .eq('id', 1)
+      .single();
+    return data ? parseConfigPedidos(data) : CONFIG_PEDIDOS_DEFAULT;
+  } catch {
+    return CONFIG_PEDIDOS_DEFAULT;
+  }
+}
+
 // ── Crear pedido desde checkout público ──────────────────────────────────────
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -184,10 +199,16 @@ export async function crearPedidoPublico(
   if (clienteDatos.metodo_pago  && !METODOS_PAGO.has(clienteDatos.metodo_pago))
     return { success: false, error: 'Método de pago inválido.' };
 
+  // Fecha y hora de entrega contra reglas configuradas (hora de corte + franjas)
+  const cfgPedidos = await getConfiguracionPedidos();
   if (clienteDatos.fecha_entrega) {
-    const min = new Date(); min.setDate(min.getDate() + 1); min.setHours(0, 0, 0, 0);
-    if (new Date(clienteDatos.fecha_entrega + 'T00:00:00') < min)
-      return { success: false, error: 'La fecha de entrega debe ser mínimo mañana.' };
+    const minFecha = fechaMinimaEntrega(cfgPedidos.hora_corte);
+    if (clienteDatos.fecha_entrega < minFecha) {
+      return { success: false, error: `Por la hora del pedido, la entrega más próxima disponible es el ${minFecha}.` };
+    }
+  }
+  if (clienteDatos.hora_entrega && !cfgPedidos.horas_entrega.includes(clienteDatos.hora_entrega)) {
+    return { success: false, error: 'Hora de entrega inválida. Elige una de las franjas disponibles.' };
   }
 
   // ── 2. Validar items ────────────────────────────────────────────────────────

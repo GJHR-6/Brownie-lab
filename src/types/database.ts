@@ -134,6 +134,8 @@ export interface Configuracion {
   banco_nombre: string;
   banco_titular: string;
   banco_numero: string;
+  horas_entrega: string[];
+  hora_corte: string;          // HH:MM 24h, hora Honduras
   envio_sedes: Array<{ nombre: string; lat: number; lng: number; tarifa_base: number }>;
   envio_por_km: number;
   envio_factor_ruta: number;

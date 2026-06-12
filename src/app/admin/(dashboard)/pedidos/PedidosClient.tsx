@@ -55,7 +55,7 @@ function DrawerSecTitle({ children }: { children: React.ReactNode }) {
 }
 
 /* ── Drawer ── */
-function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose: () => void; onUpdated: (updated: Pedido) => void }) {
+function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido; onClose: () => void; onUpdated: (updated: Pedido) => void; onEditar: () => void }) {
   const confirmar = useConfirm();
   useModalA11y(onClose);
   const cd = pedido.cliente_datos as ClienteDatos;
@@ -305,6 +305,12 @@ function PedidoDrawer({ pedido, onClose, onUpdated }: { pedido: Pedido; onClose:
             <MessageCircle style={{ width: 15, height: 15, color: '#58d684' }} />
             WhatsApp
           </button>
+          <button
+            onClick={onEditar}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 14px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s' }}
+          >
+            ✏️ Editar
+          </button>
           {localEstado !== 'cancelado' && (
             <button
               onClick={handleCancelar}
@@ -333,6 +339,7 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>(initialPedidos);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
+  const [editPedido, setEditPedido] = useState<Pedido | null>(null);
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoPedido | 'todos'>('todos');
@@ -570,6 +577,17 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
           pedido={selectedPedido}
           onClose={() => setSelectedPedido(null)}
           onUpdated={handleUpdated}
+          onEditar={() => { setEditPedido(selectedPedido); setSelectedPedido(null); }}
+        />
+      )}
+
+      {/* Editar modal */}
+      {editPedido && (
+        <CrearPedidoModal
+          productos={productos}
+          pedido={editPedido}
+          onSuccess={() => { setEditPedido(null); refresh(); }}
+          onClose={() => setEditPedido(null)}
         />
       )}
 

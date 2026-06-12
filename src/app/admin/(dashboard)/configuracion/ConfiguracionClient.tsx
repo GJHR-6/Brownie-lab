@@ -150,6 +150,17 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
                   <Inp name="horario_atencion" defaultValue={config.horario_atencion} placeholder="Lun–Sáb · 9:00 a.m. – 7:00 p.m." disabled={isPending} />
                 </Field>
               </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <Field label={<>Franja de entrega 1 <span style={{ color: 'var(--ink-soft)', fontWeight: 500, fontSize: 12 }}>(el cliente elige una)</span></>}>
+                  <Inp name="hora_entrega_1" defaultValue={config.horas_entrega?.[0] ?? '10:00 AM'} placeholder="10:00 AM" maxLength={20} disabled={isPending} />
+                </Field>
+                <Field label="Franja de entrega 2">
+                  <Inp name="hora_entrega_2" defaultValue={config.horas_entrega?.[1] ?? '3:00 PM'} placeholder="3:00 PM" maxLength={20} disabled={isPending} />
+                </Field>
+              </div>
+              <Field label={<>Hora de corte <span style={{ color: 'var(--ink-soft)', fontWeight: 500, fontSize: 12 }}>(pedidos después de esta hora se entregan un día después; ej. corte 19:00 → pedido lunes 8 PM se entrega miércoles)</span></>}>
+                <Inp name="hora_corte" type="time" defaultValue={config.hora_corte ?? '19:00'} disabled={isPending} style={{ maxWidth: 180 }} />
+              </Field>
             </FCard>
 
             {/* Envíos → gestionados en su propia página */}

@@ -1,20 +1,39 @@
 'use client';
 
-import { useState, useActionState, useEffect } from 'react';
+import { useState, useActionState, useEffect, useMemo } from 'react';
 import { Loader2, X, Plus, Minus, Search } from 'lucide-react';
-import { crearPedidoManual } from '@/actions/pedidos';
+import { crearPedidoManual, actualizarPedidoManual } from '@/actions/pedidos';
 import { useModalA11y } from '@/hooks/useModalA11y';
-import type { Producto, PedidoItem } from '@/types/database';
+import type { Producto, Pedido, PedidoItem, ClienteDatos } from '@/types/database';
 
 const T = {
   inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
 };
 
-export default function CrearPedidoModal({ productos, onSuccess, onClose }: { productos: Producto[]; onSuccess: () => void; onClose: () => void }) {
-  const [cantidades, setCantidades] = useState<Record<string, number>>({});
+export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose }: { productos: Producto[]; pedido?: Pedido; onSuccess: () => void; onClose: () => void }) {
+  const isEditing = !!pedido;
+  const cd = (pedido?.cliente_datos ?? {}) as ClienteDatos;
+
+  // Cantidades iniciales desde los items del pedido (solo los ligados a producto)
+  const [cantidades, setCantidades] = useState<Record<string, number>>(() => {
+    if (!pedido?.items) return {};
+    const init: Record<string, number> = {};
+    for (const it of pedido.items) {
+      if (it.producto_id) init[it.producto_id] = (init[it.producto_id] ?? 0) + it.cantidad;
+    }
+    return init;
+  });
+  // Items personalizados (sin producto_id, ej. del personalizador) — se conservan tal cual
+  const fixedItems: PedidoItem[] = useMemo(
+    () => (pedido?.items ?? []).filter(it => !it.producto_id),
+    [pedido]
+  );
+
   const [busqueda, setBusqueda] = useState('');
-  const [tipoEntrega, setTipoEntrega] = useState<'pickup' | 'domicilio'>('pickup');
-  const [state, formAction, isPending] = useActionState(crearPedidoManual, null);
+  const [tipoEntrega, setTipoEntrega] = useState<'pickup' | 'domicilio'>(cd.tipo_entrega ?? 'pickup');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const action = useMemo(() => isEditing ? actualizarPedidoManual.bind(null, pedido!.id) : crearPedidoManual, []);
+  const [state, formAction, isPending] = useActionState(action, null);
   useModalA11y(onClose);
 
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
@@ -33,27 +52,28 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
     return { producto_id: id, nombre: p.nombre, precio: Number(p.precio), cantidad, subtotal: Number(p.precio) * cantidad };
   });
 
-  const total = items.reduce((s, i) => s + i.subtotal, 0);
-  const itemCount = items.reduce((s, i) => s + i.cantidad, 0);
+  const allItems: PedidoItem[] = [...fixedItems, ...items];
+  const total = allItems.reduce((s, i) => s + i.subtotal, 0);
+  const itemCount = allItems.reduce((s, i) => s + i.cantidad, 0);
 
   return (
     <div
       style={{ position: 'fixed', inset: 0, background: 'rgba(28,18,10,.42)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div role="dialog" aria-modal="true" aria-label="Nuevo pedido manual"
+      <div role="dialog" aria-modal="true" aria-label={isEditing ? `Editar pedido #${pedido!.id.slice(0, 8).toUpperCase()}` : "Nuevo pedido manual"}
         style={{ background: 'var(--paper)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', width: '100%', maxWidth: 520, maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', flexShrink: 0, borderRadius: 'var(--r-lg) var(--r-lg) 0 0' }}>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>Nuevo pedido manual</h3>
+          <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 19, color: 'var(--ink)', margin: 0, flex: 1 }}>{isEditing ? `Editar pedido #${pedido!.id.slice(0, 8).toUpperCase()}` : 'Nuevo pedido manual'}</h3>
           <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
             <X style={{ width: 18, height: 18 }} />
           </button>
         </div>
 
         <form action={formAction} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-          <input type="hidden" name="items_json" value={JSON.stringify(items)} />
+          <input type="hidden" name="items_json" value={JSON.stringify(allItems)} />
 
           <div style={{ flex: 1, overflowY: 'auto', padding: 24, display: 'flex', flexDirection: 'column', gap: 24 }}>
             {state?.success === false && (
@@ -68,7 +88,7 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                     Nombre <span style={{ color: 'var(--berry)' }}>*</span>
                   </label>
-                  <input name="nombre" required minLength={2} maxLength={120} disabled={isPending}
+                  <input name="nombre" required minLength={2} maxLength={120} disabled={isPending} defaultValue={cd.nombre ?? ""}
                     placeholder="María López"
                     style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
@@ -78,7 +98,7 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                     Teléfono <span style={{ color: 'var(--berry)' }}>*</span>
                   </label>
-                  <input name="telefono" required type="tel" minLength={8} maxLength={20} disabled={isPending}
+                  <input name="telefono" required type="tel" minLength={8} maxLength={20} disabled={isPending} defaultValue={cd.telefono ?? ""}
                     placeholder="9999-0000"
                     pattern="[\d\s\-\+\(\)]{8,}"
                     title="Mínimo 8 dígitos"
@@ -98,7 +118,7 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                 {tipoEntrega === 'domicilio' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Dirección</label>
-                    <input name="direccion" maxLength={300} disabled={isPending}
+                    <input name="direccion" maxLength={300} disabled={isPending} defaultValue={cd.direccion ?? ""}
                       placeholder="Col. Palmira, Calle Principal #123…"
                       style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
                       onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
@@ -108,18 +128,18 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Fecha entrega</label>
-                    <input name="fecha_entrega" type="date" disabled={isPending}
+                    <input name="fecha_entrega" type="date" disabled={isPending} defaultValue={cd.fecha_entrega ?? ""}
                       style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                     <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Hora</label>
-                    <input name="hora_entrega" maxLength={20} disabled={isPending} placeholder="3:00 PM"
+                    <input name="hora_entrega" maxLength={20} disabled={isPending} placeholder="3:00 PM" defaultValue={cd.hora_entrega ?? ""}
                       style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Método de pago</label>
-                  <select name="metodo_pago" disabled={isPending} defaultValue=""
+                  <select name="metodo_pago" disabled={isPending} defaultValue={cd.metodo_pago ?? ""}
                     style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
                     onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}>
@@ -130,7 +150,7 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
-                  <input name="notas" maxLength={500} disabled={isPending}
+                  <input name="notas" maxLength={500} disabled={isPending} defaultValue={cd.notas ?? ""}
                     placeholder="Sin nueces, para llevar…"
                     style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
@@ -162,6 +182,18 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
                   </button>
                 )}
               </div>
+              {fixedItems.length > 0 && (
+                <div style={{ marginBottom: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {fixedItems.map((it, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 'var(--r-md)', border: '1.5px dashed var(--hairline)', background: 'var(--cream)' }}>
+                      <span style={{ fontSize: 16 }}>✨</span>
+                      <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)' }}>{it.cantidad}× {it.nombre}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--orange-ink)' }}>L.{Number(it.subtotal).toFixed(2)}</span>
+                    </div>
+                  ))}
+                  <p style={{ fontSize: 11.5, color: 'var(--ink-soft)', margin: 0 }}>Items personalizados — se conservan sin cambios.</p>
+                </div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {productos
                   .filter(p => p.disponible)
@@ -211,7 +243,7 @@ export default function CrearPedidoModal({ productos, onSuccess, onClose }: { pr
               <button type="submit" disabled={isPending || itemCount === 0}
                 style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s', opacity: isPending || itemCount === 0 ? 0.6 : 1 }}>
                 {isPending && <Loader2 style={{ width: 16, height: 16, animation: 'spin 1s linear infinite' }} />}
-                {isPending ? 'Creando…' : 'Crear pedido'}
+                {isPending ? 'Guardando…' : isEditing ? 'Guardar cambios' : 'Crear pedido'}
               </button>
             </div>
           </div>
