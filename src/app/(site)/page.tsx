@@ -3,7 +3,7 @@ import Link from "next/link";
 import ProductCard from "@/components/ProductCard";
 import AnimateIn from "@/components/AnimateIn";
 import ClubSection from "@/components/ClubSection";
-import EspecialCarousel from "@/components/EspecialCarousel";
+import CaprichoCarousel from "@/components/CaprichoCarousel";
 import BLIcon from "@/components/BLIcon";
 import GiftIntro from "@/components/GiftIntro";
 import { storeConfig } from "@/config/store";
@@ -181,70 +181,9 @@ export default async function Home() {
               </p>
             </div>
 
+            {/* Carrusel de especiales activos */}
             {activeSpecials.length > 0 && (
-            <div
-              className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col"
-              style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".9fr 1.1fr" }}
-            >
-              {/* Media — carousel de imágenes del especial */}
-              {activeSpecials[0].imagen_url || (activeSpecials[0].imagenes?.length > 0) ? (
-                <EspecialCarousel especial={activeSpecials[0]} />
-              ) : (
-                <div
-                  className="rounded-[24px]"
-                  style={{
-                    aspectRatio: "4/5",
-                    background:
-                      "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), var(--choco-800)",
-                  }}
-                />
-              )}
-              {/* Copy */}
-              <div>
-                <span
-                  className="text-[12px] font-bold tracking-[0.22em] uppercase"
-                  style={{ color: "var(--amber)" }}
-                >
-                  Edición limitada
-                </span>
-                <h3
-                  className="font-bold mt-4 mb-4"
-                  style={{ fontSize: "clamp(34px, 5vw, 52px)" }}
-                >
-                  {activeSpecials[0].nombre}
-                </h3>
-                <p style={{ color: "var(--on-dark-soft)", fontSize: 17, maxWidth: "46ch" }}>
-                  {activeSpecials[0].descripcion}
-                </p>
-                <div className="flex items-center flex-wrap gap-4 mt-7">
-                  <span
-                    className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full"
-                    style={{ background: "rgba(232,162,58,.15)", color: "var(--amber)" }}
-                  >
-                    Solo esta semana
-                  </span>
-                  <span
-                    className="inline-flex items-center gap-2 font-bold text-[15px]"
-                    style={{ color: "var(--amber)" }}
-                  >
-                    <BLIcon name="clock" size={18} />
-                    Quedan {getDaysLeft(activeSpecials[0].fecha_inicio, activeSpecials[0].duracion_dias)} días
-                  </span>
-                </div>
-                <div className="mt-5">
-                  <a
-                    href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Me interesa el ${activeSpecials[0].nombre} del Capricho del Chef`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
-                    style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
-                  >
-                    Pedir ahora
-                    <BLIcon name="arrow-right" size={16} />
-                  </a>
-                </div>
-              </div>
-            </div>
+              <CaprichoCarousel especiales={activeSpecials} whatsapp={whatsapp} />
             )}
 
             {/* Productos destacados por el chef — misma sección */}

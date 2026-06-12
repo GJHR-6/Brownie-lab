@@ -32,10 +32,8 @@ export async function updateConfiguracion(
     const instagram           = (formData.get('instagram') as string ?? '').trim();
     const facebook            = (formData.get('facebook') as string ?? '').trim();
     const tiktok              = (formData.get('tiktok') as string ?? '').trim();
-    const envio_gratis_desde  = (formData.get('envio_gratis_desde') as string ?? '').trim();
     const anticipacion_minima = (formData.get('anticipacion_minima') as string ?? '').trim();
     const horario_atencion    = (formData.get('horario_atencion') as string ?? '').trim();
-    const aviso_barra_superior = (formData.get('aviso_barra_superior') as string ?? '').trim();
     const mensaje_bienvenida  = (formData.get('mensaje_bienvenida') as string ?? '').trim();
     // Legacy fields kept for backwards compat
     const tagline       = (formData.get('tagline') as string ?? '').trim();
@@ -65,8 +63,7 @@ export async function updateConfiguracion(
     const payload: Record<string, unknown> = {
       id: 1, nombre, whatsapp, correo, ubicacion,
       instagram, facebook, tiktok,
-      envio_gratis_desde, anticipacion_minima, horario_atencion,
-      aviso_barra_superior, mensaje_bienvenida,
+      anticipacion_minima, horario_atencion, mensaje_bienvenida,
       tagline, descripcion, banco_nombre, banco_titular, banco_numero,
     };
     if (logo_url !== undefined)                  payload.logo_url = logo_url;

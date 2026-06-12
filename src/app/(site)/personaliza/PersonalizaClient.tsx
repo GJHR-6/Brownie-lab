@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { storeConfig } from "@/config/store";
@@ -44,8 +44,6 @@ export default function PersonalizaClient({
   const [galletaVariantIdx, setGalletaVariantIdx] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [qty, setQty] = useState(1);
-  // Stable random delay refs so topping idle animations don't shift on re-render
-  const delayRef = useRef<Map<string, number>>(new Map());
 
   const addItem = useCartStore(s => s.addItem);
   const router = useRouter();
@@ -81,7 +79,7 @@ export default function PersonalizaClient({
   );
   const extraPrice = useMemo(
     () => TOPPINGS.filter(t => selected.has(t.name)).reduce((s, t) => s + t.price, 0),
-    [selected],
+    [selected, TOPPINGS],
   );
   const unitPrice = activeVariant.price + extraPrice;
   const totalPrice = unitPrice * qty;
@@ -92,12 +90,12 @@ export default function PersonalizaClient({
     [base, selectedNames],
   );
 
-  // Stable idle animation delay per topping-spot key
+  // Stable idle animation delay per topping-spot key — hash determinista
+  // (sin Math.random: puro, mismo resultado en server y cliente)
   function idleDelay(key: string): number {
-    if (!delayRef.current.has(key)) {
-      delayRef.current.set(key, -(Math.random() * 3));
-    }
-    return delayRef.current.get(key)!;
+    let h = 0;
+    for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 9973;
+    return -((h % 300) / 100); // 0 a -2.99s
   }
 
   const llevaText = selectedNames.length === 0
@@ -475,7 +473,8 @@ export default function PersonalizaClient({
           align-items: start;
         }
         .bl-preview-col { position: sticky; top: 96px; }
-        .bl-variants-grid { grid-template-columns: repeat(${Math.max(1, activeVariants.length)}, 1fr); }
+        /* auto-fill + minmax: las variantes envuelven a la siguiente fila en vez de desbordar */
+        .bl-variants-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
         .bl-toppings-grid { grid-template-columns: 1fr 1fr; }
 
         /* Topping drop-in animation */
