@@ -141,23 +141,15 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
             </FCard>
 
             {/* Operación */}
-            <FCard title="Operación" sub="Reglas de pedidos y envío.">
+            <FCard title="Operación" sub="Reglas de pedidos y horario.">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                <Field label={<>Envío gratis desde <span style={{ color: 'var(--ink-soft)', fontWeight: 500, fontSize: 12 }}>(texto informativo — el monto real se define en Envíos)</span></>}>
-                  <div style={{ position: 'relative' }}>
-                    <span style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--ink-soft)', fontFamily: 'var(--font-display)', fontSize: 14, pointerEvents: 'none' }}>
-                      L.
-                    </span>
-                    <Inp name="envio_gratis_desde" defaultValue={config.envio_gratis_desde} placeholder="200" disabled={isPending} style={{ paddingLeft: 42 }} />
-                  </div>
-                </Field>
                 <Field label="Anticipación mínima">
                   <Inp name="anticipacion_minima" defaultValue={config.anticipacion_minima} placeholder="24 horas" disabled={isPending} />
                 </Field>
+                <Field label="Horario de atención">
+                  <Inp name="horario_atencion" defaultValue={config.horario_atencion} placeholder="Lun–Sáb · 9:00 a.m. – 7:00 p.m." disabled={isPending} />
+                </Field>
               </div>
-              <Field label="Horario de atención">
-                <Inp name="horario_atencion" defaultValue={config.horario_atencion} placeholder="Lun–Sáb · 9:00 a.m. – 7:00 p.m." disabled={isPending} />
-              </Field>
             </FCard>
 
             {/* Envíos → gestionados en su propia página */}
@@ -170,10 +162,7 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
             </div>
 
             {/* Mensajes del sitio */}
-            <FCard title="Mensajes del sitio" sub="Textos que se muestran a los clientes.">
-              <Field label="Aviso barra superior">
-                <Inp name="aviso_barra_superior" defaultValue={config.aviso_barra_superior} placeholder="Envíos gratis por encargos mayores a L.200" disabled={isPending} />
-              </Field>
+            <FCard title="Mensajes del sitio" sub="Textos que se muestran a los clientes. El aviso de la barra superior se gestiona en Banners.">
               <Field label="Mensaje de bienvenida">
                 <textarea
                   name="mensaje_bienvenida"

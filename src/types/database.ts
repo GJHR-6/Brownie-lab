@@ -124,10 +124,8 @@ export interface Configuracion {
   instagram: string;
   facebook: string;
   tiktok: string;
-  envio_gratis_desde: string;
   anticipacion_minima: string;
   horario_atencion: string;
-  aviso_barra_superior: string;
   mensaje_bienvenida: string;
   logo_url: string | null;
   hero_imagen_url: string | null;
