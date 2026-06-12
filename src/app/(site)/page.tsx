@@ -161,10 +161,27 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ── Capricho del Chef ─────────────────────────────────────────── */}
-      {activeSpecials.length > 0 && (
+      {/* ── Capricho del Chef (especiales + productos destacados) ─────── */}
+      {(activeSpecials.length > 0 || capricho.length > 0) && (
         <AnimateIn>
           <section style={{ background: "var(--choco-900)", color: "var(--on-dark)", paddingBlock: "clamp(64px, 9vw, 120px)" }}>
+            {/* Header de la sección */}
+            <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
+              <div className="flex items-center gap-3 mb-2">
+                <BLIcon name="sparkle" size={18} style={{ color: "var(--amber)" } as React.CSSProperties} />
+                <span className="text-[12px] font-bold tracking-[0.22em] uppercase" style={{ color: "var(--amber)" }}>
+                  Capricho del Chef
+                </span>
+              </div>
+              <h2 className="mb-2" style={{ fontSize: "clamp(28px, 3.6vw, 40px)", color: "var(--on-dark)" }}>
+                Selección especial
+              </h2>
+              <p style={{ color: "var(--on-dark-soft)", fontSize: 16, maxWidth: "48ch", marginBottom: "clamp(32px, 5vw, 56px)" }}>
+                Creaciones que el chef destaca esta temporada.
+              </p>
+            </div>
+
+            {activeSpecials.length > 0 && (
             <div
               className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col"
               style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".9fr 1.1fr" }}
@@ -190,12 +207,12 @@ export default async function Home() {
                 >
                   Edición limitada
                 </span>
-                <h2
+                <h3
                   className="font-bold mt-4 mb-4"
                   style={{ fontSize: "clamp(34px, 5vw, 52px)" }}
                 >
                   {activeSpecials[0].nombre}
-                </h2>
+                </h3>
                 <p style={{ color: "var(--on-dark-soft)", fontSize: 17, maxWidth: "46ch" }}>
                   {activeSpecials[0].descripcion}
                 </p>
@@ -228,6 +245,31 @@ export default async function Home() {
                 </div>
               </div>
             </div>
+            )}
+
+            {/* Productos destacados por el chef — misma sección */}
+            {capricho.length > 0 && (
+              <div
+                className="mx-auto px-[var(--gutter)]"
+                style={{ maxWidth: "var(--maxw)", marginTop: activeSpecials.length > 0 ? "clamp(48px, 7vw, 88px)" : 0 }}
+              >
+                {activeSpecials.length > 0 && (
+                  <p className="text-[12px] font-bold tracking-[0.22em] uppercase mb-6" style={{ color: "var(--amber)" }}>
+                    También destacados
+                  </p>
+                )}
+                <div
+                  className="grid gap-6 bl-grid-3col"
+                  style={{ gridTemplateColumns: `repeat(${Math.min(capricho.length, 3)}, 1fr)` }}
+                >
+                  {capricho.map((p) => (
+                    <AnimateIn key={p.id}>
+                      <ProductCard product={p} />
+                    </AnimateIn>
+                  ))}
+                </div>
+              </div>
+            )}
           </section>
         </AnimateIn>
       )}
@@ -348,38 +390,6 @@ export default async function Home() {
           )}
         </div>
       </section>
-
-      {/* ── Capricho del Chef ────────────────────────────────────────── */}
-      {capricho.length > 0 && (
-        <section style={{ background: "var(--cream)", ...SEC }}>
-          <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
-            <AnimateIn>
-              <div className="flex items-center gap-3 mb-2">
-                <BLIcon name="sparkle" size={18} style={{ color: "var(--orange)" } as React.CSSProperties} />
-                <span className="text-[12px] font-bold tracking-[0.22em] uppercase" style={{ color: "var(--orange)" }}>
-                  Capricho del Chef
-                </span>
-              </div>
-              <h2 className="mb-2" style={{ fontSize: "clamp(28px, 3.6vw, 40px)", color: "var(--ink)" }}>
-                Selección especial
-              </h2>
-              <p className="mb-10" style={{ color: "var(--ink-soft)", fontSize: 16, maxWidth: "48ch" }}>
-                Creaciones que el chef destaca esta temporada.
-              </p>
-            </AnimateIn>
-            <div
-              className="grid gap-6 bl-grid-3col"
-              style={{ gridTemplateColumns: `repeat(${Math.min(capricho.length, 3)}, 1fr)` }}
-            >
-              {capricho.map((p) => (
-                <AnimateIn key={p.id}>
-                  <ProductCard product={p} />
-                </AnimateIn>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── Testimonios ──────────────────────────────────────────────── */}
       {testimonios.length > 0 && (
