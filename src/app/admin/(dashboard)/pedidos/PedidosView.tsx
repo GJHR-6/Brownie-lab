@@ -6,6 +6,7 @@ import PedidosClient from './PedidosClient';
 import KanbanClient from './KanbanClient';
 import PedidosPagination from './PedidosPagination';
 import type { Pedido, Producto } from '@/types/database';
+import type { ToppingExtra } from './CrearPedidoModal';
 
 type Vista = 'tabla' | 'kanban';
 const STORAGE_KEY = 'admin-pedidos-vista';
@@ -31,12 +32,13 @@ function cambiarVista(v: Vista) {
 interface PedidosViewProps {
   initialPedidos: Pedido[];
   productos: Producto[];
+  toppings: ToppingExtra[];
   total: number;
   page: number;
   pageSize: number;
 }
 
-export default function PedidosView({ initialPedidos, productos, total, page, pageSize }: PedidosViewProps) {
+export default function PedidosView({ initialPedidos, productos, toppings, total, page, pageSize }: PedidosViewProps) {
   const vista = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   const switcher = (
@@ -73,6 +75,6 @@ export default function PedidosView({ initialPedidos, productos, total, page, pa
   const pagination = <PedidosPagination total={total} page={page} pageSize={pageSize} />;
 
   return vista === 'kanban'
-    ? <KanbanClient initialPedidos={initialPedidos} productos={productos} viewSwitcher={switcher} footer={pagination} />
-    : <PedidosClient initialPedidos={initialPedidos} productos={productos} viewSwitcher={switcher} footer={pagination} />;
+    ? <KanbanClient initialPedidos={initialPedidos} productos={productos} toppings={toppings} viewSwitcher={switcher} footer={pagination} />
+    : <PedidosClient initialPedidos={initialPedidos} productos={productos} toppings={toppings} viewSwitcher={switcher} footer={pagination} />;
 }

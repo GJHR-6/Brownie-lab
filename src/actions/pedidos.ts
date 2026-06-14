@@ -6,6 +6,7 @@ import type { Pedido, EstadoPedido, PedidoItem } from '@/types/database';
 import { logActividad } from './actividad';
 import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
+import { normalizePhone } from '@/lib/sanitize';
 
 type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -222,14 +223,16 @@ export async function crearPedidoManual(
       ...(hora_entrega ? { hora_entrega } : {}),
     };
 
+    // Identidad del cliente normalizada (sin +504) para evitar duplicados en fidelización
+    const telefonoNormalizado = normalizePhone(telefono);
     await supabase.from('clientes').upsert(
-      { telefono, nombre },
+      { telefono: telefonoNormalizado, nombre },
       { onConflict: 'telefono', ignoreDuplicates: false }
     );
 
     const { data, error } = await supabase
       .from('pedidos')
-      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefono, metodo_pago })
+      .insert({ cliente_datos, total, estado: 'pendiente', telefono_cliente: telefonoNormalizado, metodo_pago })
       .select()
       .single();
 
@@ -313,9 +316,16 @@ export async function actualizarPedidoManual(
       hora_entrega,
     };
 
+    // Identidad del cliente normalizada (sin +504) para evitar duplicados en fidelización
+    const telefonoNormalizado = normalizePhone(telefono);
+    await supabase.from('clientes').upsert(
+      { telefono: telefonoNormalizado, nombre },
+      { onConflict: 'telefono', ignoreDuplicates: false }
+    );
+
     const { data, error } = await supabase
       .from('pedidos')
-      .update({ cliente_datos, total, telefono_cliente: telefono, metodo_pago })
+      .update({ cliente_datos, total, telefono_cliente: telefonoNormalizado, metodo_pago })
       .eq('id', pedidoId)
       .select()
       .single();

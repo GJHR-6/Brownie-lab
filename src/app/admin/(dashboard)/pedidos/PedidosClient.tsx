@@ -9,7 +9,7 @@ import { actualizarEstadoPedido } from '@/actions/pedidos';
 import { abrirWhatsAppPedido } from '@/lib/whatsappPedido';
 import { useConfirm } from '@/components/admin/ConfirmProvider';
 import { useModalA11y } from '@/hooks/useModalA11y';
-import CrearPedidoModal from './CrearPedidoModal';
+import CrearPedidoModal, { type ToppingExtra } from './CrearPedidoModal';
 import type { Pedido, EstadoPedido, Producto, PedidoItem } from '@/types/database';
 import type { ClienteDatos } from '@/types/database';
 
@@ -283,7 +283,8 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
             <select
               value={localEstado}
               onChange={e => setLocalEstado(e.target.value as EstadoPedido)}
-              style={{ width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none', appearance: 'auto' }}
+              className="bl-select"
+              style={{ width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' }}
               onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
               onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}
             >
@@ -335,7 +336,7 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
 }
 
 /* ── Main component ── */
-export default function PedidosClient({ initialPedidos, productos, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
+export default function PedidosClient({ initialPedidos, productos, toppings, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; toppings?: ToppingExtra[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
   const [pedidos, setPedidos] = useState<Pedido[]>(initialPedidos);
   const [selectedPedido, setSelectedPedido] = useState<Pedido | null>(null);
@@ -468,7 +469,8 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
         <select
           value={estadoFilter}
           onChange={e => setEstadoFilter(e.target.value as EstadoPedido | 'todos')}
-          style={{ appearance: 'none', padding: '10px 38px 10px 16px', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', background: `var(--paper-card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b5743' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center`, fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer', outline: 'none' }}
+          className="bl-select"
+          style={{ padding: '10px 16px', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', background: 'var(--paper-card)', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--ink)', outline: 'none' }}
           onFocus={e => e.target.style.borderColor = 'var(--orange)'}
           onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
         >
@@ -585,6 +587,7 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
       {editPedido && (
         <CrearPedidoModal
           productos={productos}
+          toppings={toppings}
           pedido={editPedido}
           onSuccess={() => { setEditPedido(null); refresh(); }}
           onClose={() => setEditPedido(null)}
@@ -595,6 +598,7 @@ export default function PedidosClient({ initialPedidos, productos, viewSwitcher,
       {isCrearOpen && (
         <CrearPedidoModal
           productos={productos}
+          toppings={toppings}
           onSuccess={() => { setIsCrearOpen(false); refresh(); }}
           onClose={() => setIsCrearOpen(false)}
         />

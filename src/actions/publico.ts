@@ -4,7 +4,7 @@ import { headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
-import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone } from '@/lib/sanitize';
+import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
 import { parseConfigEnvio, calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from '@/lib/envio';
@@ -146,6 +146,24 @@ export async function getConfiguracionEnvio(): Promise<ConfigEnvio> {
     return data ? parseConfigEnvio(data) : vacio;
   } catch {
     return vacio;
+  }
+}
+
+// Toppings activos para recomendar como extra en el checkout
+export async function getToppingsPublicos(): Promise<Array<{ id: string; nombre: string; precio_extra: number }>> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase
+      .from('ingredientes')
+      .select('id, nombre, precio_extra')
+      .eq('es_topping', true)
+      .eq('activo', true)
+      .order('nombre');
+    return (data ?? [])
+      .map(t => ({ id: t.id as string, nombre: t.nombre as string, precio_extra: Number(t.precio_extra ?? 0) }))
+      .filter(t => t.precio_extra > 0); // el checkout exige precio > 0 en items sin producto
+  } catch {
+    return [];
   }
 }
 
@@ -338,14 +356,16 @@ export async function crearPedidoPublico(
       : sanitizedDatos;
 
     // ── 7. Upsert cliente + crear pedido ─────────────────────────────────────
+    // Identidad del cliente normalizada (sin +504) para evitar duplicados en fidelización
+    const telefonoNormalizado = normalizePhone(telefono);
     await supabase.from('clientes').upsert(
-      { telefono, nombre },
+      { telefono: telefonoNormalizado, nombre },
       { onConflict: 'telefono', ignoreDuplicates: false }
     );
 
     const row: Record<string, unknown> = {
       cliente_datos: datos, total: totalReal, estado: 'pendiente',
-      telefono_cliente: telefono, ip_origen: ip,
+      telefono_cliente: telefonoNormalizado, ip_origen: ip,
       // Columnas contables (además del JSON, para reportes queryables)
       metodo_pago: METODOS_PAGO.has(clienteDatos.metodo_pago ?? '') ? clienteDatos.metodo_pago : null,
       descuento,

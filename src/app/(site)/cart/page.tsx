@@ -12,7 +12,7 @@ import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
-import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, subirComprobante } from "@/actions/publico";
+import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, getToppingsPublicos, subirComprobante } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 import { calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from "@/lib/envio";
 import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
@@ -57,7 +57,7 @@ const STEPS = [
 ];
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, clearCart, total, itemCount } = useCartStore();
+  const { items, addItem: addToCartItem, updateQuantity, removeItem, clearCart, total, itemCount } = useCartStore();
   const recentProducts = useRecentStore((s) => s.productos);
   const [mounted, setMounted] = useState(false);
   const [step, setStep] = useState<Step>(1);
@@ -90,6 +90,9 @@ export default function CartPage() {
   // Horarios de entrega configurables (franjas + hora de corte)
   const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);
 
+  // Toppings recomendados como extra (upsell)
+  const [toppingsRec, setToppingsRec] = useState<Array<{ id: string; nombre: string; precio_extra: number }>>([]);
+
   useEffect(() => {
     if (!promoError) return;
     const t = setTimeout(() => setPromoError(""), 5000);
@@ -101,6 +104,7 @@ export default function CartPage() {
     getConfiguracionBanco().then(setBanco);
     getConfiguracionEnvio().then(setEnvioCfg).catch(() => {});
     getConfiguracionPedidos().then(setCfgPedidos).catch(() => {});
+    getToppingsPublicos().then(setToppingsRec).catch(() => {});
     // Load saved user data from previous order
     try {
       const lastPhone = localStorage.getItem("brownielab_last_phone");
@@ -697,6 +701,47 @@ export default function CartPage() {
                   </table>
                 </div>
               </div>
+
+              {/* Toppings extra recomendados */}
+              {toppingsRec.length > 0 && (
+                <div
+                  className="rounded-[20px] p-5"
+                  style={{ background: "var(--cream)", border: "1px solid var(--hairline)" }}
+                >
+                  <p className="text-[12px] font-bold tracking-[0.18em] uppercase mb-1" style={{ color: "var(--orange-ink)" }}>
+                    ✨ ¿Le agregamos algo extra?
+                  </p>
+                  <p className="text-[13px] mb-3.5" style={{ color: "var(--ink-soft)" }}>
+                    Toppings extra para acompañar tu pedido — toca para agregar.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {toppingsRec.map((t) => {
+                      const itemId = `extra-${t.id}`;
+                      const enCarrito = items.some((i) => i.id === itemId);
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => {
+                            if (enCarrito) removeItem(itemId);
+                            else addToCartItem({ id: itemId, name: `Extra: ${t.nombre}`, price: t.precio_extra, emoji: "✨" });
+                          }}
+                          className="inline-flex items-center gap-1.5 text-[13.5px] font-bold px-4 py-2 rounded-full cursor-pointer transition-all border"
+                          style={{
+                            background: enCarrito ? "rgba(217,113,30,.1)" : "var(--paper-card)",
+                            borderColor: enCarrito ? "var(--orange)" : "var(--hairline)",
+                            color: enCarrito ? "var(--orange-ink)" : "var(--ink)",
+                          }}
+                        >
+                          {enCarrito ? "✓" : "+"} {t.nombre}
+                          <span style={{ fontWeight: 600, color: enCarrito ? "var(--orange-ink)" : "var(--ink-soft)" }}>
+                            {sym}{t.precio_extra.toFixed(0)}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {/* Promo code */}
               <div>

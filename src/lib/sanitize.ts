@@ -22,6 +22,15 @@ export function isValidHonduranPhone(input: string): boolean {
   return /^[2389]\d{7}$/.test(local);
 }
 
+// Normaliza a 8 dígitos locales (sin +504) para usar como identidad única del cliente
+// (clave de `clientes`, fidelización, cupones). Evita duplicados por +504 / 0504 / espacios.
+export function normalizePhone(input: string): string {
+  const digits = input.replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('504')) return digits.slice(3);
+  if (digits.length === 12 && digits.startsWith('0504')) return digits.slice(4);
+  return digits;
+}
+
 // Promo codes: alphanumeric + hyphen/underscore only.
 export function sanitizePromoCode(input: unknown): string {
   if (typeof input !== 'string') return '';

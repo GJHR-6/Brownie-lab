@@ -6,7 +6,7 @@ import { Bell } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable, type DropResult } from '@hello-pangea/dnd';
 import { actualizarEstadoPedido } from '@/actions/pedidos';
 import PedidoCard from './PedidoCard';
-import CrearPedidoModal from './CrearPedidoModal';
+import CrearPedidoModal, { type ToppingExtra } from './CrearPedidoModal';
 import { useRouter } from 'next/navigation';
 import { Plus, Download, Printer, Search, X, CheckSquare, Square, Loader2, MessageCircle } from 'lucide-react';
 import type { ClienteDatos, PedidoItem } from '@/types/database';
@@ -56,7 +56,7 @@ function printPedido(pedido: Pedido) {
   win.document.close();
 }
 
-export default function KanbanClient({ initialPedidos, productos, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
+export default function KanbanClient({ initialPedidos, productos, toppings, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; toppings?: ToppingExtra[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
   const confirmar = useConfirm();
   const [isCrearOpen, setIsCrearOpen] = useState(false);
@@ -261,7 +261,7 @@ export default function KanbanClient({ initialPedidos, productos, viewSwitcher, 
 
       {/* Crear modal */}
       {isCrearOpen && (
-        <CrearPedidoModal productos={productos} onSuccess={() => { setIsCrearOpen(false); router.refresh(); }} onClose={() => setIsCrearOpen(false)} />
+        <CrearPedidoModal productos={productos} toppings={toppings} onSuccess={() => { setIsCrearOpen(false); router.refresh(); }} onClose={() => setIsCrearOpen(false)} />
       )}
 
       {/* Kanban board */}

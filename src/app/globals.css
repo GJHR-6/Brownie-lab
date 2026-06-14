@@ -215,6 +215,32 @@ img, svg { display: block; }
   .bl-pers-subbases  { grid-template-columns: 1fr 1fr !important; }
 }
 
+/* ===== Scrollbars (match site theme everywhere) ===== */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(107, 87, 67, .35) transparent;
+}
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(107, 87, 67, .35);
+  border-radius: var(--r-pill);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(107, 87, 67, .55); }
+
+/* ===== Unified combobox arrow (admin panel) ===== */
+select.bl-select {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b5743' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  padding-right: 38px !important;
+  cursor: pointer;
+}
+
 /* Responsive grid helpers */
 @media (max-width: 920px) {
   .bl-grid-2col,

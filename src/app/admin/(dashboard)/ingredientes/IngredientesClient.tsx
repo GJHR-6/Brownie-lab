@@ -59,7 +59,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Unidad <span style={{ color: 'var(--berry)' }}>*</span></label>
-          <select name="unidad" defaultValue={inicial?.unidad ?? 'g'} style={{ ...T.inp, appearance: 'auto', opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur}>
+          <select name="unidad" defaultValue={inicial?.unidad ?? 'g'} className="bl-select" style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur}>
             {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
           </select>
         </div>

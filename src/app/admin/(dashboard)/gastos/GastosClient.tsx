@@ -71,7 +71,7 @@ function CrearGastoModal({ onSuccess, onClose }: { onSuccess: () => void; onClos
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Categoría <span style={{ color: 'var(--berry)' }}>*</span></label>
-            <select name="categoria" required disabled={isPending} defaultValue="ingredientes" style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}>
+            <select name="categoria" required disabled={isPending} defaultValue="ingredientes" className="bl-select" style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}>
               {(Object.entries(CATEGORIA_CFG) as [GastoCategoria, typeof CATEGORIA_CFG[GastoCategoria]][]).map(([key, cfg]) => (
                 <option key={key} value={key}>{cfg.icon} {cfg.label}</option>
               ))}

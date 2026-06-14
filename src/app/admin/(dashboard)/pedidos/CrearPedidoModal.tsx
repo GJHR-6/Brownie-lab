@@ -10,7 +10,9 @@ const T = {
   inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
 };
 
-export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose }: { productos: Producto[]; pedido?: Pedido; onSuccess: () => void; onClose: () => void }) {
+export interface ToppingExtra { id: string; nombre: string; precio_extra: number }
+
+export default function CrearPedidoModal({ productos, toppings = [], pedido, onSuccess, onClose }: { productos: Producto[]; toppings?: ToppingExtra[]; pedido?: Pedido; onSuccess: () => void; onClose: () => void }) {
   const isEditing = !!pedido;
   const cd = (pedido?.cliente_datos ?? {}) as ClienteDatos;
 
@@ -23,10 +25,22 @@ export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose
     }
     return init;
   });
-  // Items personalizados (sin producto_id, ej. del personalizador) — se conservan tal cual
+  // Toppings extra: items "Extra: <nombre>" sin producto_id — editables por cantidad
+  const [extras, setExtras] = useState<Record<string, number>>(() => {
+    if (!pedido?.items) return {};
+    const init: Record<string, number> = {};
+    for (const it of pedido.items) {
+      if (it.producto_id) continue;
+      const t = toppings.find(tp => `Extra: ${tp.nombre}` === it.nombre);
+      if (t) init[t.id] = (init[t.id] ?? 0) + it.cantidad;
+    }
+    return init;
+  });
+
+  // Items personalizados (sin producto_id y que no son toppings) — se conservan tal cual
   const fixedItems: PedidoItem[] = useMemo(
-    () => (pedido?.items ?? []).filter(it => !it.producto_id),
-    [pedido]
+    () => (pedido?.items ?? []).filter(it => !it.producto_id && !toppings.some(tp => `Extra: ${tp.nombre}` === it.nombre)),
+    [pedido, toppings]
   );
 
   const [busqueda, setBusqueda] = useState('');
@@ -52,7 +66,14 @@ export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose
     return { producto_id: id, nombre: p.nombre, precio: Number(p.precio), cantidad, subtotal: Number(p.precio) * cantidad };
   });
 
-  const allItems: PedidoItem[] = [...fixedItems, ...items];
+  const extraItems: PedidoItem[] = Object.entries(extras)
+    .filter(([, cant]) => cant > 0)
+    .map(([id, cantidad]) => {
+      const t = toppings.find(tp => tp.id === id)!;
+      return { producto_id: null, nombre: `Extra: ${t.nombre}`, precio: t.precio_extra, cantidad, subtotal: t.precio_extra * cantidad };
+    });
+
+  const allItems: PedidoItem[] = [...fixedItems, ...items, ...extraItems];
   const total = allItems.reduce((s, i) => s + i.subtotal, 0);
   const itemCount = allItems.reduce((s, i) => s + i.cantidad, 0);
 
@@ -108,9 +129,9 @@ export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Tipo de entrega</label>
-                  <select name="tipo_entrega" value={tipoEntrega} disabled={isPending}
+                  <select name="tipo_entrega" value={tipoEntrega} disabled={isPending} className="bl-select"
                     onChange={e => setTipoEntrega(e.target.value as 'pickup' | 'domicilio')}
-                    style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}>
+                    style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}>
                     <option value="pickup">📍 Recoger en tienda</option>
                     <option value="domicilio">🚚 A domicilio</option>
                   </select>
@@ -139,8 +160,8 @@ export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Método de pago</label>
-                  <select name="metodo_pago" disabled={isPending} defaultValue={cd.metodo_pago ?? ""}
-                    style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}
+                  <select name="metodo_pago" disabled={isPending} defaultValue={cd.metodo_pago ?? ""} className="bl-select"
+                    style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
                     onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}>
                     <option value="">Sin especificar</option>
@@ -225,6 +246,39 @@ export default function CrearPedidoModal({ productos, pedido, onSuccess, onClose
                 })}
               </div>
             </div>
+
+            {/* Toppings extra */}
+            {toppings.length > 0 && (
+              <div>
+                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Toppings extra</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {toppings.map(t => {
+                    const qty = extras[t.id] ?? 0;
+                    return (
+                      <div key={t.id}
+                        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 14px', borderRadius: 'var(--r-md)', border: `1.5px solid ${qty > 0 ? 'var(--orange)' : 'var(--hairline)'}`, background: qty > 0 ? 'var(--cream)' : 'var(--paper-card)', transition: '.14s' }}>
+                        <span style={{ fontSize: 17, flexShrink: 0 }}>✨</span>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{t.nombre}</p>
+                          <p style={{ fontSize: 12, fontFamily: 'var(--font-display)', fontWeight: 700, color: 'var(--orange-ink)', margin: 0 }}>+L.{t.precio_extra.toFixed(2)}</p>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+                          <button type="button" onClick={() => setExtras(prev => { const n = Math.max(0, (prev[t.id] ?? 0) - 1); if (n === 0) { const rest = { ...prev }; delete rest[t.id]; return rest; } return { ...prev, [t.id]: n }; })} disabled={qty === 0 || isPending}
+                            style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--cream-200)', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: 'var(--ink-soft)', opacity: qty === 0 ? 0.3 : 1 }}>
+                            <Minus style={{ width: 11, height: 11 }} />
+                          </button>
+                          <span style={{ minWidth: 18, textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{qty}</span>
+                          <button type="button" onClick={() => setExtras(prev => ({ ...prev, [t.id]: (prev[t.id] ?? 0) + 1 }))} disabled={isPending}
+                            style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--orange)', border: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', color: '#fff' }}>
+                            <Plus style={{ width: 11, height: 11 }} />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer */}
