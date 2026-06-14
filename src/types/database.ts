@@ -90,6 +90,16 @@ export interface Testimonio {
   created_at: string;
 }
 
+export interface Resena {
+  id: string;
+  producto_id: string;
+  autor: string;
+  texto: string;
+  estrellas: number;
+  aprobado: boolean;
+  created_at: string;
+}
+
 export interface Promocion {
   id: string;
   codigo: string;

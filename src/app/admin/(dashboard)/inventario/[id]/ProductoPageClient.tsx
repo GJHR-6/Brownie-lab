@@ -205,7 +205,7 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div>
                     <label style={T.label}>Categoría</label>
-                    <select name="categoria_id" defaultValue={producto?.categoria_id ?? ''} style={{ ...T.inp, appearance: 'auto' }} onFocus={inpFocus} onBlur={inpBlur}>
+                    <select name="categoria_id" defaultValue={producto?.categoria_id ?? ''} className="bl-select" style={{ ...T.inp }} onFocus={inpFocus} onBlur={inpBlur}>
                       {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                     </select>
                   </div>

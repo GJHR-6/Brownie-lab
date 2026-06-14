@@ -3,7 +3,7 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { actualizarGoogleWalletObject } from '@/lib/wallet/google';
-import { sanitizePhone, sanitizeText } from '@/lib/sanitize';
+import { sanitizePhone, sanitizeText, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -28,15 +28,6 @@ export interface CuponFidelizacion {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-function normalizarTelefono(telefono: string): string {
-  const digits = telefono.replace(/\D/g, '');
-  // Honduras: +504 (11 dígitos) → quitar prefijo 504 → 8 dígitos locales
-  if (digits.length === 11 && digits.startsWith('504')) return digits.slice(3);
-  // Con doble cero: 0504... (12 dígitos)
-  if (digits.length === 12 && digits.startsWith('0504')) return digits.slice(4);
-  return digits;
-}
-
 function generarCodigoCupon(): string {
   // Formato: BL-XXXX-XXXX (excluye caracteres ambiguos: 0,O,I,1)
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -50,7 +41,7 @@ export async function buscarCliente(
   telefono: string
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion; cupones: CuponFidelizacion[] }>> {
   try {
-    const tel = normalizarTelefono(sanitizePhone(telefono));
+    const tel = normalizePhone(sanitizePhone(telefono));
     if (tel.length < 7) return { success: false, error: 'Número de teléfono inválido.' };
 
     const supabase = await createSupabaseServerClient();
@@ -104,7 +95,7 @@ export async function registrarCompra(
   nombre?: string
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion; cuponGenerado: CuponFidelizacion | null }>> {
   try {
-    const tel = normalizarTelefono(sanitizePhone(telefono));
+    const tel = normalizePhone(sanitizePhone(telefono));
     if (!tel) return { success: false, error: 'Teléfono inválido.' };
     const nombreLimpio = sanitizeText(nombre, 80);
 

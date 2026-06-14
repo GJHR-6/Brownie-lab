@@ -13,7 +13,7 @@ const T = {
   th: { textAlign: 'left' as const, fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--ink-soft)', padding: '14px 22px', borderBottom: '1px solid var(--hairline)', whiteSpace: 'nowrap' as const, background: 'var(--paper)' },
   td: { padding: '14px 22px', fontSize: 14, color: 'var(--ink)', verticalAlign: 'middle' as const, borderBottom: '1px solid var(--hairline)' },
   btnPrimary: { display: 'inline-flex' as const, alignItems: 'center' as const, gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer' as const, background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', transition: '.16s' },
-  select: { border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', background: 'var(--paper-card)', outline: 'none', cursor: 'pointer', appearance: 'auto' as const },
+  select: { border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', padding: '8px 14px', fontFamily: 'var(--font-sans)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', background: 'var(--paper-card)', outline: 'none', cursor: 'pointer' },
 };
 
 type EstadoFiltro = 'todos' | 'activo' | 'inactivo' | 'agotado' | 'bajo';
@@ -93,13 +93,13 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
         </div>
 
         {/* Category */}
-        <select value={filterCategoria} onChange={e => setFilterCategoria(e.target.value)} style={T.select}>
+        <select value={filterCategoria} onChange={e => setFilterCategoria(e.target.value)} className="bl-select" style={T.select}>
           <option value="">Todas las categorías</option>
           {categorias.map(c => <option key={c.slug} value={c.slug}>{c.nombre}</option>)}
         </select>
 
         {/* Estado */}
-        <select value={filterEstado} onChange={e => setFilterEstado(e.target.value as EstadoFiltro)} style={T.select}>
+        <select value={filterEstado} onChange={e => setFilterEstado(e.target.value as EstadoFiltro)} className="bl-select" style={T.select}>
           <option value="todos">Todos los estados</option>
           <option value="activo">Activo</option>
           <option value="inactivo">Inactivo</option>

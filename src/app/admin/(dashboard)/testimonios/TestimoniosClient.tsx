@@ -46,8 +46,8 @@ function TestimonioForm({ onSuccess, onCancel }: { onSuccess: () => void; onCanc
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Estrellas</label>
-        <select name="estrellas" defaultValue="5" disabled={isPending}
-          style={{ ...T.inp, appearance: 'auto', opacity: isPending ? 0.6 : 1 }}
+        <select name="estrellas" defaultValue="5" disabled={isPending} className="bl-select"
+          style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
           onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
           onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}>
           {[5, 4, 3, 2, 1].map(n => <option key={n} value={n}>{STARS[n]} ({n})</option>)}

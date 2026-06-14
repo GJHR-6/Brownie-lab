@@ -87,8 +87,8 @@ function VarianteForm({ inicial, onSuccess, onCancel }: {
         {/* Base */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
           <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Base <span style={{ color: 'var(--berry)' }}>*</span></label>
-          <select name="base" defaultValue={inicial?.base ?? 'brownie'} required
-            style={{ ...T.inp, appearance: 'auto', opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur}>
+          <select name="base" defaultValue={inicial?.base ?? 'brownie'} required className="bl-select"
+            style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur}>
             <option value="brownie">Brownie</option>
             <option value="galleta">Galleta</option>
           </select>

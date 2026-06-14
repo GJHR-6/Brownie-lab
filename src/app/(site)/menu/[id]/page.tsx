@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductoPublicoById, getProductosSimilares, getProductoIdsEstaticos } from "@/lib/data";
+import { getResenasProducto } from "@/actions/resenas";
 import ProductoDetailClient from "./ProductoDetailClient";
 
 // Revalida cada 10 minutos en background; la página estática se sirve instantáneamente
@@ -39,6 +40,7 @@ export default async function ProductoPage({ params }: Props) {
   if (!producto) notFound();
 
   const similares = await getProductosSimilares(producto.categoria, id);
+  const resenas = await getResenasProducto(producto.id);
 
-  return <ProductoDetailClient producto={producto} similares={similares} />;
+  return <ProductoDetailClient producto={producto} similares={similares} resenas={resenas} />;
 }
