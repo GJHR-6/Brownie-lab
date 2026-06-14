@@ -111,6 +111,7 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
   const [disponiblePersonaliza,  setDisponiblePersonaliza] = useState(producto?.disponible_personaliza ?? false);
   const [etiquetas,              setEtiquetas]             = useState<string[]>(producto?.etiquetas ?? []);
   const [alergenos,              setAlergenos]             = useState<string[]>(producto?.alergenos ?? []);
+  const [nuevoAlergeno,          setNuevoAlergeno]         = useState('');
   const [ingredientesIds,        setIngredientesIds]       = useState<string[]>(producto?.ingredientes ?? []);
   const [deletingId,             setDeletingId]            = useState(false);
 
@@ -322,8 +323,8 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
             <div style={T.card}>
               <p style={T.cardTitle}>Alergenos</p>
               <p style={T.cardSub}>Se muestran en la tarjeta del producto en el menú.</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {ALERGENOS.map(a => {
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
+                {[...new Set([...ALERGENOS, ...alergenos])].map(a => {
                   const selected = alergenos.includes(a);
                   return (
                     <button
@@ -342,6 +343,40 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                     </button>
                   );
                 })}
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="text"
+                  value={nuevoAlergeno}
+                  onChange={e => setNuevoAlergeno(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      const v = nuevoAlergeno.trim();
+                      if (v && !alergenos.includes(v)) setAlergenos(prev => [...prev, v]);
+                      setNuevoAlergeno('');
+                    }
+                  }}
+                  placeholder="Otro alergeno (ej. Apio)"
+                  style={{ ...T.inp, flex: 1 }}
+                  onFocus={e => (e.target.style.borderColor = 'var(--orange)')}
+                  onBlur={e => (e.target.style.borderColor = 'var(--hairline)')}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const v = nuevoAlergeno.trim();
+                    if (v && !alergenos.includes(v)) setAlergenos(prev => [...prev, v]);
+                    setNuevoAlergeno('');
+                  }}
+                  style={{
+                    fontSize: 13, fontWeight: 700, padding: '0 18px',
+                    borderRadius: 'var(--r-pill)', cursor: 'pointer',
+                    border: '1.5px solid var(--hairline)', background: 'var(--paper-card)', color: 'var(--ink)',
+                  }}
+                >
+                  Agregar
+                </button>
               </div>
             </div>
 
