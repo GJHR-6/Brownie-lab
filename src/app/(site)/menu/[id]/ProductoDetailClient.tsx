@@ -204,9 +204,9 @@ export default function ProductoDetailClient({
           </p>
 
           {/* Description */}
-          {producto.descripcion && (
-            <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.7, margin: 0 }}>
-              {producto.descripcion}
+          {(producto.descripcion_larga || producto.descripcion) && (
+            <p style={{ fontSize: 16, color: "var(--ink-soft)", lineHeight: 1.7, margin: 0, whiteSpace: "pre-line" }}>
+              {producto.descripcion_larga || producto.descripcion}
             </p>
           )}
 

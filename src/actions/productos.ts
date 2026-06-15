@@ -74,6 +74,7 @@ function parseProductoFormData(formData: FormData) {
   return {
     nombre:                 (formData.get('nombre') as string).trim(),
     descripcion:            (formData.get('descripcion') as string | null)?.trim() || null,
+    descripcion_larga:      (formData.get('descripcion_larga') as string | null)?.trim() || null,
     precio:                 parseFloat(formData.get('precio') as string),
     costo:                  Math.max(0, parseFloat((formData.get('costo') as string) || '0') || 0),
     stock:                  parseInt(formData.get('stock') as string, 10),
@@ -160,7 +161,7 @@ export async function createProducto(
     const { data, error } = await supabase
       .from('productos')
       .insert({
-        nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio, costo: fields.costo,
+        nombre: fields.nombre, descripcion: fields.descripcion, descripcion_larga: fields.descripcion_larga, precio: fields.precio, costo: fields.costo,
         stock: fields.stock, stock_alerta: fields.stock_alerta, categoria_id: fields.categoria_id || undefined,
         emoji: fields.emoji, imagen_url, imagenes, tiempo_preparacion: fields.tiempo_preparacion,
         sku: fields.sku, disponible: fields.disponible, destacado_capricho: fields.destacado_capricho,
@@ -216,7 +217,7 @@ export async function updateProducto(
     const { data, error } = await supabase
       .from('productos')
       .update({
-        nombre: fields.nombre, descripcion: fields.descripcion, precio: fields.precio, costo: fields.costo,
+        nombre: fields.nombre, descripcion: fields.descripcion, descripcion_larga: fields.descripcion_larga, precio: fields.precio, costo: fields.costo,
         stock: fields.stock, stock_alerta: fields.stock_alerta, categoria_id: fields.categoria_id || undefined,
         emoji: fields.emoji, imagen_url, imagenes, tiempo_preparacion: fields.tiempo_preparacion,
         sku: fields.sku, disponible: fields.disponible, destacado_capricho: fields.destacado_capricho,

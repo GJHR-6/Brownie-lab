@@ -4,6 +4,7 @@ export interface Producto {
   id: string;
   nombre: string;
   descripcion: string | null;
+  descripcion_larga: string | null;
   precio: number;
   costo: number;               // costo de producción por unidad (0 = sin definir)
   imagen_url: string | null;
