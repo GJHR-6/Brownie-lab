@@ -272,3 +272,8 @@ select.bl-select {
 @media (min-width: 641px) and (max-width: 920px) {
   .bl-grid-3col { grid-template-columns: repeat(2, 1fr) !important; }
 }
+
+/* Form field pairs (labels + helper text) — apilar en pantallas muy chicas */
+@media (max-width: 480px) {
+  .bl-grid-field2 { grid-template-columns: 1fr !important; }
+}
