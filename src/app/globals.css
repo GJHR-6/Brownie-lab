@@ -31,6 +31,21 @@
   --r-pill: 999px;
   --maxw: 1200px;
   --gutter: clamp(20px, 5vw, 64px);
+
+  /* Fluid spacing/type tokens — reducidos en pantallas chicas (ver media query abajo) */
+  --sec-pad: clamp(64px, 9vw, 120px);
+  --sec-pad-sm: clamp(28px, 4vw, 52px);
+  --h2-size: clamp(30px, 4vw, 44px);
+  --h2-size-sm: clamp(22px, 2.6vw, 30px);
+}
+
+@media (max-width: 480px) {
+  :root {
+    --sec-pad: 40px;
+    --sec-pad-sm: 24px;
+    --h2-size: 26px;
+    --h2-size-sm: 20px;
+  }
 }
 
 html {

@@ -6,6 +6,7 @@ import ClubSection from "@/components/ClubSection";
 import CaprichoCarousel from "@/components/CaprichoCarousel";
 import BLIcon from "@/components/BLIcon";
 import GiftIntro from "@/components/GiftIntro";
+import OpinionForm from "@/components/OpinionForm";
 import { storeConfig } from "@/config/store";
 import Image from "next/image";
 import { getProductosPublicos, getEspecialesActivos, getConfiguracion, getProductosDestacados, getTestimoniosAprobados } from "@/lib/data";
@@ -42,7 +43,7 @@ function getDaysLeft(fechaInicio: string, duracionDias: number): number {
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
-const SEC: React.CSSProperties = { paddingBlock: "clamp(64px, 9vw, 120px)" };
+const SEC: React.CSSProperties = { paddingBlock: "var(--sec-pad)" };
 
 export default async function Home() {
   const [productos, especiales, config, capricho, testimonios] = await Promise.all([
@@ -371,33 +372,56 @@ export default async function Home() {
       {/* ── Club Brownie Lab ──────────────────────────────────────────── */}
       <ClubSection />
 
-      {/* ── Contacto ──────────────────────────────────────────────────── */}
-      <section className="text-center" style={{ ...SEC }}>
-        <div className="mx-auto px-[var(--gutter)]" style={{ maxWidth: "var(--maxw)" }}>
-          <span
-            className="text-[12px] font-bold tracking-[0.22em] uppercase"
-            style={{ color: "var(--orange)" }}
-          >
-            Estamos para ayudarte
-          </span>
-          <h2 className="mt-3 mb-3" style={{ fontSize: "clamp(30px, 4vw, 44px)" }}>
-            ¿Tienes alguna pregunta?
-          </h2>
-          <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
-            Escríbenos por WhatsApp, con gusto te atendemos.
-          </p>
-          {whatsapp && (
-            <a
-              href={`https://wa.me/${whatsapp}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
-              style={{ background: "var(--choco-900)" }}
+      {/* ── Contacto + Opinión ───────────────────────────────────────────── */}
+      <section style={{ ...SEC }}>
+        <div
+          className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(32px,5vw,72px)] bl-grid-2col"
+          style={{ maxWidth: "var(--maxw)", gridTemplateColumns: "1fr 1fr" }}
+        >
+          {/* ¿Tienes alguna pregunta? */}
+          <div className="text-center md:text-left">
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
             >
-              <BLIcon name="whatsapp" size={20} style={{ color: "#58d684" } as React.CSSProperties} />
-              Escribir por WhatsApp
-            </a>
-          )}
+              Estamos para ayudarte
+            </span>
+            <h2 className="mt-3 mb-3" style={{ fontSize: "var(--h2-size)" }}>
+              ¿Tienes alguna pregunta?
+            </h2>
+            <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
+              Escríbenos por WhatsApp, con gusto te atendemos.
+            </p>
+            {whatsapp && (
+              <a
+                href={`https://wa.me/${whatsapp}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+                style={{ background: "var(--choco-900)" }}
+              >
+                <BLIcon name="whatsapp" size={20} style={{ color: "#58d684" } as React.CSSProperties} />
+                Escribir por WhatsApp
+              </a>
+            )}
+          </div>
+
+          {/* Déjanos tu opinión */}
+          <div>
+            <span
+              className="text-[12px] font-bold tracking-[0.22em] uppercase"
+              style={{ color: "var(--orange)" }}
+            >
+              Tu opinión cuenta
+            </span>
+            <h2 className="mt-3 mb-3" style={{ fontSize: "var(--h2-size)" }}>
+              Déjanos tu opinión
+            </h2>
+            <p className="mb-7" style={{ color: "var(--ink-soft)", fontSize: 17 }}>
+              Cuéntanos tu experiencia con Brownie Lab.
+            </p>
+            <OpinionForm />
+          </div>
         </div>
       </section>
     </div>
