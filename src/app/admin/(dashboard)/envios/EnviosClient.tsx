@@ -144,7 +144,7 @@ export default function EnviosClient({ config }: { config: ConfigEnvio }) {
         {/* Tarifas */}
         <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', margin: 0 }}>Tarifas</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="bl-grid-field2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label="Lempiras por km">
               <Inp name="envio_por_km" type="number" step="0.5" min="0" defaultValue={config.por_km} placeholder="10" disabled={isPending} />
             </Field>
@@ -152,7 +152,7 @@ export default function EnviosClient({ config }: { config: ConfigEnvio }) {
               <Inp name="envio_factor_ruta" type="number" step="0.05" min="1" defaultValue={config.factor_ruta} placeholder="1.3" disabled={isPending} />
             </Field>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+          <div className="bl-grid-field2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <Field label={<>Distancia máxima km <span style={{ color: 'var(--ink-soft)', fontWeight: 500, fontSize: 12 }}>(0 = sin límite)</span></>}>
               <Inp name="envio_km_max" type="number" step="1" min="0" defaultValue={config.km_max} placeholder="15" disabled={isPending} />
             </Field>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useCartStore } from "@/lib/cartStore";
@@ -34,6 +34,13 @@ export default function ProductoDetailClient({
 
   const agotado = producto.disponible && producto.stock === 0;
   const sym = storeConfig.currencySymbol;
+
+  // Autoplay del carrusel de imágenes
+  useEffect(() => {
+    if (allImgs.length <= 1) return;
+    const t = setInterval(() => setImgIdx((i) => (i + 1) % allImgs.length), 4500);
+    return () => clearInterval(t);
+  }, [allImgs.length]);
 
   function handleAdd() {
     for (let i = 0; i < qty; i++) {
@@ -94,6 +101,28 @@ export default function ProductoDetailClient({
             >
               <BLIcon name="heart" size={18} />
             </button>
+
+            {/* Arrows */}
+            {allImgs.length > 1 && (
+              <>
+                <button
+                  onClick={() => setImgIdx((i) => (i - 1 + allImgs.length) % allImgs.length)}
+                  aria-label="Foto anterior"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full grid place-items-center cursor-pointer border transition-colors"
+                  style={{ background: "var(--paper-card)", borderColor: "var(--hairline)", color: "var(--ink-soft)" }}
+                >
+                  <BLIcon name="arrow-right" size={18} className="rotate-180" />
+                </button>
+                <button
+                  onClick={() => setImgIdx((i) => (i + 1) % allImgs.length)}
+                  aria-label="Foto siguiente"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full grid place-items-center cursor-pointer border transition-colors"
+                  style={{ background: "var(--paper-card)", borderColor: "var(--hairline)", color: "var(--ink-soft)" }}
+                >
+                  <BLIcon name="arrow-right" size={18} />
+                </button>
+              </>
+            )}
 
             {/* Agotado overlay */}
             {agotado && (

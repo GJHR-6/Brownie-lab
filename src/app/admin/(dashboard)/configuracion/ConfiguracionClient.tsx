@@ -127,7 +127,7 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
               <Field label="Nombre del negocio">
                 <Inp name="nombre" required defaultValue={config.nombre} placeholder="Brownie Lab" disabled={isPending} />
               </Field>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="bl-grid-field2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Field label="WhatsApp de pedidos">
                   <Inp name="whatsapp" required defaultValue={config.whatsapp} placeholder="+504 3153-4704" disabled={isPending} />
                 </Field>
@@ -142,7 +142,7 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
 
             {/* Operación */}
             <FCard title="Operación" sub="Reglas de pedidos y horario.">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="bl-grid-field2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Field label="Anticipación mínima">
                   <Inp name="anticipacion_minima" defaultValue={config.anticipacion_minima} placeholder="24 horas" disabled={isPending} />
                 </Field>
@@ -150,7 +150,7 @@ export default function ConfiguracionClient({ config }: { config: Configuracion 
                   <Inp name="horario_atencion" defaultValue={config.horario_atencion} placeholder="Lun–Sáb · 9:00 a.m. – 7:00 p.m." disabled={isPending} />
                 </Field>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="bl-grid-field2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                 <Field label={<>Franja de entrega 1 <span style={{ color: 'var(--ink-soft)', fontWeight: 500, fontSize: 12 }}>(el cliente elige una)</span></>}>
                   <Inp name="hora_entrega_1" defaultValue={config.horas_entrega?.[0] ?? '10:00 AM'} placeholder="10:00 AM" maxLength={20} disabled={isPending} />
                 </Field>
