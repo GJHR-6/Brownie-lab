@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import { useRecentStore } from "@/lib/recentStore";
@@ -11,6 +12,7 @@ import BLIcon from "@/components/BLIcon";
 import type { Producto } from "@/types/database";
 
 export default function ProductCard({ product }: { product: Producto }) {
+  const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const isFav = useWishlistStore((s) => s.has(product.id));
@@ -49,7 +51,9 @@ export default function ProductCard({ product }: { product: Producto }) {
         borderRadius: "var(--r-lg)",
         border: "1px solid var(--hairline)",
         boxShadow: "var(--shadow-sm)",
+        cursor: "pointer",
       }}
+      onClick={() => router.push(`/menu/${product.id}`)}
       onMouseOver={(e) => {
         (e.currentTarget as HTMLElement).style.transform = "translateY(-4px)";
         (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-md)";
@@ -156,7 +160,7 @@ export default function ProductCard({ product }: { product: Producto }) {
         {/* Wishlist button */}
         {mounted && (
           <button
-            onClick={() => toggleWishlist(product.id)}
+            onClick={(e) => { e.stopPropagation(); toggleWishlist(product.id); }}
             aria-label={isFav ? "Quitar de favoritos" : "Agregar a favoritos"}
             className="absolute top-3 right-3 w-[38px] h-[38px] rounded-full grid place-items-center cursor-pointer transition-colors border"
             style={{
@@ -232,7 +236,8 @@ export default function ProductCard({ product }: { product: Producto }) {
         <div className="flex items-center gap-2.5 mt-auto pt-1.5">
           {agotado ? (
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 const msg = `Hola! Me interesa *${product.nombre}* pero está agotado. ¿Pueden avisarme cuando vuelva a estar disponible? 🍪`;
                 window.open(`https://wa.me/${storeConfig.whatsapp}?text=${encodeURIComponent(msg)}`, '_blank');
                 setNotified(true);
@@ -259,7 +264,7 @@ export default function ProductCard({ product }: { product: Producto }) {
                 }}
               >
                 <button
-                  onClick={() => setQty((q) => Math.max(1, q - 1))}
+                  onClick={(e) => { e.stopPropagation(); setQty((q) => Math.max(1, q - 1)); }}
                   className="w-[38px] h-[38px] grid place-items-center cursor-pointer border-0 transition-colors"
                   style={{ background: "transparent", color: "var(--ink)" }}
                   onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
@@ -275,7 +280,7 @@ export default function ProductCard({ product }: { product: Producto }) {
                   {qty}
                 </span>
                 <button
-                  onClick={() => setQty((q) => q + 1)}
+                  onClick={(e) => { e.stopPropagation(); setQty((q) => q + 1); }}
                   className="w-[38px] h-[38px] grid place-items-center cursor-pointer border-0 transition-colors"
                   style={{ background: "transparent", color: "var(--ink)" }}
                   onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
@@ -288,7 +293,7 @@ export default function ProductCard({ product }: { product: Producto }) {
 
               {/* Add button */}
               <button
-                onClick={handleAdd}
+                onClick={(e) => { e.stopPropagation(); handleAdd(); }}
                 className="flex-1 inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full transition-all cursor-pointer border-0 text-white"
                 style={{
                   background: added ? "var(--wa)" : "var(--orange)",

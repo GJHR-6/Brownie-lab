@@ -237,9 +237,15 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
                 </div>
 
                 <div>
-                  <label style={T.label}>Descripción</label>
-                  <textarea name="descripcion" rows={3} defaultValue={producto?.descripcion ?? ''}
-                    style={{ ...T.inp, resize: 'vertical', minHeight: 88, lineHeight: 1.6 }} onFocus={inpFocus} onBlur={inpBlur} />
+                  <label style={T.label}>Descripción corta <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>(tarjeta del producto en el menú)</span></label>
+                  <textarea name="descripcion" rows={2} defaultValue={producto?.descripcion ?? ''}
+                    style={{ ...T.inp, resize: 'vertical', minHeight: 60, lineHeight: 1.6 }} onFocus={inpFocus} onBlur={inpBlur} />
+                </div>
+
+                <div>
+                  <label style={T.label}>Descripción larga <span style={{ fontWeight: 400, color: 'var(--ink-soft)' }}>(página del producto — opcional, si va vacía se usa la corta)</span></label>
+                  <textarea name="descripcion_larga" rows={4} defaultValue={producto?.descripcion_larga ?? ''}
+                    style={{ ...T.inp, resize: 'vertical', minHeight: 110, lineHeight: 1.6 }} onFocus={inpFocus} onBlur={inpBlur} />
                 </div>
               </div>
             </div>
