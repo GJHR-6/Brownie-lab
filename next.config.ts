@@ -1,6 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Default es 1mb — el bucket product-images permite hasta 10mb
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,
