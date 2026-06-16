@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Pedido, EstadoPedido, EstadoPago, PedidoItem } from '@/types/database';
+import type { Pedido, EstadoPedido, EstadoPago, PedidoItem, OrigenPedido } from '@/types/database';
 import { logActividad } from './actividad';
 import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
@@ -208,7 +208,7 @@ export async function crearPedidoManual(
     const { supabase } = await requireAdmin();
 
     const nombre = (formData.get('nombre') as string).trim();
-    const telefono = (formData.get('telefono') as string).trim();
+    const telefonoRaw = (formData.get('telefono') as string | null)?.trim() || '';
     const notas = (formData.get('notas') as string).trim() || undefined;
     const metodoPagoRaw = (formData.get('metodo_pago') as string | null)?.trim();
     const metodo_pago = metodoPagoRaw === 'efectivo' || metodoPagoRaw === 'transferencia' ? metodoPagoRaw : null;
@@ -218,10 +218,14 @@ export async function crearPedidoManual(
     const fechaRaw = (formData.get('fecha_entrega') as string | null)?.trim();
     const fecha_entrega = fechaRaw && /^\d{4}-\d{2}-\d{2}$/.test(fechaRaw) ? fechaRaw : undefined;
     const hora_entrega = (formData.get('hora_entrega') as string | null)?.trim().slice(0, 20) || undefined;
+    const origenRaw = (formData.get('origen') as string | null)?.trim();
+    const origen: OrigenPedido = (['pagina', 'instagram', 'facebook', 'whatsapp', 'otro'] as OrigenPedido[]).includes(origenRaw as OrigenPedido)
+      ? (origenRaw as OrigenPedido)
+      : 'otro';
     const itemsJson = formData.get('items_json') as string;
 
-    if (!nombre || !telefono) {
-      return { success: false, error: 'Nombre y teléfono del cliente son requeridos.' };
+    if (!nombre) {
+      return { success: false, error: 'El nombre del cliente es requerido.' };
     }
 
     let items: PedidoItem[] = [];
@@ -236,8 +240,10 @@ export async function crearPedidoManual(
     }
 
     const total = items.reduce((sum, i) => sum + i.subtotal, 0);
+    const telefono = telefonoRaw || undefined;
     const cliente_datos = {
-      nombre, telefono, notas,
+      nombre, notas, origen,
+      ...(telefono ? { telefono } : {}),
       ...(metodo_pago ? { metodo_pago } : {}),
       ...(tipo_entrega ? { tipo_entrega } : {}),
       ...(tipo_entrega === 'domicilio' && direccion ? { direccion } : {}),
@@ -245,12 +251,13 @@ export async function crearPedidoManual(
       ...(hora_entrega ? { hora_entrega } : {}),
     };
 
-    // Identidad del cliente normalizada (sin +504) para evitar duplicados en fidelización
-    const telefonoNormalizado = normalizePhone(telefono);
-    await supabase.from('clientes').upsert(
-      { telefono: telefonoNormalizado, nombre },
-      { onConflict: 'telefono', ignoreDuplicates: false }
-    );
+    const telefonoNormalizado = telefono ? normalizePhone(telefono) : null;
+    if (telefonoNormalizado) {
+      await supabase.from('clientes').upsert(
+        { telefono: telefonoNormalizado, nombre },
+        { onConflict: 'telefono', ignoreDuplicates: false }
+      );
+    }
 
     const { data, error } = await supabase
       .from('pedidos')
@@ -296,7 +303,7 @@ export async function actualizarPedidoManual(
     if (!existente) return { success: false, error: 'Pedido no encontrado.' };
 
     const nombre = (formData.get('nombre') as string ?? '').trim();
-    const telefono = (formData.get('telefono') as string ?? '').trim();
+    const telefonoRaw = (formData.get('telefono') as string | null)?.trim() || '';
     const notas = (formData.get('notas') as string ?? '').trim() || undefined;
     const metodoPagoRaw = (formData.get('metodo_pago') as string | null)?.trim();
     const metodo_pago = metodoPagoRaw === 'efectivo' || metodoPagoRaw === 'transferencia' ? metodoPagoRaw : null;
@@ -306,10 +313,14 @@ export async function actualizarPedidoManual(
     const fechaRaw = (formData.get('fecha_entrega') as string | null)?.trim();
     const fecha_entrega = fechaRaw && /^\d{4}-\d{2}-\d{2}$/.test(fechaRaw) ? fechaRaw : undefined;
     const hora_entrega = (formData.get('hora_entrega') as string | null)?.trim().slice(0, 20) || undefined;
+    const origenRaw = (formData.get('origen') as string | null)?.trim();
+    const origen: OrigenPedido = (['pagina', 'instagram', 'facebook', 'whatsapp', 'otro'] as OrigenPedido[]).includes(origenRaw as OrigenPedido)
+      ? (origenRaw as OrigenPedido)
+      : 'otro';
     const itemsJson = formData.get('items_json') as string;
 
-    if (!nombre || !telefono) {
-      return { success: false, error: 'Nombre y teléfono del cliente son requeridos.' };
+    if (!nombre) {
+      return { success: false, error: 'El nombre del cliente es requerido.' };
     }
 
     let items: PedidoItem[] = [];
@@ -328,9 +339,11 @@ export async function actualizarPedidoManual(
 
     // Conserva datos no editables del JSON original (ej. detalle de envío)
     const datosPrevios = (existente.cliente_datos ?? {}) as Record<string, unknown>;
+    const telefono = telefonoRaw || undefined;
     const cliente_datos = {
       ...datosPrevios,
-      nombre, telefono, notas,
+      nombre, notas, origen,
+      ...(telefono ? { telefono } : { telefono: undefined }),
       metodo_pago: metodo_pago ?? undefined,
       tipo_entrega,
       direccion: tipo_entrega === 'domicilio' ? direccion : undefined,
@@ -338,12 +351,13 @@ export async function actualizarPedidoManual(
       hora_entrega,
     };
 
-    // Identidad del cliente normalizada (sin +504) para evitar duplicados en fidelización
-    const telefonoNormalizado = normalizePhone(telefono);
-    await supabase.from('clientes').upsert(
-      { telefono: telefonoNormalizado, nombre },
-      { onConflict: 'telefono', ignoreDuplicates: false }
-    );
+    const telefonoNormalizado = telefono ? normalizePhone(telefono) : null;
+    if (telefonoNormalizado) {
+      await supabase.from('clientes').upsert(
+        { telefono: telefonoNormalizado, nombre },
+        { onConflict: 'telefono', ignoreDuplicates: false }
+      );
+    }
 
     const { data, error } = await supabase
       .from('pedidos')

@@ -1,9 +1,12 @@
 'use client';
 
 import { useActionState, useState } from 'react';
-import { Loader2, Check, Plus, Trash2, LocateFixed } from 'lucide-react';
+import { Loader2, Check, Plus, Trash2, LocateFixed, Map } from 'lucide-react';
 import { updateConfiguracionEnvios } from '@/actions/configuracion';
 import type { ConfigEnvio } from '@/lib/envio';
+import dynamic from 'next/dynamic';
+
+const MapPickerModal = dynamic(() => import('./MapPickerModal'), { ssr: false });
 
 type SedeForm = { nombre: string; lat: string; lng: string; tarifa_base: string };
 
@@ -41,6 +44,7 @@ export default function EnviosClient({ config }: { config: ConfigEnvio }) {
   const [state, formAction, isPending] = useActionState(updateConfiguracionEnvios, null);
   const [sedes, setSedes] = useState<SedeForm[]>(() => sedesIniciales(config));
   const [gpsSedeIdx, setGpsSedeIdx] = useState<number | null>(null);
+  const [mapSedeIdx, setMapSedeIdx] = useState<number | null>(null);
 
   function setSede(i: number, patch: Partial<SedeForm>) {
     setSedes(prev => prev.map((s, idx) => idx === i ? { ...s, ...patch } : s));
@@ -115,13 +119,18 @@ export default function EnviosClient({ config }: { config: ConfigEnvio }) {
                   <Inp type="number" step="any" value={s.lng} onChange={e => setSede(i, { lng: e.target.value })} placeholder="-88.0250" disabled={isPending} />
                 </Field>
               </div>
-              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setMapSedeIdx(i)} disabled={isPending}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, padding: '8px 14px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--orange)', cursor: 'pointer', background: 'var(--cream)', color: 'var(--orange-ink)' }}>
+                  <Map style={{ width: 13, height: 13 }} />
+                  Seleccionar en mapa
+                </button>
                 <button type="button" onClick={() => usarUbicacionActual(i)} disabled={isPending || gpsSedeIdx !== null}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, padding: '8px 14px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--orange-ink)' }}>
                   {gpsSedeIdx === i
                     ? <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} />
                     : <LocateFixed style={{ width: 13, height: 13 }} />}
-                  Usar mi ubicación actual
+                  Usar mi ubicación
                 </button>
                 <button type="button" onClick={() => setSedes(prev => prev.filter((_, idx) => idx !== i))} disabled={isPending}
                   aria-label={`Eliminar sede ${s.nombre || i + 1}`}
@@ -183,6 +192,19 @@ export default function EnviosClient({ config }: { config: ConfigEnvio }) {
           )}
         </div>
       </form>
+
+      {mapSedeIdx !== null && (
+        <MapPickerModal
+          sedeName={sedes[mapSedeIdx]?.nombre || `Sede ${mapSedeIdx + 1}`}
+          initialLat={Number(sedes[mapSedeIdx]?.lat) || undefined}
+          initialLng={Number(sedes[mapSedeIdx]?.lng) || undefined}
+          onConfirm={(lat, lng) => {
+            setSede(mapSedeIdx, { lat: lat.toFixed(6), lng: lng.toFixed(6) });
+            setMapSedeIdx(null);
+          }}
+          onClose={() => setMapSedeIdx(null)}
+        />
+      )}
     </div>
   );
 }

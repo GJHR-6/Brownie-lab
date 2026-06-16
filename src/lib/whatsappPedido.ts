@@ -44,6 +44,7 @@ function mensajePorEstado(estado: EstadoPedido, nombre: string, id: string, segu
 
 export function abrirWhatsAppPedido(pedido: Pedido, estado?: EstadoPedido): void {
   const cd = pedido.cliente_datos as ClienteDatos;
+  if (!cd.telefono) return;
   const tel = cd.telefono.replace(/\D/g, '');
   const id = pedido.id.slice(0, 8).toUpperCase();
   const origen = typeof window !== 'undefined' ? window.location.origin : '';
