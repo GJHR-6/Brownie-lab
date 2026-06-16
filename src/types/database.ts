@@ -1,4 +1,5 @@
 export type EstadoPedido = 'pendiente' | 'preparacion' | 'listo' | 'completado' | 'cancelado';
+export type EstadoPago = 'pendiente' | 'anticipo_recibido' | 'pagado';
 
 export interface Producto {
   id: string;
@@ -61,6 +62,7 @@ export interface Pedido {
   items: PedidoItem[] | null;   // mapeado desde pedido_items
   total: number;
   estado: EstadoPedido;
+  estado_pago: EstadoPago;
   comprobante_url?: string | null;
   telefono_cliente?: string | null;
   metodo_pago?: 'efectivo' | 'transferencia' | null;

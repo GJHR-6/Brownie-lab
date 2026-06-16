@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import type { Pedido, EstadoPedido, PedidoItem } from '@/types/database';
+import type { Pedido, EstadoPedido, EstadoPago, PedidoItem } from '@/types/database';
 import { logActividad } from './actividad';
 import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
@@ -137,6 +137,28 @@ export async function actualizarEstadoPedido(
     await logActividad('pedido', `Pedido ${id.slice(0,8).toUpperCase()} → ${estado}`, { id, estado });
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');
+    return { success: true, data: undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+export async function actualizarEstadoPago(
+  id: string,
+  estado_pago: EstadoPago
+): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const { error } = await supabase
+      .from('pedidos')
+      .update({ estado_pago })
+      .eq('id', id);
+
+    if (error) return { success: false, error: error.message };
+
+    await logActividad('pedido', `Pedido ${id.slice(0,8).toUpperCase()} — pago → ${estado_pago}`, { id, estado_pago });
+    revalidatePath('/admin/pedidos');
     return { success: true, data: undefined };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
