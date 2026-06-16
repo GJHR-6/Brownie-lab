@@ -1,5 +1,6 @@
 import type { Pedido, ClienteDatos } from '@/types/database';
 import { Clock, X } from 'lucide-react';
+import { ESTADO_PAGO_CFG } from './PedidosClient';
 
 function formatFecha(iso: string): string {
   return new Date(iso).toLocaleString('es-HN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -22,9 +23,20 @@ export default function PedidoCard({ pedido, onCancel }: { pedido: Pedido; onCan
     >
       {/* ID + total + cancelar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', color: 'var(--ink-soft)' }}>
-          #{pedido.id.slice(0, 8).toUpperCase()}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 11, fontFamily: 'ui-monospace,monospace', color: 'var(--ink-soft)' }}>
+            #{pedido.id.slice(0, 8).toUpperCase()}
+          </span>
+          {pedido.estado_pago !== 'pagado' && (() => {
+            const c = ESTADO_PAGO_CFG[pedido.estado_pago];
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, padding: '2px 7px', borderRadius: 6, background: c.chip, color: c.dot, whiteSpace: 'nowrap' }}>
+                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+                {c.label}
+              </span>
+            );
+          })()}
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15, color: 'var(--orange-ink)' }}>
             L. {Number(pedido.total).toFixed(2)}

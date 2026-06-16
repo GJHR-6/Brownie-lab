@@ -75,10 +75,11 @@ export default function ProductoDetailClient({
           >
             {allImgs.length > 0 ? (
               <Image
+                key={imgIdx}
                 src={allImgs[imgIdx]}
                 alt={producto.nombre}
                 fill
-                className="object-cover"
+                className="object-cover bl-img-fade"
                 sizes="(max-width: 920px) 100vw, 50vw"
                 priority
               />

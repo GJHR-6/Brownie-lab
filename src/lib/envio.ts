@@ -69,16 +69,14 @@ export function calcularEnvio(config: ConfigEnvio, lat: number, lng: number, sub
 }
 
 /**
- * Fallback sin GPS: el cliente elige la sede manualmente → solo tarifa base.
+ * Fallback sin GPS: el cliente elige la sede manualmente → envío sin costo
+ * (no se cobra distancia porque no se conoce la ubicación real del cliente).
  */
 export function calcularEnvioPorSede(config: ConfigEnvio, nombreSede: string, subtotal: number): ResultadoEnvio | null {
   const sede = config.sedes.find(s => s.nombre === nombreSede);
   if (!sede) return null;
 
-  const gratis = config.gratis_desde > 0 && subtotal >= config.gratis_desde;
-  const costo = gratis ? 0 : redondear5(Number(sede.tarifa_base));
-
-  return { sede, distancia_km: 0, costo, gratis, fueraDeRango: false };
+  return { sede, distancia_km: 0, costo: 0, gratis: true, fueraDeRango: false };
 }
 
 // Normaliza el JSONB crudo de la BD a ConfigEnvio tipado

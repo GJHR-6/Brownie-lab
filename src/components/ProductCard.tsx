@@ -34,6 +34,13 @@ export default function ProductCard({ product }: { product: Producto }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product.id]);
 
+  // Autoplay del carrusel de imágenes
+  useEffect(() => {
+    if (allImages.length <= 1) return;
+    const t = setInterval(() => setImgIndex((i) => (i + 1) % allImages.length), 4500);
+    return () => clearInterval(t);
+  }, [allImages.length]);
+
   function handleAdd() {
     for (let i = 0; i < qty; i++) {
       addItem({ id: product.id, name: product.nombre, price: Number(product.precio), emoji: product.emoji ?? "🍪" });
@@ -79,12 +86,12 @@ export default function ProductCard({ product }: { product: Producto }) {
         />
         {allImages.length > 0 ? (
           <Image
+            key={imgIndex}
             src={allImages[imgIndex]}
             alt={product.nombre}
             fill
-            className="object-cover"
+            className="object-cover bl-img-fade"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-            style={{ transition: 'opacity .2s' }}
           />
         ) : (
           <div
@@ -155,6 +162,28 @@ export default function ProductCard({ product }: { product: Producto }) {
               />
             ))}
           </div>
+        )}
+
+        {/* Arrows */}
+        {allImages.length > 1 && (
+          <>
+            <button
+              onClick={(e) => { e.stopPropagation(); setImgIndex((i) => (i - 1 + allImages.length) % allImages.length); }}
+              aria-label="Foto anterior"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full grid place-items-center cursor-pointer border transition-colors"
+              style={{ background: "var(--paper-card)", borderColor: "var(--hairline)", color: "var(--ink-soft)" }}
+            >
+              <BLIcon name="arrow-right" size={16} className="rotate-180" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setImgIndex((i) => (i + 1) % allImages.length); }}
+              aria-label="Foto siguiente"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full grid place-items-center cursor-pointer border transition-colors"
+              style={{ background: "var(--paper-card)", borderColor: "var(--hairline)", color: "var(--ink-soft)" }}
+            >
+              <BLIcon name="arrow-right" size={16} />
+            </button>
+          </>
         )}
 
         {/* Wishlist button */}

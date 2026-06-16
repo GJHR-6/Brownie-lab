@@ -5,12 +5,12 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Plus, Download, Search, X, MessageCircle, Bell } from 'lucide-react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
-import { actualizarEstadoPedido } from '@/actions/pedidos';
+import { actualizarEstadoPedido, actualizarEstadoPago } from '@/actions/pedidos';
 import { abrirWhatsAppPedido } from '@/lib/whatsappPedido';
 import { useConfirm } from '@/components/admin/ConfirmProvider';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import CrearPedidoModal, { type ToppingExtra } from './CrearPedidoModal';
-import type { Pedido, EstadoPedido, Producto, PedidoItem } from '@/types/database';
+import type { Pedido, EstadoPedido, EstadoPago, Producto, PedidoItem } from '@/types/database';
 import type { ClienteDatos } from '@/types/database';
 
 /* ── Design tokens ── */
@@ -23,6 +23,14 @@ const ESTADO_CFG: Record<EstadoPedido, { label: string; chip: string; dot: strin
 };
 
 const ESTADOS = ['pendiente', 'preparacion', 'listo', 'completado', 'cancelado'] as EstadoPedido[];
+
+export const ESTADO_PAGO_CFG: Record<EstadoPago, { label: string; chip: string; dot: string }> = {
+  pendiente:          { label: 'Sin pago',         chip: '#fce8ea', dot: '#9e3b46' },
+  anticipo_recibido:  { label: 'Anticipo recibido', chip: '#fbeccb', dot: '#9a6a12' },
+  pagado:             { label: 'Pagado',           chip: '#d8f0e2', dot: '#157a4d' },
+};
+
+const ESTADOS_PAGO = ['pendiente', 'anticipo_recibido', 'pagado'] as EstadoPago[];
 
 const TIMELINE: { key: EstadoPedido; label: string }[] = [
   { key: 'pendiente',   label: 'Recibido' },
@@ -49,6 +57,16 @@ function Chip({ estado }: { estado: EstadoPedido }) {
   );
 }
 
+export function ChipPago({ estado }: { estado: EstadoPago }) {
+  const c = ESTADO_PAGO_CFG[estado];
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, fontWeight: 700, padding: '4px 11px', borderRadius: 'var(--r-pill)', background: c.chip, color: c.dot, whiteSpace: 'nowrap' }}>
+      <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'currentColor', flexShrink: 0 }} />
+      {c.label}
+    </span>
+  );
+}
+
 /* ── Section title helper ── */
 function DrawerSecTitle({ children }: { children: React.ReactNode }) {
   return <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 12px' }}>{children}</p>;
@@ -62,6 +80,8 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
   const items = (pedido.items ?? []) as PedidoItem[];
   const [savingEstado, setSavingEstado] = useState<EstadoPedido | null>(null);
   const [localEstado, setLocalEstado] = useState<EstadoPedido>(pedido.estado);
+  const [localEstadoPago, setLocalEstadoPago] = useState<EstadoPago>(pedido.estado_pago);
+  const [savingPago, setSavingPago] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleGuardar() {
@@ -76,6 +96,20 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
     } else {
       setErrorMsg(res.error ?? 'Error al guardar');
       setLocalEstado(pedido.estado);
+    }
+  }
+
+  async function handleEstadoPagoChange(nuevo: EstadoPago) {
+    setLocalEstadoPago(nuevo);
+    setSavingPago(true);
+    setErrorMsg(null);
+    const res = await actualizarEstadoPago(pedido.id, nuevo);
+    setSavingPago(false);
+    if (res.success) {
+      onUpdated({ ...pedido, estado_pago: nuevo });
+    } else {
+      setErrorMsg(res.error ?? 'Error al guardar');
+      setLocalEstadoPago(pedido.estado_pago);
     }
   }
 
@@ -111,6 +145,7 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
         {/* Head */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 24px', borderBottom: '1px solid var(--hairline)', background: 'var(--paper-card)', flexShrink: 0 }}>
           <Chip estado={localEstado} />
+          <ChipPago estado={localEstadoPago} />
           <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, color: 'var(--ink)', lineHeight: 1 }}>#{pedido.id.slice(0, 8).toUpperCase()}</span>
           <button onClick={onClose} style={{ marginLeft: 'auto', width: 32, height: 32, borderRadius: 8, display: 'grid', placeItems: 'center', background: 'none', border: 'none', color: 'var(--ink-soft)', cursor: 'pointer' }}>
             <X style={{ width: 18, height: 18 }} />
@@ -194,6 +229,27 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
               )}
             </div>
           )}
+
+          {/* Estado de pago */}
+          <div style={{ marginBottom: 24 }}>
+            <DrawerSecTitle>Estado de pago</DrawerSecTitle>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <select
+                value={localEstadoPago}
+                onChange={e => handleEstadoPagoChange(e.target.value as EstadoPago)}
+                disabled={savingPago}
+                className="bl-select"
+                style={{ flex: 1, border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}
+              >
+                {ESTADOS_PAGO.map(e => (
+                  <option key={e} value={e}>{ESTADO_PAGO_CFG[e].label}</option>
+                ))}
+              </select>
+              {savingPago && <span style={{ fontSize: 12, color: 'var(--ink-soft)', flexShrink: 0 }}>Guardando…</span>}
+            </div>
+          </div>
 
           {/* Productos */}
           {items.length > 0 && (
@@ -547,7 +603,10 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
 
                     {/* Estado */}
                     <td style={T.td}>
-                      <Chip estado={p.estado} />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                        <Chip estado={p.estado} />
+                        <ChipPago estado={p.estado_pago} />
+                      </div>
                     </td>
 
                     {/* Fecha */}
