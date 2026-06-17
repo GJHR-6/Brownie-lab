@@ -443,7 +443,7 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
     if (search.trim()) {
       const cd = p.cliente_datos as ClienteDatos;
       const q = search.toLowerCase();
-      return cd.nombre.toLowerCase().includes(q) || cd.telefono.includes(q) || p.id.toLowerCase().includes(q);
+      return cd.nombre.toLowerCase().includes(q) || (cd.telefono?.includes(q) ?? false) || p.id.toLowerCase().includes(q);
     }
     return true;
   });

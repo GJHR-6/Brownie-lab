@@ -136,7 +136,7 @@ export default function KanbanClient({ initialPedidos, productos, toppings, view
   }
 
   const searchResults = search.trim()
-    ? initialPedidos.filter(p => { const cd = p.cliente_datos as ClienteDatos; const q = search.toLowerCase(); return cd.nombre.toLowerCase().includes(q) || cd.telefono.includes(q); })
+    ? initialPedidos.filter(p => { const cd = p.cliente_datos as ClienteDatos; const q = search.toLowerCase(); return cd.nombre.toLowerCase().includes(q) || (cd.telefono?.includes(q) ?? false); })
     : [];
 
   const CANCELADO_COL = { label: 'Cancelado', chip: '#fce8ea', dot: '#9e3b46' };

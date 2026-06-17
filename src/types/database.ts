@@ -36,9 +36,11 @@ export interface EnvioDatos {
   gratis: boolean;
 }
 
+export type OrigenPedido = 'pagina' | 'instagram' | 'facebook' | 'whatsapp' | 'otro';
+
 export interface ClienteDatos {
   nombre: string;
-  telefono: string;
+  telefono?: string;
   notas?: string;
   metodo_pago?: string;
   tipo_entrega?: 'pickup' | 'domicilio';
@@ -46,6 +48,7 @@ export interface ClienteDatos {
   fecha_entrega?: string;
   hora_entrega?: string;
   envio?: EnvioDatos;
+  origen?: OrigenPedido;
 }
 
 export interface PedidoItem {

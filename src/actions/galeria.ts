@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 
@@ -30,6 +31,48 @@ export async function subirImagenGaleria(
     }
 
     if (errors.length > 0) return { success: false, error: `No se pudieron subir: ${errors.join(', ')}` };
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado' };
+  }
+}
+
+const SITE_SLOT_STORAGE_NAMES: Record<string, string> = {
+  hero_imagen_url: 'hero-inicio',
+  nosotros_imagen_url: 'nosotros-historia',
+  personalizador_imagen_url: 'personalizador-postre',
+};
+
+const SITE_SLOT_COLUMNS: Record<string, string> = {
+  hero_imagen_url: 'hero_imagen_url',
+  nosotros_imagen_url: 'nosotros_imagen_url',
+  personalizador_imagen_url: 'personalizador_imagen_url',
+};
+
+export async function actualizarImagenSitio(
+  _: unknown,
+  formData: FormData
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    await requireAdmin();
+    const slotKey = formData.get('slotKey') as string | null;
+    const file = formData.get('file') as File | null;
+    const storageName = slotKey ? SITE_SLOT_STORAGE_NAMES[slotKey] : undefined;
+    const column = slotKey ? SITE_SLOT_COLUMNS[slotKey] : undefined;
+    if (!storageName || !column) return { success: false, error: 'Slot inválido.' };
+    if (!file || file.size === 0) return { success: false, error: 'Archivo inválido.' };
+
+    const service = createSupabaseServiceClient();
+    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const fileName = `${storageName}.${ext}`;
+    const { error: uploadError } = await service.storage.from('product-images').upload(fileName, file, { upsert: true });
+    if (uploadError) return { success: false, error: uploadError.message };
+
+    const publicUrl = service.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
+    const { error: dbError } = await service.from('configuracion').update({ [column]: publicUrl }).eq('id', 1);
+    if (dbError) return { success: false, error: dbError.message };
+
+    revalidatePath('/', 'layout');
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado' };

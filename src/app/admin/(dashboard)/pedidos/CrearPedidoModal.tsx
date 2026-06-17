@@ -4,7 +4,7 @@ import { useState, useActionState, useEffect, useMemo } from 'react';
 import { Loader2, X, Plus, Minus, Search } from 'lucide-react';
 import { crearPedidoManual, actualizarPedidoManual } from '@/actions/pedidos';
 import { useModalA11y } from '@/hooks/useModalA11y';
-import type { Producto, Pedido, PedidoItem, ClienteDatos } from '@/types/database';
+import type { Producto, Pedido, PedidoItem, ClienteDatos, OrigenPedido } from '@/types/database';
 
 const T = {
   inp: { width: '100%', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontFamily: 'var(--font-sans)', fontSize: 14, color: 'var(--ink)', background: 'var(--paper)', outline: 'none' },
@@ -45,6 +45,8 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
 
   const [busqueda, setBusqueda] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState<'pickup' | 'domicilio'>(cd.tipo_entrega ?? 'pickup');
+  const [origen, setOrigen] = useState<OrigenPedido>(cd.origen ?? 'instagram');
+  const telefonoRequerido = origen === 'pagina';
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const action = useMemo(() => isEditing ? actualizarPedidoManual.bind(null, pedido!.id) : crearPedidoManual, []);
   const [state, formAction, isPending] = useActionState(action, null);
@@ -106,6 +108,18 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
               <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Cliente</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                  <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Origen del pedido</label>
+                  <select name="origen" value={origen} disabled={isPending} className="bl-select"
+                    onChange={e => setOrigen(e.target.value as OrigenPedido)}
+                    style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}>
+                    <option value="instagram">📸 Instagram</option>
+                    <option value="facebook">💬 Facebook</option>
+                    <option value="whatsapp">📱 WhatsApp</option>
+                    <option value="pagina">🌐 Página web</option>
+                    <option value="otro">📦 Otro</option>
+                  </select>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                     Nombre <span style={{ color: 'var(--berry)' }}>*</span>
                   </label>
@@ -117,12 +131,12 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                    Teléfono <span style={{ color: 'var(--berry)' }}>*</span>
+                    Teléfono {telefonoRequerido ? <span style={{ color: 'var(--berry)' }}>*</span> : <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--ink-soft)' }}>(opcional — sin tel. no acumula sellos)</span>}
                   </label>
-                  <input name="telefono" required type="tel" minLength={8} maxLength={20} disabled={isPending} defaultValue={cd.telefono ?? ""}
+                  <input name="telefono" required={telefonoRequerido} type="tel" minLength={telefonoRequerido ? 8 : undefined} maxLength={20} disabled={isPending} defaultValue={cd.telefono ?? ""}
                     placeholder="9999-0000"
-                    pattern="[\d\s\-\+\(\)]{8,}"
-                    title="Mínimo 8 dígitos"
+                    pattern={telefonoRequerido ? '[\\d\\s\\-\\+\\(\\)]{8,}' : undefined}
+                    title={telefonoRequerido ? 'Mínimo 8 dígitos' : undefined}
                     style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--orange)'; e.target.style.background = '#fff'; }}
                     onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)'; }} />
