@@ -63,16 +63,27 @@ export async function actualizarImagenSitio(
     if (!file || file.size === 0) return { success: false, error: 'Archivo inválido.' };
 
     const service = createSupabaseServiceClient();
+    const { data: configRow } = await service.from('configuracion').select(column).eq('id', 1).single();
+    const oldUrl = (configRow as Record<string, string | null> | null)?.[column] ?? null;
+
     const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const fileName = `${storageName}.${ext}`;
-    const { error: uploadError } = await service.storage.from('product-images').upload(fileName, file, { upsert: true });
+    // Unique filename per upload so the public URL changes — a fixed name with upsert
+    // would keep serving the stale cached image since the URL never changes.
+    const fileName = `${storageName}-${Date.now()}.${ext}`;
+    const { error: uploadError } = await service.storage.from('product-images').upload(fileName, file, { upsert: false });
     if (uploadError) return { success: false, error: uploadError.message };
 
     const publicUrl = service.storage.from('product-images').getPublicUrl(fileName).data.publicUrl;
     const { error: dbError } = await service.from('configuracion').update({ [column]: publicUrl }).eq('id', 1);
     if (dbError) return { success: false, error: dbError.message };
 
+    if (oldUrl) {
+      const oldName = oldUrl.split('/').pop();
+      if (oldName) await service.storage.from('product-images').remove([oldName]);
+    }
+
     revalidatePath('/', 'layout');
+    revalidatePath('/contact');
     return { success: true };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado' };
