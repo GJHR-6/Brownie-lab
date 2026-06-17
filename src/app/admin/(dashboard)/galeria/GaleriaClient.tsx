@@ -38,6 +38,7 @@ function SiteSlotTile({ slot, onUploaded }: { slot: SiteImageSlot; onUploaded: (
   const [preview, setPreview] = useState<string | null>(slot.currentUrl);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -46,6 +47,7 @@ function SiteSlotTile({ slot, onUploaded }: { slot: SiteImageSlot; onUploaded: (
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     setError(null);
+    setSaved(false);
 
     const fd = new FormData();
     fd.append('slotKey', slot.key);
@@ -57,6 +59,8 @@ function SiteSlotTile({ slot, onUploaded }: { slot: SiteImageSlot; onUploaded: (
       setError(result.error ?? 'Error al subir');
       return;
     }
+    setSaved(true);
+    setTimeout(() => setSaved(false), 3000);
     onUploaded();
   }
 
@@ -101,6 +105,7 @@ function SiteSlotTile({ slot, onUploaded }: { slot: SiteImageSlot; onUploaded: (
       </button>
       <input ref={inputRef} type="file" accept="image/png,image/jpeg,image/webp" onChange={handleChange} style={{ display: 'none' }} />
       {error && <p style={{ fontSize: 11, color: 'var(--berry)', margin: 0 }}>{error}</p>}
+      {saved && <p style={{ fontSize: 11, color: '#157a4d', margin: 0 }}>✓ Guardado</p>}
     </div>
   );
 }
