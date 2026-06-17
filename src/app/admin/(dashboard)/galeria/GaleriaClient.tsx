@@ -5,8 +5,7 @@ import { useConfirm } from '@/components/admin/ConfirmProvider';
 import { useState, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Trash2, Loader2, Upload, ImageOff } from 'lucide-react';
-import { subirImagenGaleria, eliminarImagenGaleria } from '@/actions/galeria';
-import { updateConfiguracion } from '@/actions/configuracion';
+import { subirImagenGaleria, actualizarImagenSitio, eliminarImagenGaleria } from '@/actions/galeria';
 import type { FileInfo, SiteImageSlot } from './page';
 
 const ImageIcon = () => (
@@ -48,42 +47,16 @@ function SiteSlotTile({ slot, onUploaded }: { slot: SiteImageSlot; onUploaded: (
     setUploading(true);
     setError(null);
 
-    // Use updateConfiguracion action with just this one field
     const fd = new FormData();
-    // Put required fields (will be ignored since they're empty but action needs them)
-    fd.append('nombre', '_');
-    fd.append('whatsapp', '_');
-    fd.append(slot.key.replace('_url', '').replace('hero_imagen', 'hero_imagen')
-      .replace('nosotros_imagen', 'nosotros_imagen')
-      .replace('personalizador_imagen', 'personalizador_imagen'), file);
-
-    // Actually use a dedicated endpoint — upload via galeria action + update config
-    const uploadFd = new FormData();
-    uploadFd.append('files', file);
-    const uploadResult = await subirImagenGaleria(null, uploadFd);
-
-    if (!uploadResult.success) {
-      setError(uploadResult.error ?? 'Error al subir');
-      setUploading(false);
-      return;
-    }
-
-    // Now update configuracion with the correct field using a mini-form
-    // We need to call updateConfiguracion with just the image field
-    // Use a hidden form submission approach via the existing action
-    const configFd = new FormData();
-    configFd.append('nombre', 'Brownie Lab'); // will be overwritten by existing
-    configFd.append('whatsapp', '0'); // will be overwritten
-    // Map slot key → upload field name
-    const fieldMap: Record<string, string> = {
-      hero_imagen_url: 'hero_imagen',
-      nosotros_imagen_url: 'nosotros_imagen',
-      personalizador_imagen_url: 'personalizador_imagen',
-    };
-    configFd.append(fieldMap[slot.key], file);
-    await updateConfiguracion(null, configFd);
+    fd.append('slotKey', slot.key);
+    fd.append('file', file);
+    const result = await actualizarImagenSitio(null, fd);
 
     setUploading(false);
+    if (!result.success) {
+      setError(result.error ?? 'Error al subir');
+      return;
+    }
     onUploaded();
   }
 
