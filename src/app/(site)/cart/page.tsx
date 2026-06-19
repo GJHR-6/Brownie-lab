@@ -14,7 +14,7 @@ import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
 import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, getToppingsPublicos, subirComprobante } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
-import { calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from "@/lib/envio";
+import { calcularEnvio, type ConfigEnvio } from "@/lib/envio";
 import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
 import { getConfiguracionPedidos } from "@/actions/publico";
 
@@ -83,9 +83,11 @@ export default function CartPage() {
   // ── Envío a domicilio ──
   const [envioCfg, setEnvioCfg] = useState<ConfigEnvio | null>(null);
   const [envioCoords, setEnvioCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [envioSede, setEnvioSede] = useState("");          // fallback manual sin GPS
   const [envioLoading, setEnvioLoading] = useState(false);
   const [envioError, setEnvioError] = useState("");
+
+  // ── Sede de recogida (pickup) ──
+  const [pickupSede, setPickupSede] = useState("");
 
   // Horarios de entrega configurables (franjas + hora de corte)
   const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);
@@ -121,20 +123,17 @@ export default function CartPage() {
 
   // Envío: mismo cálculo que el servidor (lib/envio) — el server siempre revalida
   const envioActivo = datos.tipo_entrega === "domicilio" && !!envioCfg && envioCfg.sedes.length > 0;
-  const envioCalc = envioActivo
-    ? (envioCoords
-        ? calcularEnvio(envioCfg!, envioCoords.lat, envioCoords.lng, subtotal - descuento)
-        : envioSede
-          ? calcularEnvioPorSede(envioCfg!, envioSede, subtotal - descuento)
-          : null)
+  const envioCalc = envioActivo && envioCoords
+    ? calcularEnvio(envioCfg!, envioCoords.lat, envioCoords.lng, subtotal - descuento)
     : null;
+  const pickupRequiereSede = datos.tipo_entrega === "pickup" && !!envioCfg && envioCfg.sedes.length > 0;
   const costoEnvio = envioCalc && !envioCalc.fueraDeRango ? envioCalc.costo : 0;
   const totalFinal = subtotal - descuento + costoEnvio;
   const sym = storeConfig.currencySymbol;
 
   function handleUsarUbicacion() {
     if (!("geolocation" in navigator)) {
-      setEnvioError("Tu navegador no soporta ubicación. Elige tu ciudad abajo.");
+      setEnvioError("Tu navegador no soporta ubicación. Actívala para calcular tu envío.");
       return;
     }
     setEnvioLoading(true);
@@ -142,12 +141,11 @@ export default function CartPage() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setEnvioCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setEnvioSede("");
         setEnvioLoading(false);
       },
       () => {
         setEnvioLoading(false);
-        setEnvioError("No pudimos obtener tu ubicación. Elige tu ciudad abajo (tarifa base).");
+        setEnvioError("No pudimos obtener tu ubicación. Activa el permiso de ubicación e intenta de nuevo.");
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
     );
@@ -183,8 +181,9 @@ export default function CartPage() {
     const localDigits = digits.startsWith("504") && digits.length === 11 ? digits.slice(3) : digits;
     if (!/^[2389]\d{7}$/.test(localDigits)) e.telefono = "Ingresa un número hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9)";
     if (datos.tipo_entrega === "domicilio" && !datos.direccion.trim()) e.direccion = "Dirección requerida para entrega a domicilio";
-    if (envioActivo && !envioCalc) setEnvioError("Calcula tu envío con tu ubicación o elige tu ciudad.");
+    if (envioActivo && !envioCalc) setEnvioError("Calcula tu envío con tu ubicación.");
     if (envioCalc?.fueraDeRango) setEnvioError(`Tu ubicación está fuera de nuestra zona de entrega (máx. ${envioCfg?.km_max} km). Escríbenos por WhatsApp para coordinar.`);
+    if (pickupRequiereSede && !pickupSede) setEnvioError("Elige la sede donde recogerás tu pedido.");
     if (!datos.metodo_pago) e.metodo_pago = "Selecciona un método de pago";
     if (datos.fecha_entrega) {
       const minFecha = fechaMinimaEntrega(cfgPedidos.hora_corte);
@@ -194,7 +193,8 @@ export default function CartPage() {
     }
     setFormErrors(e);
     const envioBloquea = envioActivo && (!envioCalc || envioCalc.fueraDeRango);
-    return Object.keys(e).length === 0 && !envioBloquea;
+    const pickupBloquea = pickupRequiereSede && !pickupSede;
+    return Object.keys(e).length === 0 && !envioBloquea && !pickupBloquea;
   }
 
   async function handleConfirm() {
@@ -213,11 +213,10 @@ export default function CartPage() {
         notas: datos.notas.trim() || undefined, metodo_pago: datos.metodo_pago,
         tipo_entrega: datos.tipo_entrega, direccion: datos.direccion.trim() || undefined,
         fecha_entrega: datos.fecha_entrega || undefined, hora_entrega: datos.hora_entrega || undefined,
+        sede_pickup: datos.tipo_entrega === "pickup" ? (pickupSede || undefined) : undefined,
       };
 
-      const envioInput = datos.tipo_entrega === "domicilio"
-        ? (envioCoords ?? (envioSede ? { sede: envioSede } : null))
-        : null;
+      const envioInput = datos.tipo_entrega === "domicilio" ? envioCoords : null;
 
       const result = await crearPedidoPublico(clienteDatos, pedidoItems, totalFinal, promo, idempotencyKey.current, envioInput);
 
@@ -959,6 +958,24 @@ export default function CartPage() {
                   ))}
                 </div>
 
+                {datos.tipo_entrega === "pickup" && pickupRequiereSede && (
+                  <div className="mb-4">
+                    <Field label="Sede para recoger *">
+                      <select
+                        value={pickupSede}
+                        onChange={(e) => setPickupSede(e.target.value)}
+                        className="text-[14px] font-semibold"
+                        style={{ ...inputStyle, cursor: "pointer" }}
+                      >
+                        <option value="">Elegir sede…</option>
+                        {envioCfg!.sedes.map((s) => (
+                          <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  </div>
+                )}
+
                 {datos.tipo_entrega === "domicilio" && (
                   <div className="mb-4">
                     <Field label="Dirección de entrega *" error={formErrors.direccion}>
@@ -1000,21 +1017,6 @@ export default function CartPage() {
                               : <LocateFixed className="w-4 h-4" />}
                             {envioCoords ? "Ubicación detectada ✓" : envioLoading ? "Obteniendo ubicación…" : "Calcular con mi ubicación"}
                           </button>
-
-                          <span className="text-[12.5px]" style={{ color: "var(--ink-soft)" }}>ó</span>
-
-                          <select
-                            value={envioSede}
-                            onChange={(e) => { setEnvioSede(e.target.value); setEnvioCoords(null); setEnvioError(""); }}
-                            className="text-[13.5px] font-semibold px-3.5 py-2.5 rounded-full cursor-pointer"
-                            style={{ border: "1.5px solid var(--hairline)", background: "var(--paper-card)", color: "var(--ink)", outline: "none" }}
-                            aria-label="Elegir ciudad de entrega"
-                          >
-                            <option value="">Elegir mi ciudad…</option>
-                            {envioCfg!.sedes.map((s) => (
-                              <option key={s.nombre} value={s.nombre}>{s.nombre}</option>
-                            ))}
-                          </select>
                         </div>
 
                         {envioError && (
