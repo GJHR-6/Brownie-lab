@@ -400,6 +400,7 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
   const [isCrearOpen, setIsCrearOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<EstadoPedido | 'todos'>('todos');
+  const [pagoFilter, setPagoFilter] = useState<'todos' | 'pagado' | 'no_pagado'>('todos');
   const [, startTransition] = useTransition();
   const [nuevosCount, setNuevosCount] = useState(0);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -440,6 +441,8 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
 
   const visible = pedidos.filter(p => {
     if (estadoFilter !== 'todos' && p.estado !== estadoFilter) return false;
+    if (pagoFilter === 'pagado' && p.estado_pago !== 'pagado') return false;
+    if (pagoFilter === 'no_pagado' && p.estado_pago === 'pagado') return false;
     if (search.trim()) {
       const cd = p.cliente_datos as ClienteDatos;
       const q = search.toLowerCase();
@@ -534,6 +537,20 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
           {ESTADOS.map(e => (
             <option key={e} value={e}>{ESTADO_CFG[e].label}</option>
           ))}
+        </select>
+
+        {/* Pago filter */}
+        <select
+          value={pagoFilter}
+          onChange={e => setPagoFilter(e.target.value as 'todos' | 'pagado' | 'no_pagado')}
+          className="bl-select"
+          style={{ padding: '10px 16px', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', background: 'var(--paper-card)', fontFamily: 'var(--font-sans)', fontSize: 14, fontWeight: 600, color: 'var(--ink)', outline: 'none' }}
+          onFocus={e => e.target.style.borderColor = 'var(--orange)'}
+          onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
+        >
+          <option value="todos">Pago: todos</option>
+          <option value="pagado">Pagados</option>
+          <option value="no_pagado">No pagados</option>
         </select>
 
         <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-soft)', fontWeight: 500 }}>
