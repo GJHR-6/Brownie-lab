@@ -7,6 +7,7 @@ import { logActividad } from './actividad';
 import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
 import { normalizePhone } from '@/lib/sanitize';
+import { notificarNuevoPedido } from '@/lib/email';
 
 type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -276,6 +277,22 @@ export async function crearPedidoManual(
         cantidad:        item.cantidad,
       }))
     );
+
+    notificarNuevoPedido({
+      id: data.id,
+      total,
+      items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
+      cliente: {
+        nombre:        cliente_datos.nombre,
+        telefono:      cliente_datos.telefono,
+        tipo_entrega:  cliente_datos.tipo_entrega,
+        direccion:     cliente_datos.direccion,
+        fecha_entrega: cliente_datos.fecha_entrega,
+        hora_entrega:  cliente_datos.hora_entrega,
+        metodo_pago:   cliente_datos.metodo_pago,
+        notas:         cliente_datos.notas,
+      },
+    }).catch(err => console.error('[email] Error notificando pedido manual:', err));
 
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');
