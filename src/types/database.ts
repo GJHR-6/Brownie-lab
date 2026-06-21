@@ -49,6 +49,7 @@ export interface ClienteDatos {
   hora_entrega?: string;
   envio?: EnvioDatos;
   origen?: OrigenPedido;
+  sede_pickup?: string;     // sede elegida cuando tipo_entrega === 'pickup'
 }
 
 export interface PedidoItem {

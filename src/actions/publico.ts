@@ -7,7 +7,7 @@ import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
-import { parseConfigEnvio, calcularEnvio, calcularEnvioPorSede, type ConfigEnvio } from '@/lib/envio';
+import { parseConfigEnvio, calcularEnvio, type ConfigEnvio } from '@/lib/envio';
 import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
@@ -187,8 +187,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const TIPOS_ENTREGA  = new Set(['pickup', 'domicilio', '']);
 const METODOS_PAGO   = new Set(['efectivo', 'transferencia', '']);
 
-// Ubicación GPS del cliente o sede elegida a mano (fallback sin GPS)
-export type EnvioInput = { lat: number; lng: number } | { sede: string };
+// Ubicación GPS del cliente para calcular envío desde la sede más cercana
+export type EnvioInput = { lat: number; lng: number };
 
 export async function crearPedidoPublico(
   clienteDatos: ClienteDatos,
@@ -307,6 +307,23 @@ export async function crearPedidoPublico(
 
     // ── 6.5 Calcular envío en el servidor (nunca confiar en el costo del cliente) ──
     let costoEnvio = 0;
+
+    if (sanitizedDatos.tipo_entrega === 'pickup') {
+      const { data: cfgRaw } = await supabase
+        .from('configuracion')
+        .select('envio_sedes')
+        .eq('id', 1)
+        .single();
+      const cfgEnvio = parseConfigEnvio(cfgRaw ?? {});
+      const sedePickup = sanitizeText(sanitizedDatos.sede_pickup, 80);
+      if (cfgEnvio.sedes.length > 0) {
+        if (!sedePickup || !cfgEnvio.sedes.some(s => s.nombre === sedePickup)) {
+          return { success: false, error: 'Elige una sede válida para recoger tu pedido.' };
+        }
+        sanitizedDatos.sede_pickup = sedePickup;
+      }
+    }
+
     if (sanitizedDatos.tipo_entrega === 'domicilio') {
       const { data: cfgRaw } = await supabase
         .from('configuracion')
@@ -329,11 +346,8 @@ export async function crearPedidoPublico(
           if (resultado?.fueraDeRango) {
             return { success: false, error: `Lo sentimos, tu ubicación está fuera de nuestra zona de entrega (máx. ${cfgEnvio.km_max} km).` };
           }
-        } else if (envioInput && 'sede' in envioInput) {
-          resultado = calcularEnvioPorSede(cfgEnvio, sanitizeText(envioInput.sede, 80), subtotalConDescuento);
-          if (!resultado) return { success: false, error: 'Ciudad de entrega inválida.' };
         } else {
-          return { success: false, error: 'Calcula el costo de envío antes de confirmar el pedido.' };
+          return { success: false, error: 'Calcula el costo de envío con tu ubicación antes de confirmar el pedido.' };
         }
 
         if (resultado) {
