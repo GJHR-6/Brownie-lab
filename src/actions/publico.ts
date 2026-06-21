@@ -415,22 +415,26 @@ export async function crearPedidoPublico(
       }))
     );
 
-    notificarNuevoPedido({
-      id: data.id,
-      total: totalReal,
-      items: sanitizedItems.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
-      cliente: {
-        nombre:        datos.nombre,
-        telefono:      datos.telefono,
-        tipo_entrega:  datos.tipo_entrega,
-        direccion:     datos.direccion,
-        sede_pickup:   datos.sede_pickup,
-        fecha_entrega: datos.fecha_entrega,
-        hora_entrega:  datos.hora_entrega,
-        metodo_pago:   datos.metodo_pago,
-        notas:         datos.notas,
-      },
-    }).catch(err => console.error('[email] Error notificando pedido público:', err));
+    try {
+      await notificarNuevoPedido({
+        id: data.id,
+        total: totalReal,
+        items: sanitizedItems.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
+        cliente: {
+          nombre:        datos.nombre,
+          telefono:      datos.telefono,
+          tipo_entrega:  datos.tipo_entrega,
+          direccion:     datos.direccion,
+          sede_pickup:   datos.sede_pickup,
+          fecha_entrega: datos.fecha_entrega,
+          hora_entrega:  datos.hora_entrega,
+          metodo_pago:   datos.metodo_pago,
+          notas:         datos.notas,
+        },
+      });
+    } catch (err) {
+      console.error('[email] Error notificando pedido público:', err);
+    }
 
     return { success: true, data: { id: data.id } };
   } catch (err) {

@@ -278,21 +278,25 @@ export async function crearPedidoManual(
       }))
     );
 
-    notificarNuevoPedido({
-      id: data.id,
-      total,
-      items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
-      cliente: {
-        nombre:        cliente_datos.nombre,
-        telefono:      cliente_datos.telefono,
-        tipo_entrega:  cliente_datos.tipo_entrega,
-        direccion:     cliente_datos.direccion,
-        fecha_entrega: cliente_datos.fecha_entrega,
-        hora_entrega:  cliente_datos.hora_entrega,
-        metodo_pago:   cliente_datos.metodo_pago,
-        notas:         cliente_datos.notas,
-      },
-    }).catch(err => console.error('[email] Error notificando pedido manual:', err));
+    try {
+      await notificarNuevoPedido({
+        id: data.id,
+        total,
+        items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
+        cliente: {
+          nombre:        cliente_datos.nombre,
+          telefono:      cliente_datos.telefono,
+          tipo_entrega:  cliente_datos.tipo_entrega,
+          direccion:     cliente_datos.direccion,
+          fecha_entrega: cliente_datos.fecha_entrega,
+          hora_entrega:  cliente_datos.hora_entrega,
+          metodo_pago:   cliente_datos.metodo_pago,
+          notas:         cliente_datos.notas,
+        },
+      });
+    } catch (err) {
+      console.error('[email] Error notificando pedido manual:', err);
+    }
 
     revalidatePath('/admin/pedidos');
     revalidatePath('/admin');
