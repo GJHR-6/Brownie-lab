@@ -31,6 +31,7 @@ export interface PedidoEmailData {
     hora_entrega?: string;
     metodo_pago?: string;
     notas?: string;
+    comprobante_url?: string;
   };
 }
 
@@ -135,6 +136,16 @@ function buildEmailHtml(pedido: PedidoEmailData): string {
             </tr>
           </table>
         </td></tr>
+
+        <!-- Comprobante -->
+        ${cliente.comprobante_url ? `
+        <tr><td style="padding:0 32px 24px;">
+          <p style="margin:0 0 10px;font-size:13px;font-weight:700;color:#4a2c0a;text-transform:uppercase;letter-spacing:.06em;">Comprobante de pago</p>
+          <a href="${cliente.comprobante_url}" target="_blank" style="display:block;">
+            <img src="${cliente.comprobante_url}" alt="Comprobante de pago" style="width:100%;max-width:536px;border-radius:10px;border:1px solid #e8ddd0;display:block;" />
+          </a>
+          <p style="margin:6px 0 0;font-size:11px;color:#8c6e4a;">Toca la imagen para verla en tamaño completo</p>
+        </td></tr>` : ''}
 
         <!-- Footer -->
         <tr><td style="background:#f0ece4;padding:16px 32px;text-align:center;">

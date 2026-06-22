@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
+import { useState, useEffect, useCallback, useRef, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Plus, Download, Search, X, MessageCircle, Bell } from 'lucide-react';
+import { Plus, Download, Search, X, MessageCircle, Bell, ChefHat } from 'lucide-react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
 import { actualizarEstadoPedido, actualizarEstadoPago } from '@/actions/pedidos';
 import { abrirWhatsAppPedido } from '@/lib/whatsappPedido';
@@ -391,6 +391,50 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
   );
 }
 
+/* ── Resumen de cocina ── */
+const ESTADOS_ACTIVOS: EstadoPedido[] = ['pendiente', 'preparacion', 'listo'];
+
+function ResumenCocina({ pedidos }: { pedidos: Pedido[] }) {
+  const resumen = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of pedidos) {
+      if (!ESTADOS_ACTIVOS.includes(p.estado)) continue;
+      for (const item of (p.items ?? []) as PedidoItem[]) {
+        map.set(item.nombre, (map.get(item.nombre) ?? 0) + item.cantidad);
+      }
+    }
+    return [...map.entries()].sort((a, b) => b[1] - a[1]);
+  }, [pedidos]);
+
+  const total = resumen.reduce((s, [, q]) => s + q, 0);
+
+  if (resumen.length === 0) {
+    return (
+      <p style={{ fontSize: 14, color: 'var(--ink-soft)', padding: '20px 0', textAlign: 'center' }}>
+        Sin items pendientes de preparar.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 14, fontWeight: 500 }}>
+        Pedidos activos (pendiente · preparación · listo) — {total} unidad{total !== 1 ? 'es' : ''} en total
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+        {resumen.map(([nombre, cantidad]) => (
+          <div key={nombre} style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--paper)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '12px 16px' }}>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, color: 'var(--orange-ink)', lineHeight: 1, minWidth: 36, textAlign: 'center' }}>
+              {cantidad}
+            </span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.3 }}>{nombre}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ── */
 export default function PedidosClient({ initialPedidos, productos, toppings, viewSwitcher, footer }: { initialPedidos: Pedido[]; productos: Producto[]; toppings?: ToppingExtra[]; viewSwitcher?: React.ReactNode; footer?: React.ReactNode }) {
   const router = useRouter();
@@ -403,6 +447,7 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
   const [pagoFilter, setPagoFilter] = useState<'todos' | 'pagado' | 'no_pagado'>('todos');
   const [, startTransition] = useTransition();
   const [nuevosCount, setNuevosCount] = useState(0);
+  const [showCocina, setShowCocina] = useState(false);
   const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sincroniza con datos nuevos del servidor tras router.refresh()
@@ -491,6 +536,12 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           {viewSwitcher}
+          <button
+            onClick={() => setShowCocina(v => !v)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: `1.5px solid ${showCocina ? 'var(--orange)' : 'var(--hairline)'}`, cursor: 'pointer', background: showCocina ? 'var(--cream)' : 'var(--paper-card)', color: showCocina ? 'var(--orange-ink)' : 'var(--ink)', transition: '.16s' }}>
+            <ChefHat style={{ width: 16, height: 16 }} />
+            Cocina
+          </button>
           <a href="/api/admin/export/pedidos" download
             style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper-card)', color: 'var(--ink)', transition: '.16s', textDecoration: 'none' }}>
             <Download style={{ width: 16, height: 16 }} />CSV
@@ -502,6 +553,17 @@ export default function PedidosClient({ initialPedidos, productos, toppings, vie
           </button>
         </div>
       </div>
+
+      {/* Resumen cocina */}
+      {showCocina && (
+        <div style={{ background: 'var(--paper-card)', border: '1.5px solid var(--orange)', borderRadius: 'var(--r-lg)', padding: '20px 24px', marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+            <ChefHat style={{ width: 18, height: 18, color: 'var(--orange-ink)' }} />
+            <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, color: 'var(--ink)', margin: 0 }}>Lista de producción</h2>
+          </div>
+          <ResumenCocina pedidos={pedidos} />
+        </div>
+      )}
 
       {/* Toolbar */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 22, flexWrap: 'wrap' }}>
