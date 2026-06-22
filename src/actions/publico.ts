@@ -415,30 +415,50 @@ export async function crearPedidoPublico(
       }))
     );
 
-    try {
-      await notificarNuevoPedido({
-        id: data.id,
-        total: totalReal,
-        items: sanitizedItems.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
-        cliente: {
-          nombre:        datos.nombre,
-          telefono:      datos.telefono,
-          tipo_entrega:  datos.tipo_entrega,
-          direccion:     datos.direccion,
-          sede_pickup:   datos.sede_pickup,
-          fecha_entrega: datos.fecha_entrega,
-          hora_entrega:  datos.hora_entrega,
-          metodo_pago:   datos.metodo_pago,
-          notas:         datos.notas,
-        },
-      });
-    } catch (err) {
-      console.error('[email] Error notificando pedido público:', err);
-    }
-
     return { success: true, data: { id: data.id } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+// ── Notificar pedido (se llama desde el cliente tras crear pedido + subir comprobante) ──
+
+export async function notificarPedidoCreado(id: string): Promise<void> {
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return;
+
+  try {
+    const supabase = createSupabaseServiceClient();
+    const { data: pedido } = await supabase
+      .from('pedidos')
+      .select('*, pedido_items(nombre_producto, precio_unitario, cantidad)')
+      .eq('id', id)
+      .single();
+
+    if (!pedido) return;
+
+    const cd = (pedido.cliente_datos ?? {}) as Record<string, string | undefined>;
+    const items = ((pedido.pedido_items ?? []) as Array<{ nombre_producto: string; precio_unitario: number; cantidad: number }>)
+      .map(i => ({ nombre: i.nombre_producto, precio: Number(i.precio_unitario), cantidad: i.cantidad }));
+
+    await notificarNuevoPedido({
+      id: pedido.id,
+      total: Number(pedido.total),
+      items,
+      cliente: {
+        nombre:          cd.nombre ?? '',
+        telefono:        cd.telefono,
+        tipo_entrega:    cd.tipo_entrega,
+        direccion:       cd.direccion,
+        sede_pickup:     cd.sede_pickup,
+        fecha_entrega:   cd.fecha_entrega,
+        hora_entrega:    cd.hora_entrega,
+        metodo_pago:     cd.metodo_pago,
+        notas:           cd.notas,
+        comprobante_url: pedido.comprobante_url ?? undefined,
+      },
+    });
+  } catch (err) {
+    console.error('[email] Error notificando pedido público:', err);
   }
 }
 

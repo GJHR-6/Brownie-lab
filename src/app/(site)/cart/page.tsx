@@ -12,7 +12,7 @@ import ProductCard from "@/components/ProductCard";
 import { useCartStore } from "@/lib/cartStore";
 import { useRecentStore } from "@/lib/recentStore";
 import { storeConfig } from "@/config/store";
-import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, getToppingsPublicos, subirComprobante } from "@/actions/publico";
+import { validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio, getToppingsPublicos, subirComprobante, notificarPedidoCreado } from "@/actions/publico";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 import { calcularEnvio, type ConfigEnvio } from "@/lib/envio";
 import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
@@ -72,8 +72,10 @@ export default function CartPage() {
   const submittingRef = useRef(false);
   const idempotencyKey = useRef(crypto.randomUUID());
   const [ssFile, setSsFile] = useState<File | null>(null);
+  const [ssError, setSsError] = useState("");
   const [banco, setBanco] = useState({ banco: '', titular: '', numero: '' });
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof DatosForm, string>>>({});
+  const [formErrorSummary, setFormErrorSummary] = useState<string[]>([]);
   const [datos, setDatos] = useState<DatosForm>({
     nombre: "", telefono: "", tipo_entrega: "pickup",
     direccion: "", fecha_entrega: "", hora_entrega: "", notas: "", metodo_pago: "",
@@ -176,22 +178,53 @@ export default function CartPage() {
 
   function validateDatos(): boolean {
     const e: Partial<Record<keyof DatosForm, string>> = {};
-    if (!datos.nombre.trim() || datos.nombre.trim().length < 2) e.nombre = "Nombre requerido (mín. 2 caracteres)";
+    const missing: string[] = [];
+
+    if (!datos.nombre.trim() || datos.nombre.trim().length < 2) {
+      e.nombre = "Nombre requerido (mín. 2 caracteres)";
+      missing.push("Nombre completo");
+    }
     const digits = datos.telefono.replace(/\D/g, "");
     const localDigits = digits.startsWith("504") && digits.length === 11 ? digits.slice(3) : digits;
-    if (!/^[2389]\d{7}$/.test(localDigits)) e.telefono = "Ingresa un número hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9)";
-    if (datos.tipo_entrega === "domicilio" && !datos.direccion.trim()) e.direccion = "Dirección requerida para entrega a domicilio";
-    if (envioActivo && !envioCalc) setEnvioError("Calcula tu envío con tu ubicación.");
-    if (envioCalc?.fueraDeRango) setEnvioError(`Tu ubicación está fuera de nuestra zona de entrega (máx. ${envioCfg?.km_max} km). Escríbenos por WhatsApp para coordinar.`);
-    if (pickupRequiereSede && !pickupSede) setEnvioError("Elige la sede donde recogerás tu pedido.");
-    if (!datos.metodo_pago) e.metodo_pago = "Selecciona un método de pago";
+    if (!/^[2389]\d{7}$/.test(localDigits)) {
+      e.telefono = "Ingresa un número hondureño válido (8 dígitos, empieza con 2, 3, 8 o 9)";
+      missing.push("Teléfono");
+    }
+    if (datos.tipo_entrega === "domicilio" && !datos.direccion.trim()) {
+      e.direccion = "Dirección requerida para entrega a domicilio";
+      missing.push("Dirección de entrega");
+    }
+    if (envioActivo && !envioCalc) {
+      setEnvioError("Calcula tu envío con tu ubicación.");
+      missing.push("Costo de envío");
+    }
+    if (envioCalc?.fueraDeRango) {
+      setEnvioError(`Tu ubicación está fuera de nuestra zona de entrega (máx. ${envioCfg?.km_max} km). Escríbenos por WhatsApp para coordinar.`);
+      missing.push("Zona de entrega");
+    }
+    if (pickupRequiereSede && !pickupSede) {
+      setEnvioError("Elige la sede donde recogerás tu pedido.");
+      missing.push("Sede de recogida");
+    }
+    if (!datos.metodo_pago) {
+      e.metodo_pago = "Selecciona un método de pago";
+      missing.push("Método de pago");
+    }
     if (datos.fecha_entrega) {
       const minFecha = fechaMinimaEntrega(cfgPedidos.hora_corte);
       if (datos.fecha_entrega < minFecha) {
         e.fecha_entrega = `Por la hora, la entrega más próxima es el ${new Date(minFecha + "T12:00:00").toLocaleDateString("es-HN", { weekday: "long", day: "numeric", month: "long" })}`;
+        missing.push("Fecha de entrega");
       }
     }
+
     setFormErrors(e);
+    setFormErrorSummary(missing);
+
+    if (missing.length > 0) {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     const envioBloquea = envioActivo && (!envioCalc || envioCalc.fueraDeRango);
     const pickupBloquea = pickupRequiereSede && !pickupSede;
     return Object.keys(e).length === 0 && !envioBloquea && !pickupBloquea;
@@ -199,9 +232,18 @@ export default function CartPage() {
 
   async function handleConfirm() {
     if (submittingRef.current) return;
+
+    // Comprobante obligatorio para transferencia
+    if (datos.metodo_pago === "transferencia" && !ssFile) {
+      setSsError("Debes adjuntar el comprobante de pago para continuar.");
+      return;
+    }
+
     submittingRef.current = true;
     setSubmitting(true);
     setOrderError(null);
+    setSsError("");
+
     try {
       const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
       const pedidoItems = items.map(i => ({
@@ -230,12 +272,16 @@ export default function CartPage() {
       const id = result.data?.id;
       if (id) {
         setOrderId(id);
+
+        // Enviar WhatsApp de confirmación al cliente vía Meta Business API
         enviarConfirmacionWhatsApp({
           telefono: datos.telefono,
           nombre: datos.nombre,
           orderId: id,
           seguimientoUrl: `${window.location.origin}/seguimiento`,
-        });
+        }).catch(() => {});
+
+        // Subir comprobante primero, luego notificar con la imagen incluida
         if (ssFile) {
           const fd = new FormData();
           fd.append('comprobante', ssFile);
@@ -244,6 +290,9 @@ export default function CartPage() {
             setOrderError(`Pedido creado, pero no se pudo subir el comprobante: ${uploadResult.error ?? 'Error desconocido'}. Envíalo por WhatsApp.`);
           }
         }
+
+        // Notificar por correo (incluye comprobante_url si se subió)
+        notificarPedidoCreado(id).catch(() => {});
       }
 
       try {
@@ -838,6 +887,26 @@ export default function CartPage() {
                 Datos y método de pago
               </h1>
 
+              {/* Banner campos faltantes */}
+              {formErrorSummary.length > 0 && (
+                <div
+                  className="rounded-[16px] px-5 py-4"
+                  style={{ background: "rgba(158,59,70,.07)", border: "1.5px solid rgba(158,59,70,.3)" }}
+                >
+                  <p className="font-bold text-[14px] mb-2" style={{ color: "var(--berry)" }}>
+                    Por favor completa los campos requeridos:
+                  </p>
+                  <ul className="flex flex-col gap-1 pl-1">
+                    {formErrorSummary.map(f => (
+                      <li key={f} className="text-[13px] flex items-center gap-2" style={{ color: "var(--berry)" }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--berry)", display: "inline-block", flexShrink: 0 }} />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {/* Banner datos guardados */}
               {savedUser?.nombre && (
                 <div
@@ -1313,49 +1382,58 @@ export default function CartPage() {
                     </div>
                   </div>
 
-                  <label
-                    className="flex flex-col items-center gap-2 p-5 rounded-[16px] border-2 border-dashed cursor-pointer transition-colors"
-                    style={{
-                      borderColor: ssFile ? "var(--wa)" : "var(--hairline)",
-                      background: ssFile ? "rgba(31,170,85,.06)" : "transparent",
-                    }}
-                  >
-                    <BLIcon
-                      name="share"
-                      size={28}
-                      style={{ color: ssFile ? "var(--wa)" : "var(--ink-soft)" } as React.CSSProperties}
-                    />
-                    <strong className="text-[15px]" style={{ color: ssFile ? "#1a7a40" : "var(--ink)" }}>
-                      {ssFile ? ssFile.name : "Adjuntar comprobante (opcional)"}
-                    </strong>
-                    <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
-                      PNG, JPG o WEBP · máx. 10 MB
-                    </span>
-                    {ssFile && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); setSsFile(null); }}
-                        className="text-[12px] underline border-0 bg-transparent cursor-pointer"
-                        style={{ color: "var(--berry)" }}
-                      >
-                        Quitar
-                      </button>
-                    )}
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/jpg,image/webp"
-                      className="sr-only"
-                      onChange={(e) => {
-                        const f = e.target.files?.[0] ?? null;
-                        if (f && f.size > 10 * 1024 * 1024) {
-                          e.target.value = "";
-                          setOrderError("El comprobante no debe superar 10 MB.");
-                          return;
-                        }
-                        setSsFile(f);
+                  <div>
+                    <p className="text-sm font-semibold mb-2" style={{ color: "var(--ink)" }}>
+                      Comprobante de pago <span style={{ color: "var(--berry)" }}>*</span>
+                    </p>
+                    <label
+                      className="flex flex-col items-center gap-2 p-5 rounded-[16px] border-2 border-dashed cursor-pointer transition-colors"
+                      style={{
+                        borderColor: ssError ? "var(--berry)" : ssFile ? "var(--wa)" : "var(--hairline)",
+                        background: ssError ? "rgba(158,59,70,.04)" : ssFile ? "rgba(31,170,85,.06)" : "transparent",
                       }}
-                    />
-                  </label>
+                    >
+                      <BLIcon
+                        name="share"
+                        size={28}
+                        style={{ color: ssError ? "var(--berry)" : ssFile ? "var(--wa)" : "var(--ink-soft)" } as React.CSSProperties}
+                      />
+                      <strong className="text-[15px]" style={{ color: ssError ? "var(--berry)" : ssFile ? "#1a7a40" : "var(--ink)" }}>
+                        {ssFile ? ssFile.name : "Adjuntar comprobante de transferencia"}
+                      </strong>
+                      <span className="text-[13px]" style={{ color: "var(--ink-soft)" }}>
+                        PNG, JPG o WEBP · máx. 10 MB
+                      </span>
+                      {ssFile && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); setSsFile(null); }}
+                          className="text-[12px] underline border-0 bg-transparent cursor-pointer"
+                          style={{ color: "var(--berry)" }}
+                        >
+                          Quitar
+                        </button>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/jpg,image/webp"
+                        className="sr-only"
+                        onChange={(e) => {
+                          const f = e.target.files?.[0] ?? null;
+                          if (f && f.size > 10 * 1024 * 1024) {
+                            e.target.value = "";
+                            setOrderError("El comprobante no debe superar 10 MB.");
+                            return;
+                          }
+                          setSsFile(f);
+                          if (f) setSsError("");
+                        }}
+                      />
+                    </label>
+                    {ssError && (
+                      <p className="text-[12px] mt-1.5 font-medium" style={{ color: "var(--berry)" }}>{ssError}</p>
+                    )}
+                  </div>
                 </div>
               )}
 
