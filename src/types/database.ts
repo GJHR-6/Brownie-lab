@@ -34,6 +34,8 @@ export interface EnvioDatos {
   distancia_km: number;    // 0 si fue selección manual de sede (sin GPS)
   costo: number;
   gratis: boolean;
+  zona_id?: string;        // id de delivery_zones cuando envio_modo === 'zonas'
+  zona_nombre?: string;
 }
 
 export type OrigenPedido = 'pagina' | 'instagram' | 'facebook' | 'whatsapp' | 'otro';
@@ -50,6 +52,9 @@ export interface ClienteDatos {
   envio?: EnvioDatos;
   origen?: OrigenPedido;
   sede_pickup?: string;     // sede elegida cuando tipo_entrega === 'pickup'
+  zona_id?: string;         // id de delivery_zones elegida cuando envio_modo === 'zonas'
+  gift_card_codigo?: string;
+  gift_card_descuento?: number;
 }
 
 export interface PedidoItem {
@@ -158,7 +163,50 @@ export interface Configuracion {
   envio_factor_ruta: number;
   envio_km_max: number;
   envio_gratis_monto: number;
+  envio_modo: 'distancia' | 'zonas';
   updated_at: string;
+}
+
+export interface DeliveryZone {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  tarifa: number;
+  activa: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EstadoGiftCard = 'pendiente' | 'activa' | 'agotada' | 'cancelada';
+
+export interface GiftCard {
+  id: string;
+  codigo: string;
+  monto: number;
+  saldo: number;
+  estado: EstadoGiftCard;
+  destinatario_nombre: string | null;
+  destinatario_telefono: string | null;
+  comprador_telefono: string;
+  mensaje: string | null;
+  created_at: string;
+  redeemed_at: string | null;
+}
+
+export type EstadoCatering = 'nueva' | 'contactado' | 'cotizado' | 'cerrada';
+
+export interface CateringSolicitud {
+  id: string;
+  tipo_evento: string;
+  rango_personas: string;
+  fecha_evento: string;
+  sede_cercana: string | null;
+  detalles: string | null;
+  cliente_nombre: string;
+  cliente_telefono: string;
+  estado: EstadoCatering;
+  created_at: string;
 }
 
 export interface Categoria {

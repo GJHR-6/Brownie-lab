@@ -10,9 +10,11 @@ export default async function EnviosPage() {
 
   const { data } = await supabase
     .from('configuracion')
-    .select('envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto')
+    .select('envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto, envio_modo')
     .eq('id', 1)
     .single();
 
-  return <EnviosClient config={parseConfigEnvio(data ?? {})} />;
+  const envioModo: 'distancia' | 'zonas' = data?.envio_modo === 'zonas' ? 'zonas' : 'distancia';
+
+  return <EnviosClient config={parseConfigEnvio(data ?? {})} envioModo={envioModo} />;
 }

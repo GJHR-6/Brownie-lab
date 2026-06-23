@@ -111,6 +111,8 @@ export async function updateConfiguracionEnvios(
     const envio_factor_ruta  = num('envio_factor_ruta', 1.3, 1);
     const envio_km_max       = num('envio_km_max', 0);
     const envio_gratis_monto = num('envio_gratis_monto', 0);
+    const envio_modo_raw     = (formData.get('envio_modo') as string ?? '').trim();
+    const envio_modo: 'distancia' | 'zonas' = envio_modo_raw === 'zonas' ? 'zonas' : 'distancia';
 
     let envio_sedes: Array<{ nombre: string; lat: number; lng: number; tarifa_base: number }> = [];
     try {
@@ -132,7 +134,7 @@ export async function updateConfiguracionEnvios(
 
     const { error } = await supabase
       .from('configuracion')
-      .update({ envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto })
+      .update({ envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto, envio_modo })
       .eq('id', 1);
     if (error) return { success: false, error: error.message };
 

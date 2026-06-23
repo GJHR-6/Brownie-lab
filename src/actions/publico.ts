@@ -7,9 +7,10 @@ import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
-import { parseConfigEnvio, calcularEnvio, type ConfigEnvio } from '@/lib/envio';
+import { parseConfigEnvio, calcularEnvio, calcularEnvioPorZona, type ConfigEnvio } from '@/lib/envio';
 import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 import { notificarNuevoPedido } from '@/lib/email';
+import { redimirGiftCard } from './giftCards';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
 
@@ -150,6 +151,16 @@ export async function getConfiguracionEnvio(): Promise<ConfigEnvio> {
   }
 }
 
+export async function getEnvioModo(): Promise<'distancia' | 'zonas'> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data } = await supabase.from('configuracion').select('envio_modo').eq('id', 1).single();
+    return data?.envio_modo === 'zonas' ? 'zonas' : 'distancia';
+  } catch {
+    return 'distancia';
+  }
+}
+
 // Toppings activos para recomendar como extra en el checkout
 export async function getToppingsPublicos(): Promise<Array<{ id: string; nombre: string; precio_extra: number }>> {
   try {
@@ -188,8 +199,8 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const TIPOS_ENTREGA  = new Set(['pickup', 'domicilio', '']);
 const METODOS_PAGO   = new Set(['efectivo', 'transferencia', '']);
 
-// Ubicación GPS del cliente para calcular envío desde la sede más cercana
-export type EnvioInput = { lat: number; lng: number };
+// Ubicación GPS del cliente (envio_modo='distancia') o zona elegida (envio_modo='zonas')
+export type EnvioInput = { lat: number; lng: number } | { zonaId: string };
 
 export async function crearPedidoPublico(
   clienteDatos: ClienteDatos,
@@ -328,43 +339,97 @@ export async function crearPedidoPublico(
     if (sanitizedDatos.tipo_entrega === 'domicilio') {
       const { data: cfgRaw } = await supabase
         .from('configuracion')
-        .select('envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto')
+        .select('envio_sedes, envio_por_km, envio_factor_ruta, envio_km_max, envio_gratis_monto, envio_modo')
         .eq('id', 1)
         .single();
-      const cfgEnvio = parseConfigEnvio(cfgRaw ?? {});
+      const envioModo = cfgRaw?.envio_modo === 'zonas' ? 'zonas' : 'distancia';
 
-      if (cfgEnvio.sedes.length > 0) {
-        const subtotalConDescuento = Math.round((subtotalReal - descuento) * 100) / 100;
-        let resultado = null;
-
-        if (envioInput && 'lat' in envioInput) {
-          const { lat, lng } = envioInput;
-          // Bounds aproximados de Honduras — rechaza coords basura
-          if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 12.9 || lat > 16.6 || lng < -89.5 || lng > -83) {
-            return { success: false, error: 'Ubicación de entrega inválida.' };
-          }
-          resultado = calcularEnvio(cfgEnvio, lat, lng, subtotalConDescuento);
-          if (resultado?.fueraDeRango) {
-            return { success: false, error: `Lo sentimos, tu ubicación está fuera de nuestra zona de entrega (máx. ${cfgEnvio.km_max} km).` };
-          }
-        } else {
-          return { success: false, error: 'Calcula el costo de envío con tu ubicación antes de confirmar el pedido.' };
+      if (envioModo === 'zonas') {
+        if (!envioInput || !('zonaId' in envioInput)) {
+          return { success: false, error: 'Elige tu zona de entrega antes de confirmar el pedido.' };
         }
+        const { data: zonas } = await supabase
+          .from('delivery_zones')
+          .select('id, nombre, tarifa, activa')
+          .eq('activa', true);
+        const resultado = calcularEnvioPorZona(envioInput.zonaId, zonas ?? []);
+        if (!resultado) return { success: false, error: 'Zona de entrega inválida.' };
 
-        if (resultado) {
-          costoEnvio = resultado.costo;
-          sanitizedDatos.envio = {
-            sede: resultado.sede.nombre,
-            distancia_km: resultado.distancia_km,
-            costo: resultado.costo,
-            gratis: resultado.gratis,
-          };
+        costoEnvio = resultado.costo;
+        sanitizedDatos.envio = {
+          sede: resultado.zona_nombre,
+          distancia_km: 0,
+          costo: resultado.costo,
+          gratis: resultado.costo === 0,
+          zona_id: resultado.zona_id,
+          zona_nombre: resultado.zona_nombre,
+        };
+      } else {
+        const cfgEnvio = parseConfigEnvio(cfgRaw ?? {});
+
+        if (cfgEnvio.sedes.length > 0) {
+          const subtotalConDescuento = Math.round((subtotalReal - descuento) * 100) / 100;
+          let resultado = null;
+
+          if (envioInput && 'lat' in envioInput) {
+            const { lat, lng } = envioInput;
+            // Bounds aproximados de Honduras — rechaza coords basura
+            if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 12.9 || lat > 16.6 || lng < -89.5 || lng > -83) {
+              return { success: false, error: 'Ubicación de entrega inválida.' };
+            }
+            resultado = calcularEnvio(cfgEnvio, lat, lng, subtotalConDescuento);
+            if (resultado?.fueraDeRango) {
+              return { success: false, error: `Lo sentimos, tu ubicación está fuera de nuestra zona de entrega (máx. ${cfgEnvio.km_max} km).` };
+            }
+          } else {
+            return { success: false, error: 'Calcula el costo de envío con tu ubicación antes de confirmar el pedido.' };
+          }
+
+          if (resultado) {
+            costoEnvio = resultado.costo;
+            sanitizedDatos.envio = {
+              sede: resultado.sede.nombre,
+              distancia_km: resultado.distancia_km,
+              costo: resultado.costo,
+              gratis: resultado.gratis,
+            };
+          }
         }
       }
     }
 
-    const totalReal = Math.round((subtotalReal - descuento + costoEnvio) * 100) / 100;
-    if (totalReal <= 0) return { success: false, error: 'Total inválido.' };
+    const totalAntesGiftCard = Math.round((subtotalReal - descuento + costoEnvio) * 100) / 100;
+    if (totalAntesGiftCard <= 0) return { success: false, error: 'Total inválido.' };
+
+    // ── 6.6 Redimir tarjeta de regalo (si se aplicó) ──────────────────────────
+    let giftCardDescuento = 0;
+    let giftCardCodigoAplicado: string | undefined;
+    if (sanitizedDatos.gift_card_codigo) {
+      const codigoGC = sanitizePromoCode(sanitizedDatos.gift_card_codigo).toUpperCase();
+      const { data: gc } = await supabase
+        .from('gift_cards')
+        .select('saldo, estado')
+        .eq('codigo', codigoGC)
+        .single();
+
+      if (!gc || gc.estado !== 'activa' || Number(gc.saldo) <= 0) {
+        return { success: false, error: 'La tarjeta de regalo no es válida o no tiene saldo.' };
+      }
+
+      const montoADeducir = Math.min(Number(gc.saldo), totalAntesGiftCard);
+      const redencion = await redimirGiftCard(codigoGC, montoADeducir);
+      if (!redencion.success) return { success: false, error: redencion.error };
+
+      giftCardDescuento = montoADeducir;
+      giftCardCodigoAplicado = codigoGC;
+    }
+
+    const totalReal = Math.round((totalAntesGiftCard - giftCardDescuento) * 100) / 100;
+
+    if (giftCardCodigoAplicado) {
+      sanitizedDatos.gift_card_codigo = giftCardCodigoAplicado;
+      sanitizedDatos.gift_card_descuento = giftCardDescuento;
+    }
 
     const datos = nota_promo
       ? { ...sanitizedDatos, notas: [sanitizedDatos.notas, nota_promo].filter(Boolean).join(' | ') }

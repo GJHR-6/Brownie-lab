@@ -31,6 +31,7 @@ const DEFAULT_CONFIG: Configuracion = {
   envio_factor_ruta: 1.3,
   envio_km_max: 0,
   envio_gratis_monto: 0,
+  envio_modo: 'distancia',
   updated_at: new Date().toISOString(),
 };
 
