@@ -33,7 +33,12 @@ export default function StageMenu({
   const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);
   const [bagOpen, setBagOpen] = useState(false);
   const [cambiandoSede, setCambiandoSede] = useState(false);
+  const [fechaHoraOpen, setFechaHoraOpen] = useState(false);
+  const [fechaHoraError, setFechaHoraError] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
+
+  const faltaFechaHora = selection.tipoEntrega === "pickup" && !!selection.sedePickup
+    && (!selection.fechaEntrega || !selection.horaEntrega);
 
   useEffect(() => {
     getProductos().then(setProductos).catch(() => setProductos([]));
@@ -101,14 +106,22 @@ export default function StageMenu({
       </div>
 
       {selection.tipoEntrega === "pickup" && selection.sedePickup && (
-        <OrderBar
-          sede={selection.sedePickup}
-          fechaEntrega={selection.fechaEntrega}
-          horaEntrega={selection.horaEntrega}
-          cfgPedidos={cfgPedidos}
-          onSetFechaHora={onSetFechaHora}
-          onChangeSede={() => setCambiandoSede(true)}
-        />
+        <>
+          <OrderBar
+            sede={selection.sedePickup}
+            fechaEntrega={selection.fechaEntrega}
+            horaEntrega={selection.horaEntrega}
+            cfgPedidos={cfgPedidos}
+            open={fechaHoraOpen}
+            onOpenChange={setFechaHoraOpen}
+            onSetFechaHora={(fecha, hora) => { onSetFechaHora(fecha, hora); if (fecha && hora) setFechaHoraError(false); }}
+            onChangeSede={() => setCambiandoSede(true)}
+            highlight={fechaHoraError}
+          />
+          {fechaHoraError && (
+            <p className="mb-5" style={{ color: "var(--berry)", fontSize: 13.5 }}>Elige fecha y hora de recogida antes de continuar.</p>
+          )}
+        </>
       )}
 
       {productos === null && (
@@ -138,7 +151,16 @@ export default function StageMenu({
         <BagDrawer
           telefono={selection.telefono}
           onClose={() => setBagOpen(false)}
-          onContinue={(giftCardCodigo) => { setBagOpen(false); onContinue(giftCardCodigo); }}
+          onContinue={(giftCardCodigo) => {
+            if (faltaFechaHora) {
+              setBagOpen(false);
+              setFechaHoraOpen(true);
+              setFechaHoraError(true);
+              return;
+            }
+            setBagOpen(false);
+            onContinue(giftCardCodigo);
+          }}
           onSignIn={() => { setBagOpen(false); onSignIn(); }}
         />
       )}
@@ -147,16 +169,18 @@ export default function StageMenu({
 }
 
 function OrderBar({
-  sede, fechaEntrega, horaEntrega, cfgPedidos, onSetFechaHora, onChangeSede,
+  sede, fechaEntrega, horaEntrega, cfgPedidos, open, onOpenChange, onSetFechaHora, onChangeSede, highlight,
 }: {
   sede: string;
   fechaEntrega: string | null;
   horaEntrega: string | null;
   cfgPedidos: ConfigPedidos;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   onSetFechaHora: (fecha: string | null, hora: string | null) => void;
   onChangeSede: () => void;
+  highlight?: boolean;
 }) {
-  const [open, setOpen] = useState<"fecha" | null>(null);
   const [fechaDraft, setFechaDraft] = useState(fechaEntrega ?? "");
   const [horaDraft, setHoraDraft] = useState(horaEntrega ?? "");
 
@@ -165,17 +189,21 @@ function OrderBar({
     : "Elige fecha";
 
   return (
-    <div className="flex flex-wrap items-stretch gap-2 mb-7" style={{ position: "relative" }}>
+    <div className="flex flex-wrap items-stretch gap-2 mb-2" style={{ position: "relative" }}>
       <div className="inline-flex items-center gap-2 rounded-full px-4 h-10" style={{ background: "var(--cream)", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}>
         <Store size={15} style={{ color: "var(--orange-ink)" }} /> Retiro en tienda
       </div>
 
       <button
-        onClick={() => setOpen(open === "fecha" ? null : "fecha")}
-        className="inline-flex items-center gap-2 rounded-full px-4 h-10 cursor-pointer border-0"
-        style={{ background: "var(--paper-card)", border: "1.5px solid var(--hairline)", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}
+        onClick={() => onOpenChange(!open)}
+        className="inline-flex items-center gap-2 rounded-full px-4 h-10 cursor-pointer"
+        style={{
+          background: "var(--paper-card)",
+          border: `1.5px solid ${highlight ? "var(--berry)" : "var(--hairline)"}`,
+          color: "var(--ink)", fontSize: 13.5, fontWeight: 600,
+        }}
       >
-        <Clock size={15} style={{ color: "var(--orange-ink)" }} />
+        <Clock size={15} style={{ color: highlight ? "var(--berry)" : "var(--orange-ink)" }} />
         {fechaLabel}{horaEntrega ? ` · ${horaEntrega}` : ""}
         <ChevronDown size={14} style={{ color: "var(--ink-soft)" }} />
       </button>
@@ -190,7 +218,7 @@ function OrderBar({
         <ChevronDown size={14} style={{ color: "var(--ink-soft)" }} />
       </button>
 
-      {open === "fecha" && (
+      {open && (
         <div className="absolute top-12 left-0 z-30 p-4 rounded-2xl"
           style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-md, 0 8px 24px rgba(0,0,0,.12))", width: 280 }}>
           <p className="font-semibold mb-3" style={{ color: "var(--ink)", fontSize: 14 }}>Fecha y hora de recogida</p>
@@ -201,13 +229,14 @@ function OrderBar({
           <label className="block font-semibold mb-1.5" style={{ color: "var(--ink-soft)", fontSize: 12.5 }}>Hora</label>
           <select value={horaDraft} onChange={e => setHoraDraft(e.target.value)}
             className="w-full mb-4" style={{ padding: "9px 12px", border: "1.5px solid var(--hairline)", borderRadius: "var(--r-md)", fontSize: 14 }}>
-            <option value="">Cualquier hora</option>
+            <option value="">Elige una hora</option>
             {cfgPedidos.horas_entrega.map(h => <option key={h} value={h}>{h}</option>)}
           </select>
           <button
-            onClick={() => { onSetFechaHora(fechaDraft || null, horaDraft || null); setOpen(null); }}
+            disabled={!fechaDraft || !horaDraft}
+            onClick={() => { onSetFechaHora(fechaDraft, horaDraft); onOpenChange(false); }}
             className="w-full font-bold cursor-pointer border-0 text-white"
-            style={{ background: "var(--orange)", borderRadius: "var(--r-pill)", padding: "10px", fontSize: 14 }}
+            style={{ background: "var(--orange)", borderRadius: "var(--r-pill)", padding: "10px", fontSize: 14, opacity: (!fechaDraft || !horaDraft) ? 0.5 : 1 }}
           >
             Guardar
           </button>
