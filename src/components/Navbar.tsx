@@ -66,7 +66,7 @@ export default function Navbar() {
         <div className="justify-self-start">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="w-10 h-10 rounded-full grid place-items-center border transition-colors"
+            className="inline-flex items-center gap-2 h-10 rounded-full px-3.5 border transition-colors cursor-pointer"
             aria-label="Menú"
             style={{
               color: "var(--on-dark-soft)",
@@ -75,6 +75,7 @@ export default function Navbar() {
             }}
           >
             <BLIcon name={menuOpen ? "close" : "nav-menu"} size={20} />
+            <span className="font-semibold text-[14.5px]">Menú</span>
           </button>
         </div>
 
