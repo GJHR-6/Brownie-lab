@@ -59,13 +59,29 @@ export default function Navbar() {
       style={{ background: "var(--choco-900)", color: "var(--on-dark)" }}
     >
       <div
-        className="flex items-center justify-between mx-auto px-[var(--gutter)]"
+        className="grid grid-cols-3 items-center mx-auto px-[var(--gutter)]"
         style={{ height: 72, maxWidth: "var(--maxw)" }}
       >
-        {/* Brand */}
+        {/* Hamburger — left */}
+        <div className="justify-self-start">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="w-10 h-10 rounded-full grid place-items-center border transition-colors"
+            aria-label="Menú"
+            style={{
+              color: "var(--on-dark-soft)",
+              borderColor: "var(--hairline-dark)",
+              background: "none",
+            }}
+          >
+            <BLIcon name={menuOpen ? "close" : "nav-menu"} size={20} />
+          </button>
+        </div>
+
+        {/* Brand — center */}
         <Link
           href="/"
-          className="inline-flex items-center gap-2.5 no-underline"
+          className="justify-self-center inline-flex items-center gap-2.5 no-underline"
           style={{ color: "var(--amber)" }}
         >
           <BLIcon name="mark" size={32} />
@@ -81,37 +97,8 @@ export default function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav links */}
-        <nav className="hidden md:flex items-center gap-8">
-          {links.map((l) => {
-            const active =
-              l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-            return (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="inline-flex items-center gap-1.5 text-[15px] font-medium transition-colors no-underline"
-                style={{ color: active ? "var(--amber)" : "var(--on-dark-soft)" }}
-                onMouseOver={(e) =>
-                  ((e.currentTarget as HTMLAnchorElement).style.color =
-                    active ? "var(--amber)" : "var(--on-dark)")
-                }
-                onMouseOut={(e) =>
-                  ((e.currentTarget as HTMLAnchorElement).style.color =
-                    active ? "var(--amber)" : "var(--on-dark-soft)")
-                }
-              >
-                {l.label}
-                {l.icon && (
-                  <BLIcon name={l.icon} size={15} style={{ color: "var(--amber)" } as React.CSSProperties} />
-                )}
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2.5">
+        {/* Actions — right */}
+        <div className="justify-self-end flex items-center gap-2.5">
           {/* Búsqueda global */}
           <button
             onClick={() => setSearchOpen(true)}
@@ -163,27 +150,13 @@ export default function Navbar() {
               </span>
             )}
           </Link>
-
-          {/* Hamburger — mobile only */}
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="md:hidden w-10 h-10 rounded-full grid place-items-center border transition-colors"
-            aria-label="Menú"
-            style={{
-              color: "var(--on-dark-soft)",
-              borderColor: "var(--hairline-dark)",
-              background: "none",
-            }}
-          >
-            <BLIcon name={menuOpen ? "close" : "nav-menu"} size={20} />
-          </button>
         </div>
       </div>
 
-      {/* Mobile dropdown */}
+      {/* Dropdown menu */}
       {menuOpen && (
         <div
-          className="md:hidden px-[var(--gutter)] pb-4 flex flex-col gap-1"
+          className="px-[var(--gutter)] pb-4 flex flex-col gap-1"
           style={{ background: "var(--choco-800)" }}
         >
           {links.map((l) => {
