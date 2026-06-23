@@ -323,21 +323,27 @@ export default function StageReview({
                 )}
               </>
             )}
-            <div className="grid grid-cols-2 gap-3 mt-4">
-              <Field label="Fecha preferida">
-                <input type="date" value={fechaEntrega} min={fechaMinimaEntrega(cfgPedidos.hora_corte)}
-                  onChange={e => setFechaEntrega(e.target.value)} style={inputStyle} />
-              </Field>
-              <Field label="Hora preferida">
-                <div className="relative">
-                  <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--ink-soft)" }} />
-                  <select value={horaEntrega} onChange={e => setHoraEntrega(e.target.value)} style={{ ...inputStyle, paddingLeft: 36 }}>
-                    <option value="">Cualquier hora</option>
-                    {cfgPedidos.horas_entrega.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-              </Field>
-            </div>
+            {selection.fechaEntrega ? (
+              <p className="mt-3 text-[14.5px]" style={{ color: "var(--ink)" }}>
+                Fecha y hora: <strong>{new Date(`${selection.fechaEntrega}T00:00:00`).toLocaleDateString("es-HN", { weekday: "short", day: "numeric", month: "short" })}{selection.horaEntrega ? ` · ${selection.horaEntrega}` : ""}</strong>
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <Field label="Fecha preferida">
+                  <input type="date" value={fechaEntrega} min={fechaMinimaEntrega(cfgPedidos.hora_corte)}
+                    onChange={e => setFechaEntrega(e.target.value)} style={inputStyle} />
+                </Field>
+                <Field label="Hora preferida">
+                  <div className="relative">
+                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--ink-soft)" }} />
+                    <select value={horaEntrega} onChange={e => setHoraEntrega(e.target.value)} style={{ ...inputStyle, paddingLeft: 36 }}>
+                      <option value="">Cualquier hora</option>
+                      {cfgPedidos.horas_entrega.map(h => <option key={h} value={h}>{h}</option>)}
+                    </select>
+                  </div>
+                </Field>
+              </div>
+            )}
             <div className="mt-4">
               <Field label="Nombre completo *" error={formErrors.nombre}>
                 <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="María García" style={inputStyle} />
