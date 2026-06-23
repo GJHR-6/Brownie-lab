@@ -64,8 +64,8 @@ export default function PedidoFlow() {
     case "start":
       return (
         <StageStart
-          onPickup={() => update({ tipoEntrega: "pickup", stage: "stores" })}
-          onDomicilio={() => update({ tipoEntrega: "domicilio", stage: sel.telefono ? "address" : "signin" })}
+          onPickup={() => update({ tipoEntrega: "pickup", sedePickup: null, stage: "stores" })}
+          onDomicilio={() => update({ tipoEntrega: "domicilio", zonaId: null, stage: sel.telefono ? "address" : "signin" })}
           onGiftCard={() => goToStage("giftcard")}
           onCatering={() => goToStage("catering")}
         />
