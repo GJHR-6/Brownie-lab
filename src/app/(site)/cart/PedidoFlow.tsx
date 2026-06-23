@@ -18,6 +18,8 @@ export interface FlowSelection {
   sedePickup: string | null;
   zonaId: string | null;
   giftCardCodigo: string | null;
+  fechaEntrega: string | null;
+  horaEntrega: string | null;
 }
 
 const SESSION_KEY = "brownielab-pedido-flow";
@@ -29,6 +31,8 @@ const INITIAL: FlowSelection = {
   sedePickup: null,
   zonaId: null,
   giftCardCodigo: null,
+  fechaEntrega: null,
+  horaEntrega: null,
 };
 
 export default function PedidoFlow() {
@@ -70,13 +74,18 @@ export default function PedidoFlow() {
           onCatering={() => goToStage("catering")}
         />
       );
-    case "signin":
+    case "signin": {
+      const yaEligioDestino = !!(sel.sedePickup || sel.zonaId);
       return (
         <StageSignIn
-          onVerified={(telefono) => update({ telefono, stage: sel.tipoEntrega === "domicilio" ? "address" : "stores" })}
-          onBack={() => goToStage("start")}
+          onVerified={(telefono) => update({
+            telefono,
+            stage: yaEligioDestino ? "menu" : (sel.tipoEntrega === "domicilio" ? "address" : "stores"),
+          })}
+          onBack={() => goToStage(yaEligioDestino ? "menu" : "start")}
         />
       );
+    }
     case "stores":
     case "address":
     case "menu":
@@ -87,6 +96,8 @@ export default function PedidoFlow() {
           onSelectSedePickup={(sedePickup) => update({ sedePickup, stage: "menu" })}
           onSelectZona={(zonaId) => update({ zonaId, stage: "menu" })}
           onContinue={(giftCardCodigo) => update({ giftCardCodigo, stage: "review" })}
+          onSignIn={() => goToStage("signin")}
+          onSetFechaHora={(fechaEntrega, horaEntrega) => update({ fechaEntrega, horaEntrega })}
         />
       );
     case "giftcard":

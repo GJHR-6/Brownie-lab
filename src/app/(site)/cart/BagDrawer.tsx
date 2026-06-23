@@ -1,16 +1,45 @@
 "use client";
 
-import { useState } from "react";
-import { X, Minus, Plus, Tag, Loader2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { X, Minus, Plus, Tag, Loader2, Award } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
 import { validarGiftCard } from "@/actions/giftCards";
+import { buscarCliente, type ClienteFidelizacion } from "@/actions/fidelizacion";
+import { getProductos } from "@/actions/productos";
+import type { Producto } from "@/types/database";
 
-export default function BagDrawer({ onClose, onContinue }: { onClose: () => void; onContinue: (giftCardCodigo: string | null) => void }) {
-  const { items, updateQuantity, removeItem, total } = useCartStore();
+export default function BagDrawer({
+  telefono, onClose, onContinue, onSignIn,
+}: {
+  telefono: string | null;
+  onClose: () => void;
+  onContinue: (giftCardCodigo: string | null) => void;
+  onSignIn: () => void;
+}) {
+  const { items, updateQuantity, removeItem, addItem, total } = useCartStore();
   const [gcCode, setGcCode] = useState("");
   const [gcPreview, setGcPreview] = useState<{ codigo: string; saldo: number } | null>(null);
   const [gcError, setGcError] = useState("");
   const [gcLoading, setGcLoading] = useState(false);
+  const [cliente, setCliente] = useState<ClienteFidelizacion | null>(null);
+  const [sugerido, setSugerido] = useState<Producto | null>(null);
+
+  useEffect(() => {
+    if (!telefono) return;
+    buscarCliente(telefono).then(r => { if (r.success) setCliente(r.data.cliente); });
+  }, [telefono]);
+
+  const clienteVisible = telefono ? cliente : null;
+
+  useEffect(() => {
+    getProductos().then(productos => {
+      const idsEnBolsa = new Set(items.map(i => i.id));
+      const candidato = productos
+        .filter(p => p.disponible && p.stock > 0 && !idsEnBolsa.has(p.id))
+        .sort((a, b) => a.precio - b.precio)[0];
+      setSugerido(candidato ?? null);
+    }).catch(() => setSugerido(null));
+  }, [items]);
 
   async function handleApplyGiftCard() {
     if (!gcCode.trim()) return;
@@ -30,12 +59,29 @@ export default function BagDrawer({ onClose, onContinue }: { onClose: () => void
       <div className="h-full w-full sm:w-[420px] flex flex-col" style={{ background: "var(--paper)" }}>
         <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: "1px solid var(--hairline)", background: "var(--paper-card)" }}>
           <h3 className="font-bold" style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", fontSize: 19, color: "var(--ink)" }}>
-            Tu bolsa
+            Mi bolsa
           </h3>
           <button onClick={onClose} className="border-0 bg-transparent cursor-pointer" style={{ color: "var(--ink-soft)" }}><X size={20} /></button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
+          {clienteVisible ? (
+            <div className="flex items-center gap-3 mb-4" style={{ background: "var(--cream)", border: "1.5px solid var(--amber)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
+              <Award size={20} style={{ color: "var(--orange-ink)", flexShrink: 0 }} />
+              <p style={{ fontSize: 13, color: "var(--ink)" }}>
+                Tienes <strong>{clienteVisible.compras_actuales}/10</strong> sellos. {clienteVisible.compras_actuales >= 10 ? "¡Premio disponible!" : `Faltan ${10 - clienteVisible.compras_actuales} para tu brownie gratis.`}
+              </p>
+            </div>
+          ) : (
+            <button onClick={onSignIn} className="w-full flex items-center gap-3 mb-4 text-left cursor-pointer border-0"
+              style={{ background: "var(--berry)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
+              <Award size={20} style={{ color: "#fff", flexShrink: 0 }} />
+              <p style={{ fontSize: 13, color: "#fff" }}>
+                <strong>Identifícate</strong> para ganar sellos con este pedido
+              </p>
+            </button>
+          )}
+
           {items.length === 0 && <p style={{ color: "var(--ink-soft)" }}>Tu bolsa está vacía.</p>}
           {items.map(item => (
             <div key={item.id} className="flex items-center gap-3 mb-4 pb-4" style={{ borderBottom: "1px solid var(--hairline)" }}>
@@ -54,6 +100,29 @@ export default function BagDrawer({ onClose, onContinue }: { onClose: () => void
               <button onClick={() => removeItem(item.id)} className="border-0 bg-transparent cursor-pointer shrink-0" style={{ color: "var(--ink-soft)" }}><X size={15} /></button>
             </div>
           ))}
+
+          {sugerido && (
+            <div className="mb-4">
+              <p className="font-semibold mb-2" style={{ color: "var(--ink)", fontSize: 13.5 }}>¿Olvidas algo?</p>
+              <div className="flex items-center gap-3" style={{ background: "var(--paper-card)", border: "1.5px solid var(--hairline)", borderRadius: "var(--r-md)", padding: "10px 12px" }}>
+                <div className="grid place-items-center text-xl shrink-0" style={{ width: 38, height: 38, borderRadius: "var(--r-md)", background: "var(--cream)" }}>
+                  {sugerido.emoji ?? "🍫"}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate" style={{ color: "var(--ink)", fontSize: 13.5 }}>{sugerido.nombre}</p>
+                  <p style={{ color: "var(--orange-ink)", fontSize: 13, fontWeight: 700 }}>L.{sugerido.precio.toFixed(2)}</p>
+                </div>
+                <button
+                  onClick={() => addItem({ id: sugerido.id, name: sugerido.nombre, price: sugerido.precio, emoji: sugerido.emoji ?? "🍫" })}
+                  className="grid place-items-center cursor-pointer border-0 text-white shrink-0"
+                  style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", background: "var(--orange)" }}
+                  aria-label={`Agregar ${sugerido.nombre}`}
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </div>
+          )}
 
           {items.length > 0 && (
             <div className="mt-2">

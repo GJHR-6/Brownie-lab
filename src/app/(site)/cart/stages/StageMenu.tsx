@@ -1,39 +1,45 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, ArrowLeft, ShoppingBag } from "lucide-react";
+import { Loader2, ArrowLeft, ShoppingBag, Store, Clock, MapPin, ChevronDown } from "lucide-react";
 import { getProductos } from "@/actions/productos";
-import { getConfiguracionEnvio, getEnvioModo } from "@/actions/publico";
+import { getConfiguracionEnvio, getEnvioModo, getConfiguracionPedidos } from "@/actions/publico";
 import { getDeliveryZonesPublicas } from "@/actions/deliveryZones";
 import { useCartStore } from "@/lib/cartStore";
 import ProductCard from "@/components/ProductCard";
 import BagDrawer from "../BagDrawer";
 import StoreLocator from "../StoreLocator";
+import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
 import type { Producto } from "@/types/database";
 import type { DeliveryZone } from "@/types/database";
 import type { SedeEnvio } from "@/lib/envio";
 import type { FlowSelection } from "../PedidoFlow";
 
 export default function StageMenu({
-  selection, onBack, onSelectSedePickup, onSelectZona, onContinue,
+  selection, onBack, onSelectSedePickup, onSelectZona, onContinue, onSignIn, onSetFechaHora,
 }: {
   selection: FlowSelection;
   onBack: () => void;
   onSelectSedePickup: (sede: string) => void;
   onSelectZona: (zonaId: string) => void;
   onContinue: (giftCardCodigo: string | null) => void;
+  onSignIn: () => void;
+  onSetFechaHora: (fecha: string | null, hora: string | null) => void;
 }) {
   const [productos, setProductos] = useState<Producto[] | null>(null);
   const [sedes, setSedes] = useState<SedeEnvio[]>([]);
   const [zonas, setZonas] = useState<DeliveryZone[] | null>(null);
   const [envioModo, setEnvioModo] = useState<"distancia" | "zonas">("distancia");
+  const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);
   const [bagOpen, setBagOpen] = useState(false);
+  const [cambiandoSede, setCambiandoSede] = useState(false);
   const itemCount = useCartStore(s => s.itemCount());
 
   useEffect(() => {
     getProductos().then(setProductos).catch(() => setProductos([]));
     getConfiguracionEnvio().then(cfg => setSedes(cfg.sedes));
     getEnvioModo().then(setEnvioModo);
+    getConfiguracionPedidos().then(setCfgPedidos).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -45,15 +51,15 @@ export default function StageMenu({
   const needsSede = selection.tipoEntrega === "pickup" && !selection.sedePickup;
   const needsZona = selection.tipoEntrega === "domicilio" && envioModo === "zonas" && !selection.zonaId;
 
-  if (needsSede) {
+  if (needsSede || cambiandoSede) {
     return (
       <div className="max-w-4xl mx-auto px-5 py-12">
-        <BackBtn onBack={onBack} />
+        <BackBtn onBack={cambiandoSede ? () => setCambiandoSede(false) : onBack} />
         <Title>Elige tu sede</Title>
         {sedes.length === 0 ? (
           <p style={{ color: "var(--ink-soft)" }}>Cargando sedes…</p>
         ) : (
-          <StoreLocator sedes={sedes} onSelect={onSelectSedePickup} />
+          <StoreLocator sedes={sedes} onSelect={(sede) => { onSelectSedePickup(sede); setCambiandoSede(false); }} />
         )}
       </div>
     );
@@ -90,9 +96,20 @@ export default function StageMenu({
 
   return (
     <div className="max-w-6xl mx-auto px-5 py-10 pb-28">
-      <div className="flex items-center justify-between mb-7">
+      <div className="flex items-center justify-between mb-5">
         <BackBtn onBack={onBack} />
       </div>
+
+      {selection.tipoEntrega === "pickup" && selection.sedePickup && (
+        <OrderBar
+          sede={selection.sedePickup}
+          fechaEntrega={selection.fechaEntrega}
+          horaEntrega={selection.horaEntrega}
+          cfgPedidos={cfgPedidos}
+          onSetFechaHora={onSetFechaHora}
+          onChangeSede={() => setCambiandoSede(true)}
+        />
+      )}
 
       {productos === null && (
         <div className="flex justify-center py-20"><Loader2 className="animate-spin" style={{ color: "var(--orange-ink)" }} /></div>
@@ -119,9 +136,82 @@ export default function StageMenu({
 
       {bagOpen && (
         <BagDrawer
+          telefono={selection.telefono}
           onClose={() => setBagOpen(false)}
           onContinue={(giftCardCodigo) => { setBagOpen(false); onContinue(giftCardCodigo); }}
+          onSignIn={() => { setBagOpen(false); onSignIn(); }}
         />
+      )}
+    </div>
+  );
+}
+
+function OrderBar({
+  sede, fechaEntrega, horaEntrega, cfgPedidos, onSetFechaHora, onChangeSede,
+}: {
+  sede: string;
+  fechaEntrega: string | null;
+  horaEntrega: string | null;
+  cfgPedidos: ConfigPedidos;
+  onSetFechaHora: (fecha: string | null, hora: string | null) => void;
+  onChangeSede: () => void;
+}) {
+  const [open, setOpen] = useState<"fecha" | null>(null);
+  const [fechaDraft, setFechaDraft] = useState(fechaEntrega ?? "");
+  const [horaDraft, setHoraDraft] = useState(horaEntrega ?? "");
+
+  const fechaLabel = fechaEntrega
+    ? new Date(`${fechaEntrega}T00:00:00`).toLocaleDateString("es-HN", { weekday: "short", day: "numeric", month: "short" })
+    : "Elige fecha";
+
+  return (
+    <div className="flex flex-wrap items-stretch gap-2 mb-7" style={{ position: "relative" }}>
+      <div className="inline-flex items-center gap-2 rounded-full px-4 h-10" style={{ background: "var(--cream)", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}>
+        <Store size={15} style={{ color: "var(--orange-ink)" }} /> Retiro en tienda
+      </div>
+
+      <button
+        onClick={() => setOpen(open === "fecha" ? null : "fecha")}
+        className="inline-flex items-center gap-2 rounded-full px-4 h-10 cursor-pointer border-0"
+        style={{ background: "var(--paper-card)", border: "1.5px solid var(--hairline)", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}
+      >
+        <Clock size={15} style={{ color: "var(--orange-ink)" }} />
+        {fechaLabel}{horaEntrega ? ` · ${horaEntrega}` : ""}
+        <ChevronDown size={14} style={{ color: "var(--ink-soft)" }} />
+      </button>
+
+      <button
+        onClick={onChangeSede}
+        className="inline-flex items-center gap-2 rounded-full px-4 h-10 cursor-pointer border-0"
+        style={{ background: "var(--paper-card)", border: "1.5px solid var(--hairline)", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}
+      >
+        <MapPin size={15} style={{ color: "var(--orange-ink)" }} />
+        {sede}
+        <ChevronDown size={14} style={{ color: "var(--ink-soft)" }} />
+      </button>
+
+      {open === "fecha" && (
+        <div className="absolute top-12 left-0 z-30 p-4 rounded-2xl"
+          style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-md, 0 8px 24px rgba(0,0,0,.12))", width: 280 }}>
+          <p className="font-semibold mb-3" style={{ color: "var(--ink)", fontSize: 14 }}>Fecha y hora de recogida</p>
+          <label className="block font-semibold mb-1.5" style={{ color: "var(--ink-soft)", fontSize: 12.5 }}>Fecha</label>
+          <input type="date" value={fechaDraft} min={fechaMinimaEntrega(cfgPedidos.hora_corte)}
+            onChange={e => setFechaDraft(e.target.value)}
+            className="w-full mb-3" style={{ padding: "9px 12px", border: "1.5px solid var(--hairline)", borderRadius: "var(--r-md)", fontSize: 14 }} />
+          <label className="block font-semibold mb-1.5" style={{ color: "var(--ink-soft)", fontSize: 12.5 }}>Hora</label>
+          <select value={horaDraft} onChange={e => setHoraDraft(e.target.value)}
+            className="w-full mb-4" style={{ padding: "9px 12px", border: "1.5px solid var(--hairline)", borderRadius: "var(--r-md)", fontSize: 14 }}>
+            <option value="">Cualquier hora</option>
+            {cfgPedidos.horas_entrega.map(h => <option key={h} value={h}>{h}</option>)}
+          </select>
+          <button
+            onClick={() => { onSetFechaHora(fechaDraft || null, horaDraft || null); setOpen(null); }}
+            className="w-full font-bold cursor-pointer border-0 text-white"
+            style={{ background: "var(--orange)", borderRadius: "var(--r-pill)", padding: "10px", fontSize: 14 }}
+          >
+            Guardar
+          </button>
+        </div>
       )}
     </div>
   );
