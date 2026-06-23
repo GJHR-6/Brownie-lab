@@ -66,3 +66,56 @@ export async function enviarConfirmacionWhatsApp({
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }
 }
+
+export async function enviarCodigoOtpWhatsApp(
+  telefono: string,
+  code: string
+): Promise<{ success: boolean; error?: string }> {
+  const token         = process.env.WHATSAPP_TOKEN;
+  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+  const templateName  = process.env.WHATSAPP_OTP_TEMPLATE_NAME ?? 'otp_verification';
+
+  if (!token || !phoneNumberId) {
+    // Not configured — caller falls back to dev-mode code display.
+    return { success: false, error: 'WhatsApp API no configurado.' };
+  }
+
+  const digits = telefono.replace(/\D/g, '');
+  const phone  = digits.length === 8 ? `504${digits}` : digits;
+
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messaging_product: 'whatsapp',
+          to: phone,
+          type: 'template',
+          template: {
+            name: templateName,
+            language: { code: 'es' },
+            components: [
+              {
+                type: 'body',
+                parameters: [{ type: 'text', text: code }],
+              },
+            ],
+          },
+        }),
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) {
+      return { success: false, error: data?.error?.message ?? 'Error Meta API.' };
+    }
+    return { success: true };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}

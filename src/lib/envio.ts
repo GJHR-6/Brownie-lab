@@ -79,6 +79,25 @@ export function calcularEnvioPorSede(config: ConfigEnvio, nombreSede: string, su
   return { sede, distancia_km: 0, costo: 0, gratis: true, fueraDeRango: false };
 }
 
+export interface ResultadoEnvioZona {
+  zona_id: string;
+  zona_nombre: string;
+  costo: number;
+}
+
+/**
+ * Tarifa plana por zona — usado cuando configuracion.envio_modo === 'zonas'.
+ * El cliente elige su zona; el costo es fijo, sin cálculo de distancia.
+ */
+export function calcularEnvioPorZona(
+  zonaId: string,
+  zonas: Array<{ id: string; nombre: string; tarifa: number; activa: boolean }>
+): ResultadoEnvioZona | null {
+  const zona = zonas.find(z => z.id === zonaId && z.activa);
+  if (!zona) return null;
+  return { zona_id: zona.id, zona_nombre: zona.nombre, costo: Number(zona.tarifa) };
+}
+
 // Normaliza el JSONB crudo de la BD a ConfigEnvio tipado
 export function parseConfigEnvio(raw: {
   envio_sedes?: unknown;

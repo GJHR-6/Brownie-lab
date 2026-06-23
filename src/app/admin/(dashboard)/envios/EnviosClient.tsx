@@ -40,11 +40,12 @@ function sedesIniciales(config: ConfigEnvio): SedeForm[] {
   }));
 }
 
-export default function EnviosClient({ config }: { config: ConfigEnvio }) {
+export default function EnviosClient({ config, envioModo }: { config: ConfigEnvio; envioModo: 'distancia' | 'zonas' }) {
   const [state, formAction, isPending] = useActionState(updateConfiguracionEnvios, null);
   const [sedes, setSedes] = useState<SedeForm[]>(() => sedesIniciales(config));
   const [gpsSedeIdx, setGpsSedeIdx] = useState<number | null>(null);
   const [mapSedeIdx, setMapSedeIdx] = useState<number | null>(null);
+  const [modo, setModo] = useState<'distancia' | 'zonas'>(envioModo);
 
   function setSede(i: number, patch: Partial<SedeForm>) {
     setSedes(prev => prev.map((s, idx) => idx === i ? { ...s, ...patch } : s));
@@ -91,6 +92,38 @@ export default function EnviosClient({ config }: { config: ConfigEnvio }) {
 
       <form action={formAction} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         <input type="hidden" name="envio_sedes_json" value={sedesJson} />
+        <input type="hidden" name="envio_modo" value={modo} />
+
+        {/* Modo de envío */}
+        <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <p style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', margin: 0 }}>Modo de envío a domicilio</p>
+            <p style={{ fontSize: 13, color: 'var(--ink-soft)', marginTop: 4 }}>
+              Elige cómo se calcula el costo de envío en todo el sitio.
+            </p>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {([
+              { value: 'distancia' as const, label: 'Por distancia (GPS)', desc: 'Calcula desde la sede más cercana con tarifa base + km.' },
+              { value: 'zonas' as const, label: 'Por zonas (tarifa plana)', desc: 'El cliente elige su zona y paga una tarifa fija.' },
+            ]).map(opt => (
+              <button key={opt.value} type="button" disabled={isPending} onClick={() => setModo(opt.value)}
+                style={{
+                  flex: 1, textAlign: 'left', cursor: 'pointer', borderRadius: 'var(--r-md)', padding: '14px 16px',
+                  border: modo === opt.value ? '1.5px solid var(--orange)' : '1.5px solid var(--hairline)',
+                  background: modo === opt.value ? 'var(--cream)' : 'var(--paper)',
+                }}>
+                <p style={{ fontWeight: 700, fontSize: 13.5, color: 'var(--ink)', margin: 0 }}>{opt.label}</p>
+                <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', marginTop: 4 }}>{opt.desc}</p>
+              </button>
+            ))}
+          </div>
+          {modo === 'zonas' && (
+            <p style={{ fontSize: 12.5, color: 'var(--ink-soft)', margin: 0, background: 'var(--cream)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
+              Las zonas y tarifas se administran en <strong>Zonas de envío</strong>. Las sedes y tarifas por distancia abajo quedan sin usar mientras este modo esté activo.
+            </p>
+          )}
+        </div>
 
         {/* Sedes */}
         <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: '24px 26px', display: 'flex', flexDirection: 'column', gap: 16 }}>

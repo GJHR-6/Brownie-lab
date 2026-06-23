@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import PedidoFlow from "./PedidoFlow";
 import {
   Loader2, Tag, X, CheckCircle, ChevronDown, ChevronUp,
   Package, MapPin, Clock, Wallet, Phone, User, FileText,
@@ -57,6 +58,18 @@ const STEPS = [
 ];
 
 export default function CartPage() {
+  const [nuevoFlow, setNuevoFlow] = useState<boolean | null>(null);
+  useEffect(() => {
+    setNuevoFlow(new URLSearchParams(window.location.search).get("nuevo") === "1");
+  }, []);
+
+  if (nuevoFlow === null) return null;
+  if (nuevoFlow) return <PedidoFlow />;
+
+  return <LegacyCartPage />;
+}
+
+function LegacyCartPage() {
   const { items, addItem: addToCartItem, updateQuantity, removeItem, clearCart, total, itemCount } = useCartStore();
   const recentProducts = useRecentStore((s) => s.productos);
   const [mounted, setMounted] = useState(false);
