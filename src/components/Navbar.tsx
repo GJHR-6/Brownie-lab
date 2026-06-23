@@ -142,17 +142,6 @@ export default function Navbar() {
             )}
           </Link>
 
-          {/* Seguimiento */}
-          <Link
-            href="/seguimiento"
-            aria-label="Seguir pedido"
-            title="Seguir pedido"
-            className="hidden sm:grid w-10 h-10 rounded-full place-items-center border transition-colors no-underline"
-            style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)", background: "none" }}
-          >
-            <BLIcon name="truck" size={20} />
-          </Link>
-
           {/* Pide ahora */}
           <Link
             href="/cart"
