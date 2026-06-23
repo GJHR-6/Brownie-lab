@@ -58,15 +58,15 @@ const STEPS = [
 ];
 
 export default function CartPage() {
-  const [nuevoFlow, setNuevoFlow] = useState<boolean | null>(null);
+  const [legacyFlow, setLegacyFlow] = useState<boolean | null>(null);
   useEffect(() => {
-    setNuevoFlow(new URLSearchParams(window.location.search).get("nuevo") === "1");
+    setLegacyFlow(new URLSearchParams(window.location.search).get("legacy") === "1");
   }, []);
 
-  if (nuevoFlow === null) return null;
-  if (nuevoFlow) return <PedidoFlow />;
+  if (legacyFlow === null) return null;
+  if (legacyFlow) return <LegacyCartPage />;
 
-  return <LegacyCartPage />;
+  return <PedidoFlow />;
 }
 
 function LegacyCartPage() {
