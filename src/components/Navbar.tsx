@@ -153,22 +153,22 @@ export default function Navbar() {
             <BLIcon name="truck" size={20} />
           </Link>
 
-          {/* Cart */}
+          {/* Pide ahora */}
           <Link
             href="/cart"
-            aria-label="Carrito"
-            className="relative w-10 h-10 rounded-full grid place-items-center border transition-colors no-underline"
-            style={{
-              color: "var(--on-dark-soft)",
-              borderColor: "var(--hairline-dark)",
-              background: "none",
-            }}
+            aria-label="Pide ahora"
+            title="Pide ahora"
+            className="relative inline-flex items-center gap-2 rounded-full h-10 px-3.5 sm:px-5 font-bold text-[14px] transition-transform no-underline"
+            style={{ background: "var(--orange)", color: "#fff" }}
+            onMouseDown={(e) => (e.currentTarget.style.transform = "translateY(1px)")}
+            onMouseUp={(e) => (e.currentTarget.style.transform = "none")}
           >
-            <BLIcon name="cart" size={20} />
+            <BLIcon name="cart" size={18} />
+            <span className="hidden sm:inline">¡Pide ahora!</span>
             {mounted && itemCount > 0 && (
               <span
                 className="absolute -top-[3px] -right-[3px] text-[10px] font-bold w-[17px] h-[17px] rounded-full grid place-items-center text-white"
-                style={{ background: "var(--orange)" }}
+                style={{ background: "var(--berry)" }}
               >
                 {itemCount}
               </span>
