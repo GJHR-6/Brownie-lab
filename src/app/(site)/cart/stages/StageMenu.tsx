@@ -15,13 +15,14 @@ import type { SedeEnvio } from "@/lib/envio";
 import type { FlowSelection } from "../PedidoFlow";
 
 export default function StageMenu({
-  selection, onBack, onSelectSedePickup, onSelectZona, onContinue,
+  selection, onBack, onSelectSedePickup, onSelectZona, onContinue, onSignIn,
 }: {
   selection: FlowSelection;
   onBack: () => void;
   onSelectSedePickup: (sede: string) => void;
   onSelectZona: (zonaId: string) => void;
   onContinue: (giftCardCodigo: string | null) => void;
+  onSignIn: () => void;
 }) {
   const [productos, setProductos] = useState<Producto[] | null>(null);
   const [sedes, setSedes] = useState<SedeEnvio[]>([]);
@@ -119,8 +120,10 @@ export default function StageMenu({
 
       {bagOpen && (
         <BagDrawer
+          telefono={selection.telefono}
           onClose={() => setBagOpen(false)}
           onContinue={(giftCardCodigo) => { setBagOpen(false); onContinue(giftCardCodigo); }}
+          onSignIn={() => { setBagOpen(false); onSignIn(); }}
         />
       )}
     </div>
