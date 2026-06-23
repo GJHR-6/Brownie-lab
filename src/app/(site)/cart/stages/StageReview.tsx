@@ -39,8 +39,8 @@ export default function StageReview({
   const [nombre, setNombre] = useState("");
   const [telefonoManual, setTelefonoManual] = useState("");
   const [direccion, setDireccion] = useState("");
-  const [fechaEntrega, setFechaEntrega] = useState("");
-  const [horaEntrega, setHoraEntrega] = useState("");
+  const [fechaEntrega, setFechaEntrega] = useState(selection.fechaEntrega ?? "");
+  const [horaEntrega, setHoraEntrega] = useState(selection.horaEntrega ?? "");
   const [notas, setNotas] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("");
   const [promoInput, setPromoInput] = useState("");
