@@ -37,6 +37,7 @@ export default function StageReview({
   const sym = storeConfig.currencySymbol;
 
   const [nombre, setNombre] = useState("");
+  const [telefonoManual, setTelefonoManual] = useState("");
   const [direccion, setDireccion] = useState("");
   const [fechaEntrega, setFechaEntrega] = useState("");
   const [horaEntrega, setHoraEntrega] = useState("");
@@ -183,7 +184,7 @@ export default function StageReview({
         cantidad: i.quantity, subtotal: i.price * i.quantity,
       }));
       const clienteDatos = {
-        nombre: nombre.trim(), telefono: (selection.telefono ?? "").trim(),
+        nombre: nombre.trim(), telefono: (selection.telefono ?? telefonoManual).trim(),
         notas: notas.trim() || undefined, metodo_pago: metodoPago,
         tipo_entrega: selection.tipoEntrega ?? "pickup",
         direccion: selection.tipoEntrega === "domicilio" ? direccion.trim() || undefined : undefined,
@@ -343,7 +344,13 @@ export default function StageReview({
         <Field label="Nombre completo *" error={formErrors.nombre}>
           <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="María García" style={inputStyle} />
         </Field>
-        <p className="mt-2 text-[13px]" style={{ color: "var(--ink-soft)" }}>Teléfono: <strong style={{ color: "var(--ink)" }}>{selection.telefono}</strong></p>
+        {selection.telefono ? (
+          <p className="mt-2 text-[13px]" style={{ color: "var(--ink-soft)" }}>Teléfono: <strong style={{ color: "var(--ink)" }}>{selection.telefono}</strong></p>
+        ) : (
+          <Field label="Teléfono (opcional)">
+            <input value={telefonoManual} onChange={e => setTelefonoManual(e.target.value)} placeholder="9999-9999" type="tel" style={inputStyle} />
+          </Field>
+        )}
       </Card>
 
       {/* Entrega */}
