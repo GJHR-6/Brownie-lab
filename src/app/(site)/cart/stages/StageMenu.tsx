@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, ArrowLeft, ShoppingBag, MapPin } from "lucide-react";
+import { Loader2, ArrowLeft, ShoppingBag } from "lucide-react";
 import { getProductos } from "@/actions/productos";
 import { getConfiguracionEnvio, getEnvioModo } from "@/actions/publico";
 import { getDeliveryZonesPublicas } from "@/actions/deliveryZones";
 import { useCartStore } from "@/lib/cartStore";
 import ProductCard from "@/components/ProductCard";
 import BagDrawer from "../BagDrawer";
+import StoreLocator from "../StoreLocator";
 import type { Producto } from "@/types/database";
 import type { DeliveryZone } from "@/types/database";
+import type { SedeEnvio } from "@/lib/envio";
 import type { FlowSelection } from "../PedidoFlow";
 
 export default function StageMenu({
@@ -22,7 +24,7 @@ export default function StageMenu({
   onContinue: (giftCardCodigo: string | null) => void;
 }) {
   const [productos, setProductos] = useState<Producto[] | null>(null);
-  const [sedes, setSedes] = useState<Array<{ nombre: string }>>([]);
+  const [sedes, setSedes] = useState<SedeEnvio[]>([]);
   const [zonas, setZonas] = useState<DeliveryZone[] | null>(null);
   const [envioModo, setEnvioModo] = useState<"distancia" | "zonas">("distancia");
   const [bagOpen, setBagOpen] = useState(false);
@@ -45,19 +47,14 @@ export default function StageMenu({
 
   if (needsSede) {
     return (
-      <div className="max-w-md mx-auto px-5 py-12">
+      <div className="max-w-4xl mx-auto px-5 py-12">
         <BackBtn onBack={onBack} />
         <Title>Elige tu sede</Title>
-        <div className="flex flex-col gap-3">
-          {sedes.length === 0 && <p style={{ color: "var(--ink-soft)" }}>Cargando sedes…</p>}
-          {sedes.map(s => (
-            <button key={s.nombre} onClick={() => onSelectSedePickup(s.nombre)} className="text-left cursor-pointer border-0"
-              style={pickerStyle}>
-              <MapPin size={18} style={{ color: "var(--orange-ink)" }} />
-              <span className="font-semibold" style={{ color: "var(--ink)" }}>{s.nombre}</span>
-            </button>
-          ))}
-        </div>
+        {sedes.length === 0 ? (
+          <p style={{ color: "var(--ink-soft)" }}>Cargando sedes…</p>
+        ) : (
+          <StoreLocator sedes={sedes} onSelect={onSelectSedePickup} />
+        )}
       </div>
     );
   }
