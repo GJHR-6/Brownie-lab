@@ -508,6 +508,7 @@ export async function notificarPedidoCreado(id: string): Promise<void> {
     await notificarNuevoPedido({
       id: pedido.id,
       total: Number(pedido.total),
+      costo_envio: pedido.costo_envio ? Number(pedido.costo_envio) : undefined,
       items,
       cliente: {
         nombre:          cd.nombre ?? '',
@@ -550,9 +551,9 @@ export async function subirComprobante(
   }
 
   try {
-    const supabase = await createSupabaseServerClient();
+    const service = createSupabaseServiceClient();
 
-    const { data: pedido } = await supabase
+    const { data: pedido } = await service
       .from('pedidos')
       .select('id, comprobante_url')
       .eq('id', pedidoId)
@@ -560,8 +561,6 @@ export async function subirComprobante(
 
     if (!pedido) return { success: false, error: 'Pedido no encontrado.' };
     if (pedido.comprobante_url) return { success: true, data: { url: pedido.comprobante_url } };
-
-    const service = createSupabaseServiceClient();
     const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
     const path = `comprobantes/${pedidoId}.${ext}`;
 
@@ -573,7 +572,7 @@ export async function subirComprobante(
 
     const { data: { publicUrl } } = service.storage.from('product-images').getPublicUrl(path);
 
-    const { error: dbError } = await supabase
+    const { error: dbError } = await service
       .from('pedidos')
       .update({ comprobante_url: publicUrl })
       .eq('id', pedidoId);

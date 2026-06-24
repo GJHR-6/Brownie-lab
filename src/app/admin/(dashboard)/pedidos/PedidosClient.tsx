@@ -268,6 +268,12 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
                   </div>
                 ))}
               </div>
+              {Number(pedido.costo_envio ?? 0) > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--ink-soft)' }}>
+                  <span>Envío</span>
+                  <span>L.{Number(pedido.costo_envio).toFixed(2)}</span>
+                </div>
+              )}
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700 }}>
                 <span style={{ color: 'var(--ink)' }}>Total</span>
                 <span style={{ fontFamily: 'var(--font-display)', color: 'var(--orange-ink)', fontSize: 20 }}>
