@@ -34,6 +34,12 @@ export async function generarOtp(
     return { success: false, error: 'Ya enviamos un código a este número. Espera unos minutos antes de pedir otro.' };
   }
 
+  // Bypass total cuando DISABLE_OTP=true (mientras se aprueba plantilla Meta)
+  if (process.env.DISABLE_OTP === 'true') {
+    await setOtpSession(tel);
+    return { success: true, data: { sinVerificacion: true, telefono: tel } };
+  }
+
   const code = String(randomInt(0, 10000)).padStart(4, '0');
   const supabase = createSupabaseServiceClient();
 
@@ -53,7 +59,6 @@ export async function generarOtp(
   }
 
   // WhatsApp no disponible en producción (plantilla pendiente de aprobación).
-  // Auto-verificamos para no bloquear al cliente; el teléfono sigue registrado.
   await setOtpSession(tel);
   return { success: true, data: { sinVerificacion: true, telefono: tel } };
 }
