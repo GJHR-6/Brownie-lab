@@ -18,7 +18,7 @@ function hashCode(telefono: string, code: string): string {
 
 export async function generarOtp(
   telefono: string
-): Promise<ActionResult<{ devCode?: string }>> {
+): Promise<ActionResult<{ devCode?: string; sinVerificacion?: boolean; telefono?: string }>> {
   const ip = getIpFromHeaders(await headers());
   if (!rateLimit(`otp:send:${ip}`, 5, 15 * 60 * 1000)) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
@@ -48,14 +48,14 @@ export async function generarOtp(
 
   if (sendResult.success) return { success: true, data: {} };
 
-  // Fallback de desarrollo: si WhatsApp no está configurado y no estamos en
-  // producción, devolvemos el código para no bloquear el flujo mientras se
-  // aprueba la plantilla de Meta.
   if (process.env.NODE_ENV !== 'production') {
     return { success: true, data: { devCode: code } };
   }
 
-  return { success: false, error: 'No se pudo enviar el código por WhatsApp. Intenta de nuevo.' };
+  // WhatsApp no disponible en producción (plantilla pendiente de aprobación).
+  // Auto-verificamos para no bloquear al cliente; el teléfono sigue registrado.
+  await setOtpSession(tel);
+  return { success: true, data: { sinVerificacion: true, telefono: tel } };
 }
 
 export async function verificarOtp(

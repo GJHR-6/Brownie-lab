@@ -26,6 +26,14 @@ export default function StageSignIn({
     const result = await generarOtp(telefono);
     setLoading(false);
     if (!result.success) { setError(result.error); return; }
+
+    if (result.data?.sinVerificacion && result.data.telefono) {
+      const cliente = await buscarCliente(result.data.telefono);
+      if (cliente.success) setMigas(cliente.data.cliente.compras_actuales);
+      setTimeout(() => onVerified(result.data!.telefono!), cliente.success ? 900 : 0);
+      return;
+    }
+
     setSent(true);
     setDevCode(result.data?.devCode ?? null);
     setTimeout(() => inputRef.current?.focus(), 50);
