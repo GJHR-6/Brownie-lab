@@ -425,7 +425,7 @@ function ResumenCocina({ pedidos }: { pedidos: Pedido[] }) {
   return (
     <div>
       <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 14, fontWeight: 500 }}>
-        Pedidos activos (pendiente · preparación · listo) — {total} unidad{total !== 1 ? 'es' : ''} en total
+        Pedidos pendientes y en preparación — {total} unidad{total !== 1 ? 'es' : ''} en total
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
         {resumen.map(([nombre, cantidad]) => (
