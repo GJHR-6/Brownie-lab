@@ -20,6 +20,7 @@ export interface PedidoEmailItem {
 export interface PedidoEmailData {
   id: string;
   total: number;
+  costo_envio?: number;
   items: PedidoEmailItem[];
   cliente: {
     nombre: string;
@@ -42,7 +43,7 @@ async function getAdminEmails(): Promise<string[]> {
 }
 
 function buildEmailHtml(pedido: PedidoEmailData): string {
-  const { id, total, items, cliente } = pedido;
+  const { id, total, costo_envio, items, cliente } = pedido;
   const idCorto = id.slice(0, 8).toUpperCase();
 
   const entregaLabel =
@@ -127,6 +128,11 @@ function buildEmailHtml(pedido: PedidoEmailData): string {
         <!-- Total -->
         <tr><td style="padding:16px 32px 28px;">
           <table width="100%" cellpadding="0" cellspacing="0">
+            ${costo_envio ? `
+            <tr>
+              <td></td>
+              <td style="text-align:right;padding:2px 0;font-size:13px;color:#6b4c2a;">Envío&nbsp;&nbsp;L. ${costo_envio.toFixed(2)}</td>
+            </tr>` : ''}
             <tr>
               <td></td>
               <td style="text-align:right;padding:12px 0 0;border-top:2px solid #4a2c0a;">

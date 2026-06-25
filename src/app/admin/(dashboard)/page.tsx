@@ -110,7 +110,7 @@ export default async function AdminDashboardPage({
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
   const periodoStart = getPeriodoStart(periodo);
 
-  let ventasQuery = supabase.from("pedidos").select("total, estado").neq("estado", "cancelado");
+  let ventasQuery = supabase.from("pedidos").select("total, estado_pago").eq("estado_pago", "pagado");
   if (periodoStart) ventasQuery = ventasQuery.gte("created_at", periodoStart);
 
   // Límite de 60 días para el dashboard — cubre el gráfico (30d), hoy y últimos pedidos
@@ -119,7 +119,7 @@ export default async function AdminDashboardPage({
 
   const [productosRes, pedidosRes, ventasPeriodoRes] = await Promise.all([
     supabase.from("productos").select("id, nombre, stock, disponible"),
-    supabase.from("pedidos").select("id, estado, total, cliente_datos, created_at")
+    supabase.from("pedidos").select("id, estado, estado_pago, total, cliente_datos, created_at")
       .gte("created_at", sixtyDaysAgo.toISOString())
       .order("created_at", { ascending: false }),
     ventasQuery,
@@ -145,7 +145,7 @@ export default async function AdminDashboardPage({
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   const dailyMap: Record<string, number> = {};
-  pedidos.filter(p => p.estado !== 'cancelado').forEach((p) => {
+  pedidos.filter(p => p.estado_pago === 'pagado').forEach((p) => {
     const d = new Date(p.created_at);
     if (d >= thirtyDaysAgo) {
       const key = d.toLocaleDateString("es-HN", { day: "2-digit", month: "2-digit" });
@@ -256,8 +256,8 @@ export default async function AdminDashboardPage({
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard type="sales"    value={`${storeConfig.currencySymbol}${totalVentasPeriodo.toFixed(2)}`} label={`Ventas — ${PERIODOS[periodo] ?? 'Este mes'}`} />
-        <StatCard type="orders"   value={pedidosPeriodo}  label={`Pedidos — ${PERIODOS[periodo] ?? 'Este mes'}`} />
+        <StatCard type="sales"    value={`${storeConfig.currencySymbol}${totalVentasPeriodo.toFixed(2)}`} label={`Ventas pagadas — ${PERIODOS[periodo] ?? 'Este mes'}`} />
+        <StatCard type="orders"   value={pedidosPeriodo}  label={`Pedidos pagados — ${PERIODOS[periodo] ?? 'Este mes'}`} />
         <StatCard type="products" value={productosActivos} label="Productos activos" />
         <StatCard type="today"    value={pedidosHoy}       label="Pedidos hoy" />
       </div>

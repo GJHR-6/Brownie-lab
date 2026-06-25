@@ -268,6 +268,12 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
                   </div>
                 ))}
               </div>
+              {Number(pedido.costo_envio ?? 0) > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', fontSize: 14, color: 'var(--ink-soft)' }}>
+                  <span>Envío</span>
+                  <span>L.{Number(pedido.costo_envio).toFixed(2)}</span>
+                </div>
+              )}
               <div style={{ marginTop: 12, display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700 }}>
                 <span style={{ color: 'var(--ink)' }}>Total</span>
                 <span style={{ fontFamily: 'var(--font-display)', color: 'var(--orange-ink)', fontSize: 20 }}>
@@ -392,7 +398,7 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
 }
 
 /* ── Resumen de cocina ── */
-const ESTADOS_ACTIVOS: EstadoPedido[] = ['pendiente', 'preparacion', 'listo'];
+const ESTADOS_ACTIVOS: EstadoPedido[] = ['pendiente', 'preparacion'];
 
 function ResumenCocina({ pedidos }: { pedidos: Pedido[] }) {
   const resumen = useMemo(() => {
@@ -419,7 +425,7 @@ function ResumenCocina({ pedidos }: { pedidos: Pedido[] }) {
   return (
     <div>
       <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginBottom: 14, fontWeight: 500 }}>
-        Pedidos activos (pendiente · preparación · listo) — {total} unidad{total !== 1 ? 'es' : ''} en total
+        Pedidos pendientes y en preparación — {total} unidad{total !== 1 ? 'es' : ''} en total
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
         {resumen.map(([nombre, cantidad]) => (
