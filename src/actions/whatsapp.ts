@@ -31,6 +31,7 @@ export async function enviarConfirmacionWhatsApp({
       `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
+        signal: AbortSignal.timeout(8000),
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -88,6 +89,7 @@ export async function enviarCodigoOtpWhatsApp(
       `https://graph.facebook.com/v19.0/${phoneNumberId}/messages`,
       {
         method: 'POST',
+        signal: AbortSignal.timeout(8000),
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
