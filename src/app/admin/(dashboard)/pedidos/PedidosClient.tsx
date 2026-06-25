@@ -398,7 +398,7 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
 }
 
 /* ── Resumen de cocina ── */
-const ESTADOS_ACTIVOS: EstadoPedido[] = ['pendiente', 'preparacion', 'listo'];
+const ESTADOS_ACTIVOS: EstadoPedido[] = ['pendiente', 'preparacion'];
 
 function ResumenCocina({ pedidos }: { pedidos: Pedido[] }) {
   const resumen = useMemo(() => {
