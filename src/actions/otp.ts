@@ -36,7 +36,6 @@ export async function generarOtp(
 
   // Bypass total cuando DISABLE_OTP=true (mientras se aprueba plantilla Meta)
   if (process.env.DISABLE_OTP === 'true') {
-    await setOtpSession(tel);
     return { success: true, data: { sinVerificacion: true, telefono: tel } };
   }
 
@@ -59,7 +58,6 @@ export async function generarOtp(
   }
 
   // WhatsApp no disponible en producción (plantilla pendiente de aprobación).
-  await setOtpSession(tel);
   return { success: true, data: { sinVerificacion: true, telefono: tel } };
 }
 

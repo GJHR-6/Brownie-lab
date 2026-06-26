@@ -140,8 +140,8 @@ export default function Navbar() {
             onMouseDown={(e) => (e.currentTarget.style.transform = "translateY(1px)")}
             onMouseUp={(e) => (e.currentTarget.style.transform = "none")}
           >
-            <BLIcon name="cart" size={18} />
-            <span className="hidden sm:inline">¡Pide ahora!</span>
+            <BLIcon name="cart" size={18} className="hidden sm:block" />
+            <span>¡Pide ahora!</span>
             {mounted && itemCount > 0 && (
               <span
                 className="absolute -top-[3px] -right-[3px] text-[10px] font-bold w-[17px] h-[17px] rounded-full grid place-items-center text-white"
