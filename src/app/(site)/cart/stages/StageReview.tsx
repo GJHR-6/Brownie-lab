@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Loader2, CheckCircle, ArrowLeft, MapPin, Clock, Wallet, LocateFixed, Tag,
+  Loader2, CheckCircle, ArrowLeft, MapPin, Wallet, LocateFixed, Tag,
 } from "lucide-react";
 import BLIcon from "@/components/BLIcon";
 import { useCartStore } from "@/lib/cartStore";
@@ -334,13 +334,11 @@ export default function StageReview({
                     onChange={e => setFechaEntrega(e.target.value)} style={inputStyle} />
                 </Field>
                 <Field label="Hora preferida">
-                  <div className="relative">
-                    <Clock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: "var(--ink-soft)" }} />
-                    <select value={horaEntrega} onChange={e => setHoraEntrega(e.target.value)} style={{ ...inputStyle, paddingLeft: 36 }}>
-                      <option value="">Cualquier hora</option>
-                      {cfgPedidos.horas_entrega.map(h => <option key={h} value={h}>{h}</option>)}
-                    </select>
-                  </div>
+                  <select value={horaEntrega} onChange={e => setHoraEntrega(e.target.value)}
+                    className="appearance-none" style={inputStyle}>
+                    <option value="">Elige una hora</option>
+                    {cfgPedidos.horas_entrega.map(h => <option key={h} value={h}>{h}</option>)}
+                  </select>
                 </Field>
               </div>
             )}
