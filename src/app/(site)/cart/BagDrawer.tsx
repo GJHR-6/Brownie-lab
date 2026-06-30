@@ -93,9 +93,9 @@ export default function BagDrawer({
                 <p style={{ color: "var(--orange-ink)", fontSize: 13.5, fontWeight: 700 }}>L.{item.price.toFixed(2)}</p>
               </div>
               <div className="inline-flex items-center overflow-hidden shrink-0" style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}>
-                <button onClick={() => updateQuantity(item.id, Math.max(0, item.quantity - 1))} className="w-8 h-8 grid place-items-center border-0 bg-transparent cursor-pointer" style={{ color: "var(--ink)" }}><Minus size={14} /></button>
+                <button onClick={() => updateQuantity(item.id, -1)} className="w-8 h-8 grid place-items-center border-0 bg-transparent cursor-pointer" style={{ color: "var(--ink)" }}><Minus size={14} /></button>
                 <span className="text-center font-bold text-sm" style={{ minWidth: 22 }}>{item.quantity}</span>
-                <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="w-8 h-8 grid place-items-center border-0 bg-transparent cursor-pointer" style={{ color: "var(--ink)" }}><Plus size={14} /></button>
+                <button onClick={() => updateQuantity(item.id, 1)} className="w-8 h-8 grid place-items-center border-0 bg-transparent cursor-pointer" style={{ color: "var(--ink)" }}><Plus size={14} /></button>
               </div>
               <button onClick={() => removeItem(item.id)} className="border-0 bg-transparent cursor-pointer shrink-0" style={{ color: "var(--ink-soft)" }}><X size={15} /></button>
             </div>
@@ -113,7 +113,7 @@ export default function BagDrawer({
                   <p style={{ color: "var(--orange-ink)", fontSize: 13, fontWeight: 700 }}>L.{sugerido.precio.toFixed(2)}</p>
                 </div>
                 <button
-                  onClick={() => addItem({ id: sugerido.id, name: sugerido.nombre, price: sugerido.precio, emoji: sugerido.emoji ?? "🍫" })}
+                  onClick={() => addItem({ id: sugerido.id, name: sugerido.nombre, price: sugerido.precio, emoji: sugerido.emoji ?? "🍫", categoria: sugerido.categoria })}
                   className="grid place-items-center cursor-pointer border-0 text-white shrink-0"
                   style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", background: "var(--orange)" }}
                   aria-label={`Agregar ${sugerido.nombre}`}
