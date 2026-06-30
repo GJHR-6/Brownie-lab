@@ -53,7 +53,7 @@ export default function StageReview({
   const [envioCfg, setEnvioCfg] = useState<ConfigEnvio | null>(null);
   const [envioModo, setEnvioModo] = useState<"distancia" | "zonas">("distancia");
   const [zonas, setZonas] = useState<DeliveryZone[] | null>(null);
-  const [envioCoords, setEnvioCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [envioCoords, setEnvioCoords] = useState<{ lat: number; lng: number } | null>(selection.coordsCliente ?? null);
   const [envioError, setEnvioError] = useState("");
 
   const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);

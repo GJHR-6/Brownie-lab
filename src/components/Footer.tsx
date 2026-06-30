@@ -9,8 +9,11 @@ export default async function Footer() {
   const instagram = config?.instagram || storeConfig.social.instagram;
   const facebook  = config?.facebook  || storeConfig.social.facebook;
   const tiktok    = config?.tiktok    || storeConfig.social.tiktok || "";
-  const logoUrl   = config?.logo_url  ?? null;
-  const storeName = config?.nombre    || storeConfig.name;
+  const logoUrl      = config?.logo_url  ?? null;
+  const storeName    = config?.nombre    || storeConfig.name;
+  const correo       = config?.correo    || "";
+  const ubicacion    = config?.ubicacion || "Honduras";
+  const anticipacion = config?.anticipacion_minima || "Pedidos 24h antes";
 
   return (
     <footer style={{ background: "var(--choco-950)", color: "var(--on-dark-soft)" }}>
@@ -84,11 +87,16 @@ export default async function Footer() {
         <FooterCol title="Contacto">
           {whatsapp && (
             <FooterLink href={`https://wa.me/${whatsapp}`} external icon="whatsapp">
-              +504 3153-4704
+              +{whatsapp}
             </FooterLink>
           )}
-          <FooterLink href="#" icon="pin">Honduras</FooterLink>
-          <FooterLink href="#" icon="clock">Pedidos 24h antes</FooterLink>
+          {correo && (
+            <FooterLink href={`mailto:${correo}`} external>
+              {correo}
+            </FooterLink>
+          )}
+          <FooterLink href="#" icon="pin">{ubicacion}</FooterLink>
+          <FooterLink href="#" icon="clock">{anticipacion}</FooterLink>
         </FooterCol>
       </div>
 
