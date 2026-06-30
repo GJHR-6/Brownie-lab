@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
-  Loader2, CheckCircle, ArrowLeft, MapPin, Wallet, LocateFixed, Tag,
+  Loader2, CheckCircle, ArrowLeft, MapPin, Wallet, Tag,
 } from "lucide-react";
 import BLIcon from "@/components/BLIcon";
 import { useCartStore } from "@/lib/cartStore";
@@ -16,6 +16,7 @@ import { getDeliveryZonesPublicas } from "@/actions/deliveryZones";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
 import { calcularEnvio, type ConfigEnvio } from "@/lib/envio";
 import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
+import LocationMapPicker from "../LocationMapPicker";
 import type { FlowSelection } from "../PedidoFlow";
 import type { DeliveryZone } from "@/types/database";
 
@@ -42,6 +43,7 @@ export default function StageReview({
   const [fechaEntrega, setFechaEntrega] = useState(selection.fechaEntrega ?? "");
   const [horaEntrega, setHoraEntrega] = useState(selection.horaEntrega ?? "");
   const [notas, setNotas] = useState("");
+  const [instruccionesEntrega, setInstruccionesEntrega] = useState("");
   const [metodoPago, setMetodoPago] = useState<MetodoPago>("");
   const [promoInput, setPromoInput] = useState("");
   const [promo, setPromo] = useState<{ codigo: string; descuento_porcentaje: number } | null>(null);
@@ -51,8 +53,7 @@ export default function StageReview({
   const [envioCfg, setEnvioCfg] = useState<ConfigEnvio | null>(null);
   const [envioModo, setEnvioModo] = useState<"distancia" | "zonas">("distancia");
   const [zonas, setZonas] = useState<DeliveryZone[] | null>(null);
-  const [envioCoords, setEnvioCoords] = useState<{ lat: number; lng: number } | null>(null);
-  const [envioLoading, setEnvioLoading] = useState(false);
+  const [envioCoords, setEnvioCoords] = useState<{ lat: number; lng: number } | null>(selection.coordsCliente ?? null);
   const [envioError, setEnvioError] = useState("");
 
   const [cfgPedidos, setCfgPedidos] = useState<ConfigPedidos>(CONFIG_PEDIDOS_DEFAULT);
@@ -123,26 +124,6 @@ export default function StageReview({
 
   const totalFinal = Math.max(0, subtotalConDescuento + costoEnvio);
 
-  function handleUsarUbicacion() {
-    if (!("geolocation" in navigator)) {
-      setEnvioError("Tu navegador no soporta ubicación. Actívala para calcular tu envío.");
-      return;
-    }
-    setEnvioLoading(true);
-    setEnvioError("");
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setEnvioCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-        setEnvioLoading(false);
-      },
-      () => {
-        setEnvioLoading(false);
-        setEnvioError("No pudimos obtener tu ubicación. Activa el permiso de ubicación e intenta de nuevo.");
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-    );
-  }
-
   async function handleApplyPromo() {
     if (!promoInput.trim()) return;
     setPromoLoading(true);
@@ -185,7 +166,7 @@ export default function StageReview({
       }));
       const clienteDatos = {
         nombre: nombre.trim(), telefono: (selection.telefono ?? telefonoManual).trim(),
-        notas: notas.trim() || undefined, metodo_pago: metodoPago,
+        notas: [notas.trim(), instruccionesEntrega.trim() ? `Instrucciones: ${instruccionesEntrega.trim()}` : ""].filter(Boolean).join(" | ") || undefined, metodo_pago: metodoPago,
         tipo_entrega: selection.tipoEntrega ?? "pickup",
         direccion: selection.tipoEntrega === "domicilio" ? direccion.trim() || undefined : undefined,
         fecha_entrega: fechaEntrega || undefined, hora_entrega: horaEntrega || undefined,
@@ -300,26 +281,35 @@ export default function StageReview({
                   <textarea value={direccion} onChange={e => setDireccion(e.target.value)} rows={2} maxLength={300}
                     placeholder="Col. Palmira, Calle Principal #123…" style={{ ...inputStyle, resize: "vertical" }} />
                 </Field>
+                <div className="mt-3">
+                  <Field label="Instrucciones de entrega">
+                    <textarea value={instruccionesEntrega} onChange={e => setInstruccionesEntrega(e.target.value)} rows={2} maxLength={300}
+                      placeholder="Portón azul, 2do piso, tocar timbre…" style={{ ...inputStyle, resize: "vertical" }} />
+                  </Field>
+                </div>
                 {envioPorZona && zonaSeleccionada && (
                   <p className="mt-2 text-[14px]" style={{ color: "var(--ink-soft)" }}>
                     Zona: <strong style={{ color: "var(--ink)" }}>{zonaSeleccionada.nombre}</strong> — {sym}{Number(zonaSeleccionada.tarifa).toFixed(2)}
                   </p>
                 )}
                 {envioPorDistancia && (
-                  <div className="mt-3 rounded-md p-3" style={{ background: "var(--cream)" }}>
-                    <button type="button" onClick={handleUsarUbicacion} disabled={envioLoading}
-                      className="inline-flex items-center gap-2 font-bold text-[13.5px] px-4 py-2.5 rounded-full cursor-pointer"
-                      style={{ background: envioCoords ? "rgba(31,138,91,.12)" : "var(--orange)", color: envioCoords ? "var(--green)" : "#fff" }}>
-                      {envioLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
-                      {envioCoords ? "Ubicación detectada ✓" : "Calcular con mi ubicación"}
-                    </button>
+                  <>
+                    <LocationMapPicker
+                      coords={envioCoords}
+                      onChange={coord => { setEnvioCoords(coord); setEnvioError(""); }}
+                    />
                     {envioError && <p className="text-[12.5px] mt-2" style={{ color: "var(--berry)" }}>{envioError}</p>}
+                    {envioCalc?.fueraDeRango && (
+                      <p className="text-[12.5px] mt-2" style={{ color: "var(--berry)" }}>
+                        Tu ubicación está fuera de nuestra zona de entrega (máx. {envioCfg?.km_max} km).
+                      </p>
+                    )}
                     {envioCalc && !envioCalc.fueraDeRango && (
                       <p className="text-[13.5px] mt-2" style={{ color: "var(--ink-soft)" }}>
                         Desde {envioCalc.sede.nombre} — {envioCalc.gratis ? "GRATIS" : `${sym}${envioCalc.costo.toFixed(2)}`}
                       </p>
                     )}
-                  </div>
+                  </>
                 )}
               </>
             )}

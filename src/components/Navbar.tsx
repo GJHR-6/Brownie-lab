@@ -7,7 +7,7 @@ import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import BLIcon from "@/components/BLIcon";
 
-export default function Navbar() {
+export default function Navbar({ logoUrl, storeName = "Brownie Lab" }: { logoUrl?: string | null; storeName?: string }) {
   const pathname = usePathname();
   const router         = useRouter();
   const itemCount      = useCartStore((s) => s.itemCount());
@@ -85,17 +85,24 @@ export default function Navbar() {
           className="justify-self-center inline-flex items-center gap-2.5 no-underline"
           style={{ color: "var(--amber)" }}
         >
-          <BLIcon name="mark" size={32} />
-          <span
-            className="font-extrabold text-[23px] tracking-tight"
-            style={{
-              fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
-              color: "var(--on-dark)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            Brownie Lab
-          </span>
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrl} alt={storeName} style={{ height: 36, width: "auto", objectFit: "contain", maxWidth: 160 }} />
+          ) : (
+            <>
+              <BLIcon name="mark" size={32} />
+              <span
+                className="font-extrabold text-[23px] tracking-tight"
+                style={{
+                  fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                  color: "var(--on-dark)",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {storeName}
+              </span>
+            </>
+          )}
         </Link>
 
         {/* Actions — right */}

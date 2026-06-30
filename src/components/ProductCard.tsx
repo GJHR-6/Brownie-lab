@@ -14,6 +14,7 @@ import type { Producto } from "@/types/database";
 export default function ProductCard({ product }: { product: Producto }) {
   const router = useRouter();
   const addItem = useCartStore((s) => s.addItem);
+  const isAtCategoryLimit = useCartStore((s) => s.isAtCategoryLimit);
   const toggleWishlist = useWishlistStore((s) => s.toggle);
   const isFav = useWishlistStore((s) => s.has(product.id));
   const addRecent = useRecentStore((s) => s.add);
@@ -27,6 +28,9 @@ export default function ProductCard({ product }: { product: Producto }) {
   const allImages = [product.imagen_url, ...(product.imagenes ?? [])].filter(Boolean) as string[];
 
   const agotado = product.disponible && product.stock === 0;
+  const cartQty = useCartStore(s => s.items.find(i => i.id === product.id)?.quantity ?? 0);
+  const stockRestante = Math.max(0, product.stock - cartQty);
+  const sinStock = product.stock > 0 && stockRestante === 0;
 
   useEffect(() => {
     setMounted(true);
@@ -41,9 +45,14 @@ export default function ProductCard({ product }: { product: Producto }) {
     return () => clearInterval(t);
   }, [allImages.length]);
 
+  const limiteAlcanzado = product.categoria ? isAtCategoryLimit(product.categoria) : false;
+  const bloqueado = limiteAlcanzado || sinStock;
+
   function handleAdd() {
-    for (let i = 0; i < qty; i++) {
-      addItem({ id: product.id, name: product.nombre, price: Number(product.precio), emoji: product.emoji ?? "🍪" });
+    if (bloqueado) return;
+    const toAdd = Math.min(qty, stockRestante);
+    for (let i = 0; i < toAdd; i++) {
+      addItem({ id: product.id, name: product.nombre, price: Number(product.precio), emoji: product.emoji ?? "🍪", categoria: product.categoria });
     }
     setAdded(true);
     setQty(1);
@@ -309,7 +318,7 @@ export default function ProductCard({ product }: { product: Producto }) {
                   {qty}
                 </span>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setQty((q) => q + 1); }}
+                  onClick={(e) => { e.stopPropagation(); setQty((q) => Math.min(q + 1, Math.max(1, stockRestante))); }}
                   className="w-[38px] h-[38px] grid place-items-center cursor-pointer border-0 transition-colors"
                   style={{ background: "transparent", color: "var(--ink)" }}
                   onMouseOver={(e) => ((e.currentTarget as HTMLButtonElement).style.background = "var(--cream)")}
@@ -323,13 +332,15 @@ export default function ProductCard({ product }: { product: Producto }) {
               {/* Add button */}
               <button
                 onClick={(e) => { e.stopPropagation(); handleAdd(); }}
-                className="flex-1 inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full transition-all cursor-pointer border-0 text-white"
+                disabled={bloqueado}
+                className="flex-1 inline-flex items-center justify-center gap-2 font-bold text-[15px] py-[10px] rounded-full transition-all border-0 text-white"
                 style={{
-                  background: added ? "var(--wa)" : "var(--orange)",
-                  boxShadow: added ? "none" : "0 6px 18px rgba(217,113,30,.32)",
+                  background: bloqueado ? "var(--ink-soft, #aaa)" : added ? "var(--wa)" : "var(--orange)",
+                  boxShadow: added || bloqueado ? "none" : "0 6px 18px rgba(217,113,30,.32)",
+                  cursor: bloqueado ? "not-allowed" : "pointer",
                 }}
               >
-                {added ? "✓ Agregado" : "Agregar"}
+                {sinStock ? "Sin disponibilidad" : limiteAlcanzado ? "Límite del pedido" : added ? "✓ Agregado" : "Agregar"}
               </button>
             </>
           ) : (

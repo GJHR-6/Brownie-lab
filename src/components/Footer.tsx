@@ -5,9 +5,15 @@ import BLIcon from "@/components/BLIcon";
 
 export default async function Footer() {
   const config = await getConfiguracion();
-  const whatsapp = config?.whatsapp || storeConfig.whatsapp;
+  const whatsapp  = config?.whatsapp  || storeConfig.whatsapp;
   const instagram = config?.instagram || storeConfig.social.instagram;
-  const facebook = config?.facebook || storeConfig.social.facebook;
+  const facebook  = config?.facebook  || storeConfig.social.facebook;
+  const tiktok    = config?.tiktok    || storeConfig.social.tiktok || "";
+  const logoUrl      = config?.logo_url  ?? null;
+  const storeName    = config?.nombre    || storeConfig.name;
+  const correo       = config?.correo    || "";
+  const ubicacion    = config?.ubicacion || "Honduras";
+  const anticipacion = config?.anticipacion_minima || "Pedidos 24h antes";
 
   return (
     <footer style={{ background: "var(--choco-950)", color: "var(--on-dark-soft)" }}>
@@ -27,16 +33,23 @@ export default async function Footer() {
             className="inline-flex items-center gap-2.5 no-underline"
             style={{ color: "var(--amber)" }}
           >
-            <BLIcon name="mark" size={32} />
-            <span
-              className="font-extrabold text-[21px] tracking-tight"
-              style={{
-                fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
-                color: "var(--on-dark)",
-              }}
-            >
-              Brownie Lab
-            </span>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt={storeName} style={{ height: 36, width: "auto", objectFit: "contain", maxWidth: 160 }} />
+            ) : (
+              <>
+                <BLIcon name="mark" size={32} />
+                <span
+                  className="font-extrabold text-[21px] tracking-tight"
+                  style={{
+                    fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif",
+                    color: "var(--on-dark)",
+                  }}
+                >
+                  {storeName}
+                </span>
+              </>
+            )}
           </Link>
           <p
             className="mt-4 text-[14px] leading-relaxed"
@@ -46,45 +59,10 @@ export default async function Footer() {
             con los mejores ingredientes. Horneado con amor, cada galleta cuenta.
           </p>
           <div className="flex gap-2.5 mt-5">
-            {/* Instagram — próximamente */}
-            <span
-              aria-label="Instagram — próximamente"
-              title="Instagram — próximamente"
-              className="w-[42px] h-[42px] rounded-full grid place-items-center border"
-              style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}
-            >
-              <BLIcon name="instagram" size={20} />
-            </span>
-            {/* Facebook — próximamente */}
-            <span
-              aria-label="Facebook — próximamente"
-              title="Facebook — próximamente"
-              className="w-[42px] h-[42px] rounded-full grid place-items-center border"
-              style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}
-            >
-              <BLIcon name="facebook" size={20} />
-            </span>
-            {/* TikTok — próximamente */}
-            <span
-              aria-label="TikTok — próximamente"
-              title="TikTok — próximamente"
-              className="w-[42px] h-[42px] rounded-full grid place-items-center border"
-              style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}
-            >
-              <BLIcon name="tiktok" size={20} />
-            </span>
-            {whatsapp && (
-              <a
-                href={`https://wa.me/${whatsapp}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="WhatsApp"
-                className="w-[42px] h-[42px] rounded-full grid place-items-center border transition-colors no-underline"
-                style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)" }}
-              >
-                <BLIcon name="whatsapp" size={20} />
-              </a>
-            )}
+            <SocialIcon url={instagram} name="instagram" label="Instagram" />
+            <SocialIcon url={facebook}  name="facebook"  label="Facebook"  />
+            <SocialIcon url={tiktok}    name="tiktok"    label="TikTok"    />
+            <SocialIcon url={whatsapp ? `https://wa.me/${whatsapp}` : ""} name="whatsapp" label="WhatsApp" />
           </div>
         </div>
 
@@ -109,11 +87,16 @@ export default async function Footer() {
         <FooterCol title="Contacto">
           {whatsapp && (
             <FooterLink href={`https://wa.me/${whatsapp}`} external icon="whatsapp">
-              +504 3153-4704
+              +{whatsapp}
             </FooterLink>
           )}
-          <FooterLink href="#" icon="pin">Honduras</FooterLink>
-          <FooterLink href="#" icon="clock">Pedidos 24h antes</FooterLink>
+          {correo && (
+            <FooterLink href={`mailto:${correo}`} external>
+              {correo}
+            </FooterLink>
+          )}
+          <FooterLink href="#" icon="pin">{ubicacion}</FooterLink>
+          <FooterLink href="#" icon="clock">{anticipacion}</FooterLink>
         </FooterCol>
       </div>
 
@@ -132,6 +115,25 @@ export default async function Footer() {
         </div>
       </div>
     </footer>
+  );
+}
+
+function SocialIcon({ url, name, label }: { url?: string; name: "instagram" | "facebook" | "tiktok" | "whatsapp"; label: string }) {
+  if (url) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" aria-label={label}
+        className="w-[42px] h-[42px] rounded-full grid place-items-center border transition-colors no-underline"
+        style={{ color: "var(--on-dark-soft)", borderColor: "var(--hairline-dark)" }}>
+        <BLIcon name={name} size={20} />
+      </a>
+    );
+  }
+  return (
+    <span aria-label={`${label} — próximamente`} title={`${label} — próximamente`}
+      className="w-[42px] h-[42px] rounded-full grid place-items-center border"
+      style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}>
+      <BLIcon name={name} size={20} />
+    </span>
   );
 }
 

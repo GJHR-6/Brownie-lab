@@ -41,7 +41,7 @@ export default async function SiteLayout({ children }: { children: React.ReactNo
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       {activeBanner && <BannerBar mensaje={activeBanner.mensaje} bannerId={activeBanner.id} />}
-      <Navbar />
+      <Navbar logoUrl={config?.logo_url ?? null} storeName={config?.nombre ?? storeConfig.name} />
       <main className="flex-1">{children}</main>
       <Footer />
     </>

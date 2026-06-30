@@ -17,6 +17,7 @@ export interface FlowSelection {
   telefono: string | null;
   sedePickup: string | null;
   zonaId: string | null;
+  coordsCliente: { lat: number; lng: number } | null;
   giftCardCodigo: string | null;
   fechaEntrega: string | null;
   horaEntrega: string | null;
@@ -30,6 +31,7 @@ const INITIAL: FlowSelection = {
   telefono: null,
   sedePickup: null,
   zonaId: null,
+  coordsCliente: null,
   giftCardCodigo: null,
   fechaEntrega: null,
   horaEntrega: null,
@@ -95,6 +97,7 @@ export default function PedidoFlow() {
           onBack={() => goToStage("start")}
           onSelectSedePickup={(sedePickup) => update({ sedePickup, stage: "menu" })}
           onSelectZona={(zonaId) => update({ zonaId, stage: "menu" })}
+          onSelectCoords={(coordsCliente) => update({ coordsCliente, stage: "menu" })}
           onContinue={(giftCardCodigo) => update({ giftCardCodigo, stage: "review" })}
           onSignIn={() => goToStage("signin")}
           onSetFechaHora={(fechaEntrega, horaEntrega) => update({ fechaEntrega, horaEntrega })}

@@ -9,6 +9,7 @@ import { useCartStore } from "@/lib/cartStore";
 import ProductCard from "@/components/ProductCard";
 import BagDrawer from "../BagDrawer";
 import StoreLocator from "../StoreLocator";
+import LocationMapPicker from "../LocationMapPicker";
 import { fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from "@/lib/horarios";
 import type { Producto } from "@/types/database";
 import type { DeliveryZone } from "@/types/database";
@@ -16,12 +17,13 @@ import type { SedeEnvio } from "@/lib/envio";
 import type { FlowSelection } from "../PedidoFlow";
 
 export default function StageMenu({
-  selection, onBack, onSelectSedePickup, onSelectZona, onContinue, onSignIn, onSetFechaHora,
+  selection, onBack, onSelectSedePickup, onSelectZona, onSelectCoords, onContinue, onSignIn, onSetFechaHora,
 }: {
   selection: FlowSelection;
   onBack: () => void;
   onSelectSedePickup: (sede: string) => void;
   onSelectZona: (zonaId: string) => void;
+  onSelectCoords: (coords: { lat: number; lng: number }) => void;
   onContinue: (giftCardCodigo: string | null) => void;
   onSignIn: () => void;
   onSetFechaHora: (fecha: string | null, hora: string | null) => void;
@@ -53,8 +55,9 @@ export default function StageMenu({
     }
   }, [selection.tipoEntrega, envioModo, zonas]);
 
-  const needsSede = selection.tipoEntrega === "pickup" && !selection.sedePickup;
-  const needsZona = selection.tipoEntrega === "domicilio" && envioModo === "zonas" && !selection.zonaId;
+  const needsSede   = selection.tipoEntrega === "pickup" && !selection.sedePickup;
+  const needsZona   = selection.tipoEntrega === "domicilio" && envioModo === "zonas" && !selection.zonaId;
+  const needsCoords = selection.tipoEntrega === "domicilio" && envioModo === "distancia" && !selection.coordsCliente;
 
   if (needsSede || cambiandoSede) {
     return (
@@ -68,6 +71,10 @@ export default function StageMenu({
         )}
       </div>
     );
+  }
+
+  if (needsCoords) {
+    return <CoordsStep onBack={onBack} onConfirm={onSelectCoords} />;
   }
 
   if (needsZona) {
@@ -242,6 +249,31 @@ function OrderBar({
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function CoordsStep({ onBack, onConfirm }: { onBack: () => void; onConfirm: (c: { lat: number; lng: number }) => void }) {
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  return (
+    <div className="max-w-lg mx-auto px-5 py-12">
+      <BackBtn onBack={onBack} />
+      <Title>¿Dónde te entregamos?</Title>
+      <p className="mb-4" style={{ color: "var(--ink-soft)", fontSize: 14 }}>
+        Usa tu ubicación o toca el mapa para colocar el pin en tu dirección de entrega.
+      </p>
+      <LocationMapPicker coords={coords} onChange={setCoords} />
+      <button
+        disabled={!coords}
+        onClick={() => coords && onConfirm(coords)}
+        className="mt-4 w-full font-bold border-0 text-white"
+        style={{
+          background: "var(--orange)", borderRadius: "var(--r-pill)", padding: "13px",
+          fontSize: 15, opacity: !coords ? 0.45 : 1, cursor: !coords ? "not-allowed" : "pointer",
+        }}
+      >
+        Confirmar ubicación
+      </button>
     </div>
   );
 }

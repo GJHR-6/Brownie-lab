@@ -22,9 +22,11 @@ export default function ProductoDetailClient({
   similares: Producto[];
   resenas: Resena[];
 }) {
-  const addItem    = useCartStore((s) => s.addItem);
-  const toggleFav  = useWishlistStore((s) => s.toggle);
-  const isFav      = useWishlistStore((s) => s.has(producto.id));
+  const addItem            = useCartStore((s) => s.addItem);
+  const isAtCategoryLimit  = useCartStore((s) => s.isAtCategoryLimit);
+  const cartQty            = useCartStore((s) => s.items.find(i => i.id === producto.id)?.quantity ?? 0);
+  const toggleFav          = useWishlistStore((s) => s.toggle);
+  const isFav              = useWishlistStore((s) => s.has(producto.id));
 
   const allImgs = [producto.imagen_url, ...(producto.imagenes ?? [])].filter(Boolean) as string[];
 
@@ -32,7 +34,11 @@ export default function ProductoDetailClient({
   const [qty,    setQty]    = useState(1);
   const [added,  setAdded]  = useState(false);
 
-  const agotado = producto.disponible && producto.stock === 0;
+  const agotado       = producto.disponible && producto.stock === 0;
+  const stockRestante = Math.max(0, producto.stock - cartQty);
+  const sinStock      = producto.stock > 0 && stockRestante === 0;
+  const limiteAlcanzado = producto.categoria ? isAtCategoryLimit(producto.categoria) : false;
+  const bloqueado     = limiteAlcanzado || sinStock;
   const sym = storeConfig.currencySymbol;
 
   // Autoplay del carrusel de imágenes
@@ -43,8 +49,10 @@ export default function ProductoDetailClient({
   }, [allImgs.length]);
 
   function handleAdd() {
-    for (let i = 0; i < qty; i++) {
-      addItem({ id: producto.id, name: producto.nombre, price: Number(producto.precio), emoji: producto.emoji ?? "🍪" });
+    if (bloqueado) return;
+    const toAdd = Math.min(qty, stockRestante);
+    for (let i = 0; i < toAdd; i++) {
+      addItem({ id: producto.id, name: producto.nombre, price: Number(producto.precio), emoji: producto.emoji ?? "🍪", categoria: producto.categoria });
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);
@@ -274,7 +282,7 @@ export default function ProductoDetailClient({
                 <span className="font-bold text-[16px] text-center" style={{ minWidth: 30, color: "var(--ink)" }}>
                   {qty}
                 </span>
-                <button onClick={() => setQty((q) => q + 1)}
+                <button onClick={() => setQty((q) => Math.min(q + 1, Math.max(1, stockRestante)))}
                   className="w-[42px] h-[42px] grid place-items-center border-0 cursor-pointer"
                   style={{ background: "transparent", color: "var(--ink)" }} aria-label="Más">
                   <BLIcon name="plus" size={16} />
@@ -283,14 +291,16 @@ export default function ProductoDetailClient({
 
               <button
                 onClick={handleAdd}
-                className="flex-1 inline-flex items-center justify-center gap-2 font-bold text-[16px] py-4 rounded-full border-0 cursor-pointer text-white transition-all"
+                disabled={bloqueado}
+                className="flex-1 inline-flex items-center justify-center gap-2 font-bold text-[16px] py-4 rounded-full border-0 text-white transition-all"
                 style={{
-                  background: added ? "var(--wa)" : "var(--orange)",
-                  boxShadow: added ? "none" : "0 6px 18px rgba(217,113,30,.32)",
+                  background: bloqueado ? "var(--ink-soft, #aaa)" : added ? "var(--wa)" : "var(--orange)",
+                  boxShadow: added || bloqueado ? "none" : "0 6px 18px rgba(217,113,30,.32)",
+                  cursor: bloqueado ? "not-allowed" : "pointer",
                 }}
               >
                 <BLIcon name="cart" size={18} />
-                {added ? "✓ Agregado" : `Agregar${qty > 1 ? ` (${qty})` : ""}`}
+                {sinStock ? "Sin disponibilidad" : limiteAlcanzado ? "Límite del pedido" : added ? "✓ Agregado" : `Agregar${qty > 1 ? ` (${qty})` : ""}`}
               </button>
             </div>
           ) : (
