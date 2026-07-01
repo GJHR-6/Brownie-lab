@@ -66,10 +66,42 @@ export default function BagDrawer({
 
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {clienteVisible ? (
-            <div className="flex items-center gap-3 mb-4" style={{ background: "var(--cream)", border: "1.5px solid var(--amber)", borderRadius: "var(--r-md)", padding: "12px 14px" }}>
-              <Award size={20} style={{ color: "var(--orange-ink)", flexShrink: 0 }} />
-              <p style={{ fontSize: 13, color: "var(--ink)" }}>
-                Tienes <strong>{clienteVisible.compras_actuales}/10</strong> sellos. {clienteVisible.compras_actuales >= 10 ? "¡Premio disponible!" : `Faltan ${10 - clienteVisible.compras_actuales} para tu brownie gratis.`}
+            <div className="mb-4" style={{ background: "var(--cream)", border: "1.5px solid var(--amber)", borderRadius: "var(--r-md)", padding: "14px 16px" }}>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Award size={15} style={{ color: "var(--orange-ink)", flexShrink: 0 }} />
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "var(--orange-ink)", letterSpacing: ".07em", textTransform: "uppercase" }}>
+                    Club Brownie Lab
+                  </span>
+                </div>
+                <span style={{ fontSize: 12, color: "var(--ink-soft)", fontWeight: 600 }}>
+                  {clienteVisible.compras_actuales}/10
+                </span>
+              </div>
+              <div className="flex gap-1 mb-2.5">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex-1 grid place-items-center rounded-full"
+                    style={{
+                      aspectRatio: "1",
+                      background: i < clienteVisible.compras_actuales ? "var(--choco-900)" : "rgba(0,0,0,.07)",
+                      fontSize: i < clienteVisible.compras_actuales ? 9 : 8,
+                      color: i < clienteVisible.compras_actuales ? "var(--amber)" : "var(--ink-soft)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {i < clienteVisible.compras_actuales ? "🍪" : i + 1}
+                  </div>
+                ))}
+              </div>
+              <div style={{ height: 4, borderRadius: 2, background: "rgba(0,0,0,.08)", overflow: "hidden", marginBottom: 8 }}>
+                <div style={{ height: "100%", width: `${(clienteVisible.compras_actuales / 10) * 100}%`, background: "var(--orange)", borderRadius: 2, transition: "width .4s" }} />
+              </div>
+              <p style={{ fontSize: 12.5, color: "var(--ink)" }}>
+                {clienteVisible.compras_actuales >= 10
+                  ? "¡Premio disponible! 🎉 Avísanos al hacer tu pedido."
+                  : `${10 - clienteVisible.compras_actuales} pedido${10 - clienteVisible.compras_actuales === 1 ? "" : "s"} más para tu brownie gratis 🎁`}
               </p>
             </div>
           ) : (

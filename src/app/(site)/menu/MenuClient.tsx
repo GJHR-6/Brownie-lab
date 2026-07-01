@@ -36,8 +36,19 @@ export default function MenuClient({
   const LABELS = Object.fromEntries(categorias.map((c) => [c.slug, c.nombre]));
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState(initialSearch);
+  const [excludedAlergenos, setExcludedAlergenos] = useState<Set<string>>(new Set());
 
   const allCats = [...new Set(productos.map((p) => p.categoria))];
+  const allAlergenos = [...new Set(productos.flatMap((p) => p.alergenos ?? []))].sort();
+
+  function toggleAlergeno(alergeno: string) {
+    setExcludedAlergenos((prev) => {
+      const next = new Set(prev);
+      if (next.has(alergeno)) next.delete(alergeno);
+      else next.add(alergeno);
+      return next;
+    });
+  }
 
   const filtered = (() => {
     let result = activeCategory
@@ -51,6 +62,11 @@ export default function MenuClient({
           (p.descripcion?.toLowerCase().includes(q) ?? false)
       );
     }
+    if (excludedAlergenos.size > 0) {
+      result = result.filter(
+        (p) => !(p.alergenos ?? []).some((a) => excludedAlergenos.has(a))
+      );
+    }
     return result;
   })();
 
@@ -60,7 +76,7 @@ export default function MenuClient({
     return acc;
   }, {});
 
-  const noResults = filtered.length === 0 && (search || activeCategory);
+  const noResults = filtered.length === 0 && (search || activeCategory || excludedAlergenos.size > 0);
 
   return (
     <>
@@ -140,7 +156,7 @@ export default function MenuClient({
             />
           </label>
 
-          {/* Filter pills */}
+          {/* Category filter pills */}
           <div className="flex gap-2 flex-wrap">
             <FilterBtn active={activeCategory === null} onClick={() => setActiveCategory(null)}>
               Todos
@@ -155,6 +171,24 @@ export default function MenuClient({
               </FilterBtn>
             ))}
           </div>
+
+          {/* Allergen exclusion pills */}
+          {allAlergenos.length > 0 && (
+            <div className="w-full flex items-center gap-2 flex-wrap" style={{ paddingTop: 4 }}>
+              <span className="text-[11px] font-bold tracking-[.14em] uppercase" style={{ color: "var(--ink-soft)", whiteSpace: "nowrap" }}>
+                Sin:
+              </span>
+              {allAlergenos.map((a) => (
+                <AllergenBtn
+                  key={a}
+                  excluded={excludedAlergenos.has(a)}
+                  onClick={() => toggleAlergeno(a)}
+                >
+                  {a}
+                </AllergenBtn>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -236,7 +270,7 @@ export default function MenuClient({
             </h3>
             <p>No encontramos nada con esa búsqueda. Prueba otra palabra.</p>
             <button
-              onClick={() => { setSearch(""); setActiveCategory(null); }}
+              onClick={() => { setSearch(""); setActiveCategory(null); setExcludedAlergenos(new Set()); }}
               aria-label="Limpiar búsqueda y filtros"
               className="text-sm font-semibold cursor-pointer border-0 bg-transparent underline"
               style={{ color: "var(--orange-ink)" }}
@@ -317,6 +351,32 @@ function FilterBtn({
         whiteSpace: "nowrap",
       }}
     >
+      {children}
+    </button>
+  );
+}
+
+function AllergenBtn({
+  excluded,
+  onClick,
+  children,
+}: {
+  excluded: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="text-[12px] font-bold px-3 py-1.5 rounded-full cursor-pointer border transition-colors capitalize"
+      style={{
+        background: excluded ? "rgba(217,113,30,.12)" : "var(--paper-card)",
+        color: excluded ? "var(--orange-ink)" : "var(--ink-soft)",
+        borderColor: excluded ? "var(--orange)" : "var(--hairline)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {excluded && "✓ "}
       {children}
     </button>
   );
