@@ -31,6 +31,7 @@ export default function ProductCard({ product }: { product: Producto }) {
   const cartQty = useCartStore(s => s.items.find(i => i.id === product.id)?.quantity ?? 0);
   const stockRestante = Math.max(0, product.stock - cartQty);
   const sinStock = product.stock > 0 && stockRestante === 0;
+  const stockBajo = !agotado && product.stock > 0 && product.stock <= (product.stock_alerta ?? 5);
 
   useEffect(() => {
     setMounted(true);
@@ -150,6 +151,20 @@ export default function ProductCard({ product }: { product: Producto }) {
               Agotado hoy
             </span>
           </>
+        )}
+
+        {/* Stock bajo badge */}
+        {stockBajo && !agotado && (
+          <span
+            className="absolute top-3 left-3 text-[12px] font-bold px-3 py-1 rounded-full"
+            style={{
+              background: "rgba(217,113,30,.92)",
+              color: "#fff",
+              backdropFilter: "blur(4px)",
+            }}
+          >
+            ¡Últimas {product.stock}!
+          </span>
         )}
 
         {/* Image navigation dots */}
