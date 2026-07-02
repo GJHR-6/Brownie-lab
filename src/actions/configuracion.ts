@@ -1,17 +1,10 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import type { ActionResult } from '@/types/actions';
 import { logActividad } from './actividad';
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return { supabase, user };
-}
 
 export async function updateConfiguracion(
   _prevState: ActionResult | null,

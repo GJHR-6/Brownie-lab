@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { Search, Phone, X, Loader2 } from 'lucide-react';
-import { buscarCliente, type CuponFidelizacion } from '@/actions/fidelizacion';
+import { buscarClienteAdmin, type CuponFidelizacion } from '@/actions/fidelizacion';
 import { getPedidosPorTelefono } from '@/actions/pedidos';
 import type { Pedido, EstadoPedido, PedidoItem, ClienteDatos } from '@/types/database';
 
@@ -61,7 +61,7 @@ function ClienteDrawer({ cliente, onClose }: { cliente: ClienteRow; onClose: () 
     let activo = true;
     Promise.all([
       getPedidosPorTelefono(cliente.telefono),
-      buscarCliente(cliente.telefono),
+      buscarClienteAdmin(cliente.telefono),
     ]).then(([peds, clienteResult]) => {
       if (!activo) return;
       setDatos({

@@ -1,5 +1,6 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { ActionResult } from '@/types/actions';
@@ -11,13 +12,6 @@ export interface Testimonio {
   estrellas: number;
   aprobado: boolean;
   created_at: string;
-}
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return { supabase, user };
 }
 
 export async function getTestimonios(): Promise<Testimonio[]> {

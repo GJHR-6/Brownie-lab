@@ -1,19 +1,13 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { headers } from 'next/headers';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { CateringSolicitud, EstadoCatering } from '@/types/database';
 import { revalidatePath } from 'next/cache';
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-}
 
 export async function crearSolicitudCatering(input: {
   tipo_evento: string;

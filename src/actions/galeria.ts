@@ -1,16 +1,8 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  const { data } = await supabase.from('admin_users').select('user_id').eq('user_id', user.id).single();
-  if (!data) throw new Error('No autorizado');
-}
 
 export async function subirImagenGaleria(
   _: unknown,

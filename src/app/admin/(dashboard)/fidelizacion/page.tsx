@@ -4,7 +4,7 @@ import { useConfirm } from '@/components/admin/ConfirmProvider';
 
 import { useState, useTransition } from 'react';
 import { Search, Loader2, Plus, Award, Merge } from 'lucide-react';
-import { buscarCliente, registrarCompraAdmin, fusionarClientes, type ClienteFidelizacion, type CuponFidelizacion } from '@/actions/fidelizacion';
+import { buscarClienteAdmin, registrarCompraAdmin, fusionarClientes, type ClienteFidelizacion, type CuponFidelizacion } from '@/actions/fidelizacion';
 
 const LOYALTY_MAX = 10;
 
@@ -51,7 +51,7 @@ export default function FidelizacionPage() {
     e.preventDefault();
     if (!telefono.trim()) return;
     startTransition(async () => {
-      const result = await buscarCliente(telefono);
+      const result = await buscarClienteAdmin(telefono);
       if (result.success) setEstado({ tipo: 'found', cliente: result.data.cliente, cupones: result.data.cupones });
       else setEstado({ tipo: 'error', mensaje: result.error });
     });
@@ -72,7 +72,7 @@ export default function FidelizacionPage() {
         : `✓ Compra registrada. Sellos: ${result.data.cliente.compras_actuales}/10`
       );
       // Refresh client data
-      const r = await buscarCliente(estado.cliente.telefono);
+      const r = await buscarClienteAdmin(estado.cliente.telefono);
       if (r.success) setEstado({ tipo: 'found', cliente: r.data.cliente, cupones: r.data.cupones });
     } else {
       setAddMsg(`Error: ${result.error}`);
@@ -85,7 +85,7 @@ export default function FidelizacionPage() {
     setMergeMsg(null);
     setClienteFusion(null);
     setMergeLoading(true);
-    const r = await buscarCliente(telFusion);
+    const r = await buscarClienteAdmin(telFusion);
     setMergeLoading(false);
     if (r.success) setClienteFusion(r.data.cliente);
     else setMergeMsg(`No encontrado: ${r.error}`);
@@ -108,7 +108,7 @@ export default function FidelizacionPage() {
     if (result.success) {
       setEstado({ tipo: 'found', cliente: result.data.cliente, cupones: [] });
       // Refresh cupones
-      const r = await buscarCliente(destino);
+      const r = await buscarClienteAdmin(destino);
       if (r.success) setEstado({ tipo: 'found', cliente: r.data.cliente, cupones: r.data.cupones });
       setShowMerge(false);
       setTelFusion('');

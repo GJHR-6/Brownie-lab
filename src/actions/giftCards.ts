@@ -1,7 +1,7 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { headers } from 'next/headers';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, isValidHonduranPhone, normalizePhone, sanitizePromoCode } from '@/lib/sanitize';
@@ -14,12 +14,6 @@ function generarCodigoGiftCard(): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const segmento = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   return `BL-GC-${segmento()}-${segmento()}`;
-}
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
 }
 
 // ── Compra de tarjeta de regalo ───────────────────────────────────────────────

@@ -1,18 +1,12 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { sanitizeText } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { DeliveryZone } from '@/types/database';
 import { revalidatePath } from 'next/cache';
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return supabase;
-}
 
 // ── Lectura pública ──────────────────────────────────────────────────────────
 
@@ -31,7 +25,7 @@ export async function getDeliveryZonesPublicas(): Promise<DeliveryZone[]> {
 // ── Admin CRUD ────────────────────────────────────────────────────────────────
 
 export async function getDeliveryZonesAdmin(): Promise<DeliveryZone[]> {
-  const supabase = await requireAdmin();
+  const { supabase } = await requireAdmin();
   const { data, error } = await supabase
     .from('delivery_zones')
     .select('*')

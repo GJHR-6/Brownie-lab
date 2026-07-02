@@ -1,7 +1,9 @@
 'use server';
 
-import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { requireAdmin } from '@/lib/adminAuth';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
 import { actualizarGoogleWalletObject } from '@/lib/wallet/google';
 import { sanitizePhone, sanitizeText, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
@@ -41,14 +43,62 @@ export type BuscarClienteResult =
   | { success: true; data: { cliente: ClienteFidelizacion; cupones: CuponFidelizacion[] } }
   | { success: false; error: string; similares: ClienteFidelizacion[] };
 
+// Pública: nunca devuelve datos de otros clientes (los "similares" son PII
+// y solo se exponen en la variante admin de abajo). Usa service client porque
+// RLS no permite lectura anónima de clientes/cupones — este action solo expone
+// el registro exacto del teléfono consultado, con rate limit por IP.
 export async function buscarCliente(
   telefono: string
 ): Promise<BuscarClienteResult> {
   try {
+    const ip = getIpFromHeaders(await headers());
+    if (!rateLimit(`club:${ip}`, 20, 5 * 60 * 1000)) {
+      return { success: false, error: 'Demasiados intentos. Espera unos minutos.', similares: [] };
+    }
+
     const tel = normalizePhone(sanitizePhone(telefono));
     if (tel.length < 7) return { success: false, error: 'Número de teléfono inválido.', similares: [] };
 
-    const supabase = await createSupabaseServerClient();
+    const supabase = createSupabaseServiceClient();
+
+    const { data: cliente, error } = await supabase
+      .from('clientes')
+      .select('*')
+      .eq('telefono', tel)
+      .single();
+
+    if (error?.code === 'PGRST116' || !cliente) {
+      return {
+        success: false,
+        error: 'Teléfono no registrado. Realiza tu primera compra para unirte al club 🍫',
+        similares: [],
+      };
+    }
+    if (error) return { success: false, error: error.message, similares: [] };
+
+    const { data: cupones } = await supabase
+      .from('cupones')
+      .select('*')
+      .eq('telefono_cliente', tel)
+      .eq('estado', 'DISPONIBLE')
+      .order('created_at', { ascending: false });
+
+    return { success: true, data: { cliente, cupones: cupones ?? [] } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.', similares: [] };
+  }
+}
+
+// ── Admin: búsqueda con detección de duplicados ────────────────────────────────
+
+export async function buscarClienteAdmin(
+  telefono: string
+): Promise<BuscarClienteResult> {
+  try {
+    const { supabase } = await requireAdmin();
+
+    const tel = normalizePhone(sanitizePhone(telefono));
+    if (tel.length < 7) return { success: false, error: 'Número de teléfono inválido.', similares: [] };
 
     const { data: cliente, error } = await supabase
       .from('clientes')
@@ -68,7 +118,7 @@ export async function buscarCliente(
 
       return {
         success: false,
-        error: 'Teléfono no registrado. Realiza tu primera compra para unirte al club 🍫',
+        error: 'Teléfono no registrado.',
         similares: similares ?? [],
       };
     }
@@ -94,9 +144,7 @@ export async function fusionarClientes(
   telefonoDestino: string
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion }>> {
   try {
-    const supabase = await createSupabaseServerClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false, error: 'No autorizado.' };
+    await requireAdmin();
 
     const telOrigen  = normalizePhone(sanitizePhone(telefonoOrigen));
     const telDestino = normalizePhone(sanitizePhone(telefonoDestino));
@@ -148,9 +196,11 @@ export async function fusionarClientes(
 export async function registrarCompraAdmin(
   telefono: string
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion; cuponGenerado: CuponFidelizacion | null }>> {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: 'No autorizado.' };
+  try {
+    await requireAdmin();
+  } catch {
+    return { success: false, error: 'No autorizado.' };
+  }
   return registrarCompra(telefono);
 }
 

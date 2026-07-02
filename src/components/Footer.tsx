@@ -6,9 +6,9 @@ import BLIcon from "@/components/BLIcon";
 export default async function Footer() {
   const config = await getConfiguracion();
   const whatsapp  = config?.whatsapp  || storeConfig.whatsapp;
-  const instagram = config?.instagram || storeConfig.social.instagram;
-  const facebook  = config?.facebook  || storeConfig.social.facebook;
-  const tiktok    = config?.tiktok    || storeConfig.social.tiktok || "";
+  const instagram = config?.instagram || "";
+  const facebook  = config?.facebook  || "";
+  const tiktok    = config?.tiktok    || "";
   const logoUrl      = config?.logo_url  ?? null;
   const storeName    = config?.nombre    || storeConfig.name;
   const correo       = config?.correo    || "";
@@ -128,13 +128,7 @@ function SocialIcon({ url, name, label }: { url?: string; name: "instagram" | "f
       </a>
     );
   }
-  return (
-    <span aria-label={`${label} — próximamente`} title={`${label} — próximamente`}
-      className="w-[42px] h-[42px] rounded-full grid place-items-center border"
-      style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}>
-      <BLIcon name={name} size={20} />
-    </span>
-  );
+  return null;
 }
 
 function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {

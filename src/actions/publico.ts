@@ -10,6 +10,7 @@ import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
 import { parseConfigEnvio, calcularEnvio, calcularEnvioPorZona, type ConfigEnvio } from '@/lib/envio';
 import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 import { notificarNuevoPedido } from '@/lib/email';
+import { resolveComprobanteUrl, COMPROBANTES_BUCKET, COMPROBANTE_EMAIL_TTL } from '@/lib/comprobantes';
 import { redimirGiftCard } from './giftCards';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
@@ -38,11 +39,8 @@ export async function validarPromocion(
     if (!data.activa)             return { success: false, error: 'Este código ya no está activo.' };
     if (data.usos_restantes <= 0) return { success: false, error: 'Este código no tiene usos disponibles.' };
 
-    await supabase
-      .from('promociones')
-      .update({ usos_restantes: data.usos_restantes - 1 })
-      .eq('id', data.id);
-
+    // Solo valida — el uso se consume atómicamente al crear el pedido
+    // (consumir_promocion en crearPedidoPublico).
     return { success: true, data: { codigo: data.codigo, descuento_porcentaje: data.descuento_porcentaje } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -252,6 +250,17 @@ export async function crearPedidoPublico(
   try {
     const supabase = createSupabaseServiceClient();
 
+    // Reintento idempotente: si el pedido ya existe, devolverlo antes de
+    // consumir promociones/tarjetas de regalo otra vez.
+    if (idempotencyKey) {
+      const { data: existing } = await supabase
+        .from('pedidos')
+        .select('id')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+      if (existing) return { success: true, data: { id: existing.id } };
+    }
+
     // ── 3. Obtener precios reales + validar stock ────────────────────────────
     const itemsConProducto = items.filter(
       (i): i is typeof i & { producto_id: string } => !!i.producto_id && UUID_RE.test(i.producto_id)
@@ -299,19 +308,17 @@ export async function crearPedidoPublico(
       sanitizedItems.reduce((s, i) => s + i.precio * i.cantidad, 0) * 100
     ) / 100;
 
-    // ── 6. Reverificar descuento del promo desde BD ──────────────────────────
+    // ── 6. Consumir promo atómicamente desde BD (valida activa + usos > 0) ──
     let descuento = 0;
     let nota_promo: string | undefined;
     if (promo) {
       const cleanCode = sanitizePromoCode(promo.codigo);
-      const { data: promoData } = await supabase
-        .from('promociones')
-        .select('descuento_porcentaje, activa')
-        .eq('codigo', cleanCode.toUpperCase())
-        .single();
+      const { data: promoRows } = await supabase
+        .rpc('consumir_promocion', { codigo_input: cleanCode.toUpperCase() });
 
-      if (!promoData || !promoData.activa)
-        return { success: false, error: 'Código de descuento inválido o inactivo.' };
+      const promoData = (promoRows ?? [])[0] as { descuento_porcentaje: number } | undefined;
+      if (!promoData)
+        return { success: false, error: 'Código de descuento inválido, inactivo o sin usos disponibles.' };
 
       descuento  = Math.round(subtotalReal * (promoData.descuento_porcentaje / 100) * 100) / 100;
       nota_promo = `Descuento ${cleanCode.toUpperCase()} (${promoData.descuento_porcentaje}%)`;
@@ -520,7 +527,7 @@ export async function notificarPedidoCreado(id: string): Promise<void> {
         hora_entrega:    cd.hora_entrega,
         metodo_pago:     cd.metodo_pago,
         notas:           cd.notas,
-        comprobante_url: pedido.comprobante_url ?? undefined,
+        comprobante_url: (await resolveComprobanteUrl(supabase, pedido.comprobante_url, COMPROBANTE_EMAIL_TTL)) ?? undefined,
       },
     });
   } catch (err) {
@@ -546,9 +553,16 @@ export async function subirComprobante(
   const file = formData.get('comprobante') as File | null;
   if (!file || file.size === 0) return { success: false, error: 'Archivo requerido.' };
   if (file.size > 10 * 1024 * 1024) return { success: false, error: 'Archivo muy grande (máx. 10 MB).' };
-  if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-    return { success: false, error: 'Solo imágenes (PNG, JPG, WEBP).' };
-  }
+
+  // Extensión derivada del MIME validado (no del nombre del archivo)
+  const EXT_POR_MIME: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg':  'jpg',
+    'image/png':  'png',
+    'image/webp': 'webp',
+  };
+  const ext = EXT_POR_MIME[file.type];
+  if (!ext) return { success: false, error: 'Solo imágenes (PNG, JPG, WEBP).' };
 
   try {
     const service = createSupabaseServiceClient();
@@ -560,26 +574,29 @@ export async function subirComprobante(
       .single();
 
     if (!pedido) return { success: false, error: 'Pedido no encontrado.' };
-    if (pedido.comprobante_url) return { success: true, data: { url: pedido.comprobante_url } };
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const path = `comprobantes/${pedidoId}.${ext}`;
+    if (pedido.comprobante_url) {
+      const url = await resolveComprobanteUrl(service, pedido.comprobante_url);
+      return { success: true, data: { url: url ?? pedido.comprobante_url } };
+    }
+    const path = `${pedidoId}.${ext}`;
 
     const { error: uploadError } = await service.storage
-      .from('product-images')
+      .from(COMPROBANTES_BUCKET)
       .upload(path, file, { upsert: true });
 
     if (uploadError) return { success: false, error: `Error al subir: ${uploadError.message}` };
 
-    const { data: { publicUrl } } = service.storage.from('product-images').getPublicUrl(path);
-
+    // Se guarda el path (no una URL pública): el bucket es privado y el admin
+    // lo ve mediante signed URLs generadas server-side.
     const { error: dbError } = await service
       .from('pedidos')
-      .update({ comprobante_url: publicUrl })
+      .update({ comprobante_url: path })
       .eq('id', pedidoId);
 
     if (dbError) return { success: false, error: dbError.message };
 
-    return { success: true, data: { url: publicUrl } };
+    const url = await resolveComprobanteUrl(service, path);
+    return { success: true, data: { url: url ?? path } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }

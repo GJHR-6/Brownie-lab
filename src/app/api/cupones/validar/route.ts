@@ -1,9 +1,19 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
 
 const WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL ?? '';
 
 export async function POST(req: Request) {
+  // Este endpoint quema el cupón al validarlo — sin rate limit permitiría
+  // enumerar códigos o quemar premios ajenos por fuerza bruta.
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
+    ?? req.headers.get('x-real-ip')
+    ?? 'unknown';
+  if (!rateLimit(`cupon-validar:${ip}`, 10, 10 * 60 * 1000)) {
+    return rateLimitResponse();
+  }
+
   try {
     const body = await req.json();
     const codigo: string = (body.codigo ?? '').toUpperCase().trim();

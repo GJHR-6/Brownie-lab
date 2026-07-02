@@ -1,17 +1,11 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { sanitizeText } from '@/lib/sanitize';
 import type { Resena } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return { supabase, user };
-}
 
 // ── Público: reseñas aprobadas de un producto ────────────────────────────────
 
