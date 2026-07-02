@@ -95,14 +95,23 @@ export default function ProductCard({ product }: { product: Producto }) {
           tabIndex={-1}
         />
         {allImages.length > 0 ? (
-          <Image
-            key={imgIndex}
-            src={allImages[imgIndex]}
-            alt={product.nombre}
-            fill
-            className="object-cover bl-img-fade"
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-          />
+          <>
+            {allImages.map((src, i) => (
+              <Image
+                key={src}
+                src={src}
+                alt={product.nombre}
+                fill
+                className="object-cover"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                style={{
+                  opacity: i === imgIndex ? 1 : 0,
+                  transform: i === imgIndex ? 'translateX(0)' : 'translateX(14px)',
+                  transition: 'opacity .38s cubic-bezier(.25,.8,.25,1), transform .38s cubic-bezier(.25,.8,.25,1)',
+                }}
+              />
+            ))}
+          </>
         ) : (
           <div
             className="w-full h-full grid place-items-center text-5xl"
