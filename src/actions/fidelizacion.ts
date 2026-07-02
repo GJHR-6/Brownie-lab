@@ -37,12 +37,16 @@ function generarCodigoCupon(): string {
 
 // ── Queries (anon key, lectura pública) ────────────────────────────────────────
 
+export type BuscarClienteResult =
+  | { success: true; data: { cliente: ClienteFidelizacion; cupones: CuponFidelizacion[] } }
+  | { success: false; error: string; similares: ClienteFidelizacion[] };
+
 export async function buscarCliente(
   telefono: string
-): Promise<ActionResult<{ cliente: ClienteFidelizacion; cupones: CuponFidelizacion[] }>> {
+): Promise<BuscarClienteResult> {
   try {
     const tel = normalizePhone(sanitizePhone(telefono));
-    if (tel.length < 7) return { success: false, error: 'Número de teléfono inválido.' };
+    if (tel.length < 7) return { success: false, error: 'Número de teléfono inválido.', similares: [] };
 
     const supabase = await createSupabaseServerClient();
 
@@ -53,12 +57,22 @@ export async function buscarCliente(
       .single();
 
     if (error?.code === 'PGRST116' || !cliente) {
+      // Buscar números similares (últimos 6 dígitos coinciden)
+      const patron = tel.slice(-6);
+      const { data: similares } = await supabase
+        .from('clientes')
+        .select('*')
+        .ilike('telefono', `%${patron}%`)
+        .neq('telefono', tel)
+        .limit(5);
+
       return {
         success: false,
         error: 'Teléfono no registrado. Realiza tu primera compra para unirte al club 🍫',
+        similares: similares ?? [],
       };
     }
-    if (error) return { success: false, error: error.message };
+    if (error) return { success: false, error: error.message, similares: [] };
 
     const { data: cupones } = await supabase
       .from('cupones')
@@ -68,6 +82,62 @@ export async function buscarCliente(
       .order('created_at', { ascending: false });
 
     return { success: true, data: { cliente, cupones: cupones ?? [] } };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.', similares: [] };
+  }
+}
+
+// ── Admin: fusionar dos clientes ──────────────────────────────────────────────
+
+export async function fusionarClientes(
+  telefonoOrigen: string,
+  telefonoDestino: string
+): Promise<ActionResult<{ cliente: ClienteFidelizacion }>> {
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'No autorizado.' };
+
+    const telOrigen  = normalizePhone(sanitizePhone(telefonoOrigen));
+    const telDestino = normalizePhone(sanitizePhone(telefonoDestino));
+
+    if (!telOrigen || !telDestino) return { success: false, error: 'Teléfono inválido.' };
+    if (telOrigen === telDestino) return { success: false, error: 'Los números son iguales.' };
+
+    const service = createSupabaseServiceClient();
+
+    const [{ data: origen }, { data: destino }] = await Promise.all([
+      service.from('clientes').select('*').eq('telefono', telOrigen).single(),
+      service.from('clientes').select('*').eq('telefono', telDestino).single(),
+    ]);
+
+    if (!origen) return { success: false, error: `Número origen (${telOrigen}) no encontrado.` };
+    if (!destino) return { success: false, error: `Número destino (${telDestino}) no encontrado.` };
+
+    const nuevasActuales = Math.min(origen.compras_actuales + destino.compras_actuales, 10);
+    const nuevasTotales  = origen.compras_totales + destino.compras_totales;
+
+    // Reasignar cupones del origen al destino
+    await service.from('cupones').update({ telefono_cliente: telDestino }).eq('telefono_cliente', telOrigen);
+
+    // Actualizar destino
+    const { data: clienteActualizado, error } = await service
+      .from('clientes')
+      .update({ compras_actuales: nuevasActuales, compras_totales: nuevasTotales })
+      .eq('telefono', telDestino)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+
+    // Eliminar origen
+    await service.from('clientes').delete().eq('telefono', telOrigen);
+
+    actualizarGoogleWalletObject(clienteActualizado).catch((err) =>
+      console.error('[Google Wallet] Error actualizando objeto tras fusión:', err)
+    );
+
+    return { success: true, data: { cliente: clienteActualizado } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }
@@ -92,11 +162,17 @@ export async function registrarCompraAdmin(
  */
 export async function registrarCompra(
   telefono: string,
-  nombre?: string
+  nombre?: string,
+  total?: number
 ): Promise<ActionResult<{ cliente: ClienteFidelizacion; cuponGenerado: CuponFidelizacion | null }>> {
   try {
     const tel = normalizePhone(sanitizePhone(telefono));
     if (!tel) return { success: false, error: 'Teléfono inválido.' };
+
+    // Mínimo L.100 para acumular sello (solo si se pasa total; admin omite este check)
+    if (total !== undefined && total < 100) {
+      return { success: false, error: `Compra de L.${total.toFixed(2)} no alcanza el mínimo de L.100 para acumular sello.` };
+    }
     const nombreLimpio = sanitizeText(nombre, 80);
 
     const supabase = createSupabaseServiceClient();

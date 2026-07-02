@@ -3,8 +3,8 @@
 import { useConfirm } from '@/components/admin/ConfirmProvider';
 
 import { useState, useTransition } from 'react';
-import { Search, Loader2, Plus, Award } from 'lucide-react';
-import { buscarCliente, registrarCompraAdmin, type ClienteFidelizacion, type CuponFidelizacion } from '@/actions/fidelizacion';
+import { Search, Loader2, Plus, Award, Merge } from 'lucide-react';
+import { buscarCliente, registrarCompraAdmin, fusionarClientes, type ClienteFidelizacion, type CuponFidelizacion } from '@/actions/fidelizacion';
 
 const LOYALTY_MAX = 10;
 
@@ -40,6 +40,13 @@ export default function FidelizacionPage() {
   const [addMsg,    setAddMsg]     = useState<string | null>(null);
   const [adding,    setAdding]     = useState(false);
 
+  // Merge state
+  const [showMerge,     setShowMerge]     = useState(false);
+  const [telFusion,     setTelFusion]     = useState('');
+  const [clienteFusion, setClienteFusion] = useState<ClienteFidelizacion | null>(null);
+  const [mergeLoading,  setMergeLoading]  = useState(false);
+  const [mergeMsg,      setMergeMsg]      = useState<string | null>(null);
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     if (!telefono.trim()) return;
@@ -69,6 +76,46 @@ export default function FidelizacionPage() {
       if (r.success) setEstado({ tipo: 'found', cliente: r.data.cliente, cupones: r.data.cupones });
     } else {
       setAddMsg(`Error: ${result.error}`);
+    }
+  }
+
+  async function handleBuscarFusion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!telFusion.trim()) return;
+    setMergeMsg(null);
+    setClienteFusion(null);
+    setMergeLoading(true);
+    const r = await buscarCliente(telFusion);
+    setMergeLoading(false);
+    if (r.success) setClienteFusion(r.data.cliente);
+    else setMergeMsg(`No encontrado: ${r.error}`);
+  }
+
+  async function handleFusionar() {
+    if (estado.tipo !== 'found' || !clienteFusion) return;
+    const origen  = clienteFusion.telefono;
+    const destino = estado.cliente.telefono;
+    const ok = await confirmar({
+      titulo: 'Fusionar clientes',
+      mensaje: `Se moverán los sellos y cupones de ${clienteFusion.nombre} (${origen}) a ${estado.cliente.nombre} (${destino}). El número ${origen} será eliminado. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Fusionar',
+    });
+    if (!ok) return;
+    setMergeLoading(true);
+    setMergeMsg(null);
+    const result = await fusionarClientes(origen, destino);
+    setMergeLoading(false);
+    if (result.success) {
+      setEstado({ tipo: 'found', cliente: result.data.cliente, cupones: [] });
+      // Refresh cupones
+      const r = await buscarCliente(destino);
+      if (r.success) setEstado({ tipo: 'found', cliente: r.data.cliente, cupones: r.data.cupones });
+      setShowMerge(false);
+      setTelFusion('');
+      setClienteFusion(null);
+      setAddMsg(`✓ Clientes fusionados. Sellos actuales: ${result.data.cliente.compras_actuales}/10`);
+    } else {
+      setMergeMsg(`Error: ${result.error}`);
     }
   }
 
@@ -154,13 +201,65 @@ export default function FidelizacionPage() {
                 </div>
               )}
 
-              {/* Action */}
-              <button
-                onClick={handleAgregarCompra} disabled={adding}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', opacity: adding ? 0.7 : 1 }}>
-                {adding ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Plus style={{ width: 15, height: 15 }} />}
-                Registrar compra manual
-              </button>
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <button
+                  onClick={handleAgregarCompra} disabled={adding}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', boxShadow: '0 6px 16px rgba(217,113,30,.28)', opacity: adding ? 0.7 : 1 }}>
+                  {adding ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Plus style={{ width: 15, height: 15 }} />}
+                  Registrar compra manual
+                </button>
+                <button
+                  onClick={() => { setShowMerge(v => !v); setMergeMsg(null); setClienteFusion(null); setTelFusion(''); }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper)', color: 'var(--ink-soft)' }}>
+                  <Merge style={{ width: 15, height: 15 }} />
+                  Fusionar número
+                </button>
+              </div>
+
+              {/* Merge panel */}
+              {showMerge && (
+                <div style={{ marginTop: 20, padding: 18, borderRadius: 'var(--r-md)', border: '1.5px solid var(--amber)', background: 'rgba(255,200,80,.06)' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--orange-ink)', marginBottom: 12 }}>
+                    Fusionar: mover sellos y cupones de otro número a <strong>{cliente.nombre}</strong> ({cliente.telefono})
+                  </p>
+                  <form onSubmit={handleBuscarFusion} style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+                    <input
+                      type="tel" value={telFusion} onChange={e => setTelFusion(e.target.value)}
+                      placeholder="Número a fusionar (será eliminado)"
+                      style={{ ...INP, flex: 1, fontSize: 13 }}
+                      onFocus={e => e.target.style.borderColor = 'var(--orange)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
+                    />
+                    <button type="submit" disabled={mergeLoading || !telFusion.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '10px 16px', borderRadius: 'var(--r-pill)', border: 'none', cursor: 'pointer', background: 'var(--choco-900)', color: '#fff', opacity: mergeLoading || !telFusion.trim() ? 0.6 : 1 }}>
+                      {mergeLoading ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> : <Search style={{ width: 14, height: 14 }} />}
+                      Buscar
+                    </button>
+                  </form>
+
+                  {mergeMsg && (
+                    <p style={{ fontSize: 13, color: mergeMsg.startsWith('Error') ? 'var(--berry)' : '#1f8a5b', marginBottom: 10 }}>{mergeMsg}</p>
+                  )}
+
+                  {clienteFusion && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '12px 16px' }}>
+                        <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', margin: '0 0 4px' }}>{clienteFusion.nombre} <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 400, fontSize: 12, color: 'var(--ink-soft)' }}>({clienteFusion.telefono})</span></p>
+                        <LoyaltyDots current={clienteFusion.compras_actuales} />
+                        <p style={{ fontSize: 12, color: 'var(--ink-soft)', marginTop: 6 }}>
+                          {clienteFusion.compras_totales} compras totales · Resultado fusión: <strong>{Math.min(clienteFusion.compras_actuales + cliente.compras_actuales, 10)}/10</strong> sellos
+                        </p>
+                      </div>
+                      <button onClick={handleFusionar} disabled={mergeLoading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 14, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: 'none', cursor: 'pointer', background: 'var(--berry)', color: '#fff', opacity: mergeLoading ? 0.7 : 1, alignSelf: 'flex-start' }}>
+                        {mergeLoading ? <Loader2 style={{ width: 15, height: 15, animation: 'spin 1s linear infinite' }} /> : <Merge style={{ width: 15, height: 15 }} />}
+                        Confirmar fusión
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Cupones */}

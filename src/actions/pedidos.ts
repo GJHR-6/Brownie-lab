@@ -101,13 +101,15 @@ export async function actualizarEstadoPedido(
 
     // Fetch datos necesarios antes del update
     let clienteDatos: { telefono?: string; nombre?: string } | null = null;
+    let totalPedido: number | undefined;
     if (estado === 'completado') {
       const { data } = await supabase
         .from('pedidos')
-        .select('cliente_datos')
+        .select('cliente_datos, total')
         .eq('id', id)
         .single();
       clienteDatos = data?.cliente_datos ?? null;
+      totalPedido = data?.total != null ? Number(data.total) : undefined;
     }
 
     const { error } = await supabase
@@ -128,7 +130,7 @@ export async function actualizarEstadoPedido(
       // Registrar sello de fidelización
       if (clienteDatos?.telefono) {
         try {
-          await registrarCompra(clienteDatos.telefono, clienteDatos.nombre);
+          await registrarCompra(clienteDatos.telefono, clienteDatos.nombre, totalPedido);
         } catch (err) {
           console.error('[Fidelización] Error registrando compra:', err);
         }
@@ -173,7 +175,7 @@ export async function marcarPedidosCompletados(ids: string[]): Promise<ActionRes
     // Fetch cliente_datos before bulk update to register loyalty stamps
     const { data: pedidos } = await supabase
       .from('pedidos')
-      .select('id, cliente_datos')
+      .select('id, cliente_datos, total')
       .in('id', ids)
       .neq('estado', 'completado');
 
@@ -186,8 +188,9 @@ export async function marcarPedidosCompletados(ids: string[]): Promise<ActionRes
         try { await descontarStockPedido(supabase, pedido.id); }
         catch (err) { console.error('[Stock] Error:', err); }
         const cd = pedido.cliente_datos as { telefono?: string; nombre?: string } | null;
+        const totalP = pedido.total != null ? Number(pedido.total) : undefined;
         if (cd?.telefono) {
-          try { await registrarCompra(cd.telefono, cd.nombre); }
+          try { await registrarCompra(cd.telefono, cd.nombre, totalP); }
           catch (err) { console.error('[Fidelización] Error:', err); }
         }
       })

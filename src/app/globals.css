@@ -221,12 +221,12 @@ img, svg { display: block; }
   50%       { transform: scale(1.1) rotate(7deg); }
 }
 
-/* Crossfade del carrusel de imágenes de producto */
+/* Slide del carrusel de imágenes de producto */
 @keyframes bl-img-fade {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from { opacity: 0; transform: translateX(14px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
-.bl-img-fade { animation: bl-img-fade .35s ease; }
+.bl-img-fade { animation: bl-img-fade .38s cubic-bezier(.25,.8,.25,1); }
 
 /* Personaliza responsive helpers */
 @media (max-width: 920px) {
