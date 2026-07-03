@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { rateLimitPersistente, rateLimitResponse } from '@/lib/rate-limit';
 
 const WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL ?? '';
 
@@ -10,7 +10,7 @@ export async function POST(req: Request) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0].trim()
     ?? req.headers.get('x-real-ip')
     ?? 'unknown';
-  if (!rateLimit(`cupon-validar:${ip}`, 10, 10 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`cupon-validar:${ip}`, 10, 10 * 60 * 1000))) {
     return rateLimitResponse();
   }
 

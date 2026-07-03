@@ -304,7 +304,9 @@ export async function crearPedidoManual(
       await notificarNuevoPedido({
         id: data.id,
         total,
-        items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
+        // Pedido creado por admin: se pasa producto_id real para no marcar
+        // como "manual" items del catálogo en el correo.
+        items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad, producto_id: i.producto_id || null })),
         cliente: {
           nombre:        cliente_datos.nombre,
           telefono:      cliente_datos.telefono,

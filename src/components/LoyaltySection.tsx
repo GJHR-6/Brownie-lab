@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useState, useTransition } from 'react';
+import { useHydrated } from '@/hooks/useHydrated';
 import { buscarCliente } from '@/actions/fidelizacion';
 import type { ClienteFidelizacion, CuponFidelizacion } from '@/actions/fidelizacion';
 import { Copy, Check, Loader2, ChevronRight, Award, Share, Smartphone } from 'lucide-react';
@@ -15,56 +16,6 @@ function detectarPlataforma(): Plataforma {
   if (/android/i.test(ua)) return 'android';
   if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
   return 'desktop';
-}
-
-// ── Stamp grid ────────────────────────────────────────────────────────────────
-
-function SelloGrid({ actual }: { actual: number }) {
-  return (
-    <div className="grid grid-cols-5 gap-2.5 sm:gap-3">
-      {Array.from({ length: 10 }, (_, i) => {
-        const ganado = i < actual;
-        return (
-          <div
-            key={i}
-            className={`
-              aspect-square rounded-full flex items-center justify-center
-              text-xl sm:text-2xl transition-all duration-500
-              ${ganado
-                ? 'bg-amber-700 shadow-lg shadow-amber-700/40 scale-105 ring-2 ring-amber-400/50'
-                : 'bg-stone-100 border-2 border-dashed border-stone-300'
-              }
-            `}
-          >
-            {ganado
-              ? <span role="img" aria-label="sello ganado">🍪</span>
-              : <span className="text-xs font-semibold text-stone-400">{i + 1}</span>
-            }
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ── Barra de progreso ─────────────────────────────────────────────────────────
-
-function BarraProgreso({ actual }: { actual: number }) {
-  const pct = Math.min((actual / 10) * 100, 100);
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between text-xs text-stone-500">
-        <span>{actual} de 10 sellos</span>
-        <span>{pct.toFixed(0)}%</span>
-      </div>
-      <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all duration-700"
-          style={{ width: `${pct}%` }}
-        />
-      </div>
-    </div>
-  );
 }
 
 // ── Botón copiar ──────────────────────────────────────────────────────────────
@@ -141,7 +92,7 @@ function SeccionGuardar({ telefono, plataforma }: { telefono: string; plataforma
           Añade esta página a tu pantalla de inicio
         </p>
         <p className="text-xs text-blue-600 leading-relaxed">
-          Toca <strong>Compartir</strong> en Safari → <strong>"Añadir a pantalla de inicio"</strong> para acceder rápido a tu tarjeta de sellos.
+          Toca <strong>Compartir</strong> en Safari → <strong>&ldquo;Añadir a pantalla de inicio&rdquo;</strong> para acceder rápido a tu tarjeta de sellos.
         </p>
       </div>
     );
@@ -298,13 +249,11 @@ type Estado =
 export default function LoyaltySection({ onClienteFound }: { onClienteFound?: (sellos: number) => void } = {}) {
   const [estado, setEstado] = useState<Estado>({ tipo: 'idle' });
   const [telefono, setTelefono] = useState('');
-  const [plataforma, setPlataforma] = useState<Plataforma>('desktop');
   const [isPending, startTransition] = useTransition();
 
   // Detectar plataforma client-side (navigator no existe en SSR)
-  useEffect(() => {
-    setPlataforma(detectarPlataforma());
-  }, []);
+  const hydrated = useHydrated();
+  const plataforma: Plataforma = hydrated ? detectarPlataforma() : 'desktop';
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

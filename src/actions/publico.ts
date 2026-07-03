@@ -3,7 +3,7 @@
 import { headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
+import { rateLimitPersistente, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
@@ -19,7 +19,7 @@ export async function validarPromocion(
   codigo: string
 ): Promise<ActionResult<{ codigo: string; descuento_porcentaje: number }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`promo:${ip}`, 10, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`promo:${ip}`, 10, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -68,7 +68,7 @@ export async function buscarPedidosPorTelefono(
   telefono: string
 ): Promise<ActionResult<PedidoTracking[]>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`track:${ip}`, 20, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`track:${ip}`, 20, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -93,7 +93,7 @@ export async function buscarPedidoPorCodigo(
   codigo: string
 ): Promise<ActionResult<PedidoTracking | null>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`track-code:${ip}`, 15, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`track-code:${ip}`, 15, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -209,7 +209,7 @@ export async function crearPedidoPublico(
   envioInput?: EnvioInput | null
 ): Promise<ActionResult<{ id: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`order:${ip}`, 5, 60 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`order:${ip}`, 5, 60 * 60 * 1000))) {
     return { success: false, error: 'Demasiados pedidos. Intenta más tarde.' };
   }
 
@@ -408,7 +408,10 @@ export async function crearPedidoPublico(
     const totalAntesGiftCard = Math.round((subtotalReal - descuento + costoEnvio) * 100) / 100;
     if (totalAntesGiftCard <= 0) return { success: false, error: 'Total inválido.' };
 
-    // ── 6.6 Redimir tarjeta de regalo (si se aplicó) ──────────────────────────
+    // ── 6.6 Validar tarjeta de regalo (si se aplicó) ──────────────────────────
+    // Solo se valida y calcula aquí; la redención (descuento de saldo) ocurre
+    // DESPUÉS de insertar el pedido, para que un fallo del insert nunca queme
+    // saldo del cliente sin pedido creado.
     let giftCardDescuento = 0;
     let giftCardCodigoAplicado: string | undefined;
     if (sanitizedDatos.gift_card_codigo) {
@@ -423,11 +426,7 @@ export async function crearPedidoPublico(
         return { success: false, error: 'La tarjeta de regalo no es válida o no tiene saldo.' };
       }
 
-      const montoADeducir = Math.min(Number(gc.saldo), totalAntesGiftCard);
-      const redencion = await redimirGiftCard(codigoGC, montoADeducir);
-      if (!redencion.success) return { success: false, error: redencion.error };
-
-      giftCardDescuento = montoADeducir;
+      giftCardDescuento = Math.min(Number(gc.saldo), totalAntesGiftCard);
       giftCardCodigoAplicado = codigoGC;
     }
 
@@ -467,6 +466,8 @@ export async function crearPedidoPublico(
       .single();
 
     if (error?.code === '23505' && idempotencyKey) {
+      // Doble envío simultáneo: el otro request ya creó el pedido (y redimió
+      // la gift card si aplicaba) — devolver el existente sin redimir de nuevo.
       const { data: existing } = await supabase
         .from('pedidos')
         .select('id')
@@ -476,6 +477,17 @@ export async function crearPedidoPublico(
     }
 
     if (error) return { success: false, error: error.message };
+
+    // ── 7.5 Redimir gift card ahora que el pedido existe ─────────────────────
+    // Si la redención falla (saldo consumido por una compra concurrente), se
+    // elimina el pedido recién creado y el cliente puede reintentar.
+    if (giftCardCodigoAplicado && giftCardDescuento > 0) {
+      const redencion = await redimirGiftCard(giftCardCodigoAplicado, giftCardDescuento);
+      if (!redencion.success) {
+        await supabase.from('pedidos').delete().eq('id', data.id);
+        return { success: false, error: redencion.error ?? 'No se pudo redimir la tarjeta de regalo. Intenta de nuevo.' };
+      }
+    }
 
     await supabase.from('pedido_items').insert(
       sanitizedItems.map(item => ({
@@ -502,15 +514,15 @@ export async function notificarPedidoCreado(id: string): Promise<void> {
     const supabase = createSupabaseServiceClient();
     const { data: pedido } = await supabase
       .from('pedidos')
-      .select('*, pedido_items(nombre_producto, precio_unitario, cantidad)')
+      .select('*, pedido_items(nombre_producto, precio_unitario, cantidad, producto_id)')
       .eq('id', id)
       .single();
 
     if (!pedido) return;
 
     const cd = (pedido.cliente_datos ?? {}) as Record<string, string | undefined>;
-    const items = ((pedido.pedido_items ?? []) as Array<{ nombre_producto: string; precio_unitario: number; cantidad: number }>)
-      .map(i => ({ nombre: i.nombre_producto, precio: Number(i.precio_unitario), cantidad: i.cantidad }));
+    const items = ((pedido.pedido_items ?? []) as Array<{ nombre_producto: string; precio_unitario: number; cantidad: number; producto_id: string | null }>)
+      .map(i => ({ nombre: i.nombre_producto, precio: Number(i.precio_unitario), cantidad: i.cantidad, producto_id: i.producto_id ?? null }));
 
     await notificarNuevoPedido({
       id: pedido.id,
@@ -542,7 +554,7 @@ export async function subirComprobante(
   formData: FormData
 ): Promise<ActionResult<{ url: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`comprobante:${ip}`, 5, 60 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`comprobante:${ip}`, 5, 60 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos.' };
   }
 

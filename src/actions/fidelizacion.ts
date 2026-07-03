@@ -3,7 +3,7 @@
 import { headers } from 'next/headers';
 import { requireAdmin } from '@/lib/adminAuth';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
+import { rateLimitPersistente, getIpFromHeaders } from '@/lib/rate-limit';
 import { actualizarGoogleWalletObject } from '@/lib/wallet/google';
 import { sanitizePhone, sanitizeText, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
@@ -52,7 +52,7 @@ export async function buscarCliente(
 ): Promise<BuscarClienteResult> {
   try {
     const ip = getIpFromHeaders(await headers());
-    if (!rateLimit(`club:${ip}`, 20, 5 * 60 * 1000)) {
+    if (!(await rateLimitPersistente(`club:${ip}`, 20, 5 * 60 * 1000))) {
       return { success: false, error: 'Demasiados intentos. Espera unos minutos.', similares: [] };
     }
 
@@ -227,32 +227,19 @@ export async function registrarCompra(
 
     const supabase = createSupabaseServiceClient();
 
-    // Leer estado actual
-    const { data: actual } = await supabase
-      .from('clientes')
-      .select('compras_actuales, compras_totales, nombre')
-      .eq('telefono', tel)
-      .single();
-
-    const comprasActuales = actual?.compras_actuales ?? 0;
-    const llego10 = comprasActuales + 1 >= 10;
-
-    // Upsert cliente
-    const { data: cliente, error } = await supabase
-      .from('clientes')
-      .upsert(
-        {
-          telefono: tel,
-          nombre: nombreLimpio || actual?.nombre || '',
-          compras_actuales: llego10 ? 0 : comprasActuales + 1,
-          compras_totales: (actual?.compras_totales ?? 0) + 1,
-        },
-        { onConflict: 'telefono' }
-      )
-      .select()
-      .single();
+    // Suma de sello atómica en BD (evita perder sellos con completados
+    // concurrentes del mismo cliente).
+    const { data: rows, error } = await supabase.rpc('registrar_compra_fidelizacion', {
+      telefono_input: tel,
+      nombre_input: nombreLimpio || null,
+    });
 
     if (error) return { success: false, error: error.message };
+
+    const resultado = (rows ?? [])[0] as (ClienteFidelizacion & { llego_10: boolean }) | undefined;
+    if (!resultado) return { success: false, error: 'No se pudo registrar la compra.' };
+
+    const { llego_10: llego10, ...cliente } = resultado;
 
     // Sync Google Wallet pass — fallo no bloquea el flujo
     actualizarGoogleWalletObject(cliente).catch((err) =>

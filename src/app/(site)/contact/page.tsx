@@ -39,8 +39,6 @@ const VALORES = [
 export default async function NosotrosPage() {
   const config = await getConfiguracion();
   const whatsapp = config?.whatsapp || storeConfig.whatsapp;
-  const instagram = config?.instagram || storeConfig.social.instagram;
-  const facebook = config?.facebook || storeConfig.social.facebook;
 
   return (
     <div>

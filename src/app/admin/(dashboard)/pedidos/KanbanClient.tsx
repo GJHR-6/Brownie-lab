@@ -115,7 +115,7 @@ export default function KanbanClient({ initialPedidos, productos, toppings, view
   }, [columns]);
 
   const total = initialPedidos.length;
-  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id: string) => setSelectedIds(prev => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
 
   const handleCancel = useCallback(async (pedidoId: string) => {
     if (!(await confirmar({ titulo: 'Cancelar pedido', mensaje: 'El pedido quedará marcado como cancelado y desaparecerá del tablero.', confirmLabel: 'Cancelar pedido', cancelLabel: 'Volver', peligro: true }))) return;

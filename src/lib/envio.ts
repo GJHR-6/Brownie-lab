@@ -72,7 +72,7 @@ export function calcularEnvio(config: ConfigEnvio, lat: number, lng: number, sub
  * Fallback sin GPS: el cliente elige la sede manualmente → envío sin costo
  * (no se cobra distancia porque no se conoce la ubicación real del cliente).
  */
-export function calcularEnvioPorSede(config: ConfigEnvio, nombreSede: string, subtotal: number): ResultadoEnvio | null {
+export function calcularEnvioPorSede(config: ConfigEnvio, nombreSede: string): ResultadoEnvio | null {
   const sede = config.sedes.find(s => s.nombre === nombreSede);
   if (!sede) return null;
 

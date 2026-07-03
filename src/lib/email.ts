@@ -15,6 +15,8 @@ export interface PedidoEmailItem {
   nombre: string;
   precio: number;
   cantidad: number;
+  // null/ausente = item fuera del catálogo (precio definido por el cliente)
+  producto_id?: string | null;
 }
 
 export interface PedidoEmailData {
@@ -60,7 +62,7 @@ function buildEmailHtml(pedido: PedidoEmailData): string {
     .map(
       item => `
       <tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #f0ece4;">${item.nombre}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #f0ece4;">${item.nombre}${item.producto_id === null || item.producto_id === undefined ? ' <span style="font-size:11px;font-weight:bold;color:#92400e;background:#fef3c7;border-radius:6px;padding:2px 6px;">⚠ manual — verificar precio</span>' : ''}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #f0ece4;text-align:center;">${item.cantidad}</td>
         <td style="padding:6px 12px;border-bottom:1px solid #f0ece4;text-align:right;">L. ${(item.precio * item.cantidad).toFixed(2)}</td>
       </tr>`

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { storeConfig } from "@/config/store";
 import { getConfiguracion } from "@/lib/data";
 import BLIcon from "@/components/BLIcon";
@@ -34,8 +35,7 @@ export default async function Footer() {
             style={{ color: "var(--amber)" }}
           >
             {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt={storeName} style={{ height: 36, width: "auto", objectFit: "contain", maxWidth: 160 }} />
+              <Image src={logoUrl} alt={storeName} width={160} height={36} style={{ height: 36, width: "auto", objectFit: "contain", maxWidth: 160 }} />
             ) : (
               <>
                 <BLIcon name="mark" size={32} />

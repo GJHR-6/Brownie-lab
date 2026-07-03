@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
+import { useHydrated } from "@/hooks/useHydrated";
 import { useCartStore } from "@/lib/cartStore";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import BLIcon from "@/components/BLIcon";
@@ -12,7 +13,7 @@ export default function Navbar({ logoUrl, storeName = "Brownie Lab" }: { logoUrl
   const router         = useRouter();
   const itemCount      = useCartStore((s) => s.itemCount());
   const wishlistCount  = useWishlistStore((s) => s.count());
-  const [mounted,      setMounted]     = useState(false);
+  const mounted = useHydrated();
   const [menuOpen,     setMenuOpen]    = useState(false);
   const [searchOpen,   setSearchOpen]  = useState(false);
   const [searchQuery,  setSearchQuery] = useState("");
@@ -42,8 +43,6 @@ export default function Navbar({ logoUrl, storeName = "Brownie Lab" }: { logoUrl
     setSearchQuery("");
     router.push(`/menu?q=${encodeURIComponent(q)}`);
   }
-
-  useEffect(() => setMounted(true), []);
 
   const links: { href: string; label: string; icon?: "sparkle" | "truck" }[] = [
     { href: "/", label: "Inicio" },

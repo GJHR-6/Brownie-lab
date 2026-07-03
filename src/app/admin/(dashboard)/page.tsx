@@ -140,8 +140,6 @@ export default async function AdminDashboardPage({
     {} as Record<EstadoPedido, number>
   );
 
-  const pedidosActivos = porEstado.pendiente + porEstado.preparacion + porEstado.listo;
-
   const thirtyDaysAgo = new Date(now);
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
   const dailyMap: Record<string, number> = {};

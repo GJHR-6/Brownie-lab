@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import BLIcon from "@/components/BLIcon";
 
 const KEY = "bl_gift_opened_v1";
-let _introShown = false; // guards against React 18 Strict Mode double-effect
-type Phase = "idle" | "visible" | "opening" | "welcome" | "done" | "gone";
+type Phase = "visible" | "opening" | "welcome" | "done" | "gone";
 
 function overlayClass(phase: Phase) {
   if (phase === "opening") return "gift opening";
@@ -14,45 +13,58 @@ function overlayClass(phase: Phase) {
   return "gift";
 }
 
+const emptySubscribe = () => () => {};
+
 export default function GiftIntro() {
-  const [phase, setPhase] = useState<Phase>("idle");
+  // ¿Ya vio la intro? localStorage como external store; en SSR se asume que sí
+  // (no se renderiza overlay hasta hidratar).
+  const yaVista = useSyncExternalStore(
+    emptySubscribe,
+    () => { try { return localStorage.getItem(KEY) === "1"; } catch { return true; } },
+    () => true
+  );
+  // null = sin interacción: la fase inicial se deriva de yaVista.
+  const [phaseManual, setPhase] = useState<Phase | null>(null);
+  const phase: Phase = phaseManual ?? (yaVista ? "gone" : "visible");
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
+  const isVisible = phase !== "gone";
+
+  // Bloquear scroll del body mientras el overlay está activo.
   useEffect(() => {
-    if (!_introShown) {
-      let seen = false;
-      try { seen = localStorage.getItem(KEY) === "1"; } catch {}
-      if (!seen) {
-        _introShown = true;
-        setPhase("visible");
-        document.body.style.overflow = "hidden";
-      }
-    }
-    return () => timers.current.forEach(clearTimeout);
+    document.body.style.overflow = isVisible ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isVisible]);
+
+  useEffect(() => {
+    // El array de timers nunca se reasigna (solo se muta), así el cleanup
+    // capturado aquí siempre ve los timeouts vigentes al desmontar.
+    const pendientes = timers.current;
+    return () => pendientes.forEach(clearTimeout);
   }, []);
 
-  function show() {
+  function cancelarTimers() {
     timers.current.forEach(clearTimeout);
-    timers.current = [];
+    timers.current.length = 0;
+  }
+
+  function show() {
+    cancelarTimers();
     setPhase("visible");
-    document.body.style.overflow = "hidden";
   }
 
   function open() {
-    timers.current.forEach(clearTimeout);
+    cancelarTimers();
     setPhase("opening");
-    timers.current = [
+    timers.current.push(
       setTimeout(() => setPhase("welcome"), 750),
       setTimeout(() => setPhase("done"), 2700),
       setTimeout(() => {
         setPhase("gone");
-        document.body.style.overflow = "";
         try { localStorage.setItem(KEY, "1"); } catch {}
       }, 3500),
-    ];
+    );
   }
-
-  const isVisible = phase !== "idle" && phase !== "gone";
 
   return (
     <>

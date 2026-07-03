@@ -149,7 +149,7 @@ export async function actualizarGoogleWalletObject(cliente: ClienteFidelizacion)
     ],
   };
 
-  await (authClient as any).request({
+  await authClient.request({
     url:    `https://walletobjects.googleapis.com/walletobjects/v1/loyaltyObject/${encodeURIComponent(objectId)}`,
     method: 'PATCH',
     data:   patch,
@@ -192,11 +192,11 @@ export async function crearLoyaltyClass(): Promise<void> {
     },
   };
 
-  const res = await (client as any).request({
+  const res = await client.request<{ id?: string }>({
     url:    'https://walletobjects.googleapis.com/walletobjects/v1/loyaltyClass',
     method: 'POST',
     data:   loyaltyClass,
   });
 
-  console.log('LoyaltyClass creada:', res.data.id);
+  console.log('LoyaltyClass creada:', res.data?.id);
 }

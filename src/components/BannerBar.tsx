@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useSyncExternalStore } from "react";
 import BLIcon from "@/components/BLIcon";
 
 interface BannerBarProps {
@@ -8,17 +8,23 @@ interface BannerBarProps {
   bannerId: string;
 }
 
-export default function BannerBar({ mensaje, bannerId }: BannerBarProps) {
-  const [visible, setVisible] = useState(false);
+const emptySubscribe = () => () => {};
 
-  useEffect(() => {
-    const key = `banner-dismissed-${bannerId}`;
-    if (!sessionStorage.getItem(key)) setVisible(true);
-  }, [bannerId]);
+export default function BannerBar({ mensaje, bannerId }: BannerBarProps) {
+  const key = `banner-dismissed-${bannerId}`;
+  // Lectura de sessionStorage como external store: en SSR se asume descartado
+  // (oculto) y en cliente se lee el valor real sin render doble.
+  const descartadoGuardado = useSyncExternalStore(
+    emptySubscribe,
+    () => sessionStorage.getItem(key) === "1",
+    () => true
+  );
+  const [descartadoAhora, setDescartadoAhora] = useState(false);
+  const visible = !descartadoGuardado && !descartadoAhora;
 
   function dismiss() {
-    sessionStorage.setItem(`banner-dismissed-${bannerId}`, "1");
-    setVisible(false);
+    sessionStorage.setItem(key, "1");
+    setDescartadoAhora(true);
   }
 
   if (!visible) return null;
