@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { storeConfig } from "@/config/store";
 import { getConfiguracion } from "@/lib/data";
 import BLIcon from "@/components/BLIcon";
@@ -6,9 +7,9 @@ import BLIcon from "@/components/BLIcon";
 export default async function Footer() {
   const config = await getConfiguracion();
   const whatsapp  = config?.whatsapp  || storeConfig.whatsapp;
-  const instagram = config?.instagram || storeConfig.social.instagram;
-  const facebook  = config?.facebook  || storeConfig.social.facebook;
-  const tiktok    = config?.tiktok    || storeConfig.social.tiktok || "";
+  const instagram = config?.instagram || "";
+  const facebook  = config?.facebook  || "";
+  const tiktok    = config?.tiktok    || "";
   const logoUrl      = config?.logo_url  ?? null;
   const storeName    = config?.nombre    || storeConfig.name;
   const correo       = config?.correo    || "";
@@ -34,8 +35,7 @@ export default async function Footer() {
             style={{ color: "var(--amber)" }}
           >
             {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logoUrl} alt={storeName} style={{ height: 36, width: "auto", objectFit: "contain", maxWidth: 160 }} />
+              <Image src={logoUrl} alt={storeName} width={160} height={36} style={{ height: 36, width: "auto", objectFit: "contain", maxWidth: 160 }} />
             ) : (
               <>
                 <BLIcon name="mark" size={32} />
@@ -128,13 +128,7 @@ function SocialIcon({ url, name, label }: { url?: string; name: "instagram" | "f
       </a>
     );
   }
-  return (
-    <span aria-label={`${label} — próximamente`} title={`${label} — próximamente`}
-      className="w-[42px] h-[42px] rounded-full grid place-items-center border"
-      style={{ color: "var(--hairline-dark)", borderColor: "var(--hairline-dark)", opacity: 0.4, cursor: "not-allowed" }}>
-      <BLIcon name={name} size={20} />
-    </span>
-  );
+  return null;
 }
 
 function FooterCol({ title, children }: { title: string; children: React.ReactNode }) {

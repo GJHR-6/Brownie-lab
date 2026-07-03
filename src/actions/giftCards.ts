@@ -1,9 +1,9 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { headers } from 'next/headers';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
+import { rateLimitPersistente, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, isValidHonduranPhone, normalizePhone, sanitizePromoCode } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { GiftCard } from '@/types/database';
@@ -16,12 +16,6 @@ function generarCodigoGiftCard(): string {
   return `BL-GC-${segmento()}-${segmento()}`;
 }
 
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-}
-
 // ── Compra de tarjeta de regalo ───────────────────────────────────────────────
 
 export async function crearGiftCard(input: {
@@ -32,7 +26,7 @@ export async function crearGiftCard(input: {
   mensaje?: string;
 }): Promise<ActionResult<{ codigo: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`giftcard:create:${ip}`, 5, 60 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`giftcard:create:${ip}`, 5, 60 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Intenta más tarde.' };
   }
 
@@ -91,7 +85,7 @@ export async function validarGiftCard(
   codigo: string
 ): Promise<ActionResult<{ codigo: string; saldo: number }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`giftcard:validate:${ip}`, 15, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`giftcard:validate:${ip}`, 15, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 

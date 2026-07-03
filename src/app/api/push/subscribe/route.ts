@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from '@/lib/supabase/server';
-import { rateLimit, rateLimitResponse } from '@/lib/rate-limit';
+import { rateLimitPersistente, rateLimitResponse } from '@/lib/rate-limit';
 import { isValidPushEndpoint, isValidBase64 } from '@/lib/sanitize';
 import { NextRequest } from 'next/server';
 
@@ -8,7 +8,7 @@ export async function POST(request: NextRequest): Promise<Response> {
     ?? request.headers.get('x-real-ip')
     ?? 'unknown';
 
-  if (!rateLimit(`push-subscribe:${ip}`, 5, 60 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`push-subscribe:${ip}`, 5, 60 * 60 * 1000))) {
     return rateLimitResponse();
   }
 

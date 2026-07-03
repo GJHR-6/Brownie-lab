@@ -1,16 +1,9 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Promocion } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return { supabase };
-}
 
 export async function getPromociones(): Promise<Promocion[]> {
   const { supabase } = await requireAdmin();

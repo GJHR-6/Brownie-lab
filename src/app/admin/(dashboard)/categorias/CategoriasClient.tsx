@@ -5,7 +5,7 @@ import { useConfirm } from '@/components/admin/ConfirmProvider';
 import { useState, useCallback, useTransition, useActionState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X, Pencil } from 'lucide-react';
-import { createCategoria, updateCategoria, deleteCategoria } from '@/actions/categorias';
+import { createCategoria, updateCategoria } from '@/actions/categorias';
 import type { Categoria } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
 

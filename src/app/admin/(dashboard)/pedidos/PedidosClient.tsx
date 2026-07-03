@@ -261,7 +261,17 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
                     <div style={{ width: 30, height: 30, borderRadius: 8, background: 'var(--cream)', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 13, color: 'var(--orange-ink)', flexShrink: 0 }}>
                       {item.cantidad}
                     </div>
-                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{item.nombre}</span>
+                    <span style={{ flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
+                      {item.nombre}
+                      {!item.producto_id && (
+                        <span
+                          title="Item sin producto del catálogo — el precio lo definió el cliente. Verificar antes de preparar."
+                          style={{ marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#92400e', background: '#fef3c7', border: '1px solid #fcd34d', borderRadius: 6, padding: '2px 6px', verticalAlign: 'middle', whiteSpace: 'nowrap' }}
+                        >
+                          ⚠ manual
+                        </span>
+                      )}
+                    </span>
                     <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 14, color: 'var(--orange-ink)' }}>
                       L.{Number(item.subtotal).toFixed(2)}
                     </span>

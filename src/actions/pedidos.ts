@@ -1,5 +1,6 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Pedido, EstadoPedido, EstadoPago, PedidoItem, OrigenPedido } from '@/types/database';
@@ -8,6 +9,8 @@ import { registrarCompra } from './fidelizacion';
 import type { ActionResult } from '@/types/actions';
 import { normalizePhone } from '@/lib/sanitize';
 import { notificarNuevoPedido } from '@/lib/email';
+import { createSupabaseServiceClient } from '@/lib/supabase/service';
+import { COMPROBANTES_BUCKET, COMPROBANTE_URL_TTL } from '@/lib/comprobantes';
 
 type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -37,15 +40,6 @@ async function descontarStockPedido(supabase: SupabaseClient, pedidoId: string) 
   );
 }
 
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return { supabase, user };
-}
-
 // No exportar: archivos 'use server' solo permiten exportar funciones async.
 // El tamaño de página viaja en el resultado (pageSize).
 const PEDIDOS_PAGE_SIZE = 100;
@@ -70,12 +64,37 @@ export async function getPedidos(page = 1): Promise<PedidosPaginados> {
     .range(from, from + PEDIDOS_PAGE_SIZE - 1);
 
   if (error) throw new Error(error.message);
+
+  const pedidos = (data ?? []).map(normalizePedido);
+  await firmarComprobantes(pedidos);
+
   return {
-    pedidos: (data ?? []).map(normalizePedido),
+    pedidos,
     total: count ?? 0,
     page: safePage,
     pageSize: PEDIDOS_PAGE_SIZE,
   };
+}
+
+// Convierte paths del bucket privado de comprobantes en signed URLs para
+// mostrarlos en el admin. URLs legacy (públicas, http...) pasan tal cual.
+async function firmarComprobantes(pedidos: Pedido[]): Promise<void> {
+  const paths = pedidos
+    .map(p => p.comprobante_url)
+    .filter((v): v is string => !!v && !/^https?:\/\//i.test(v));
+  if (!paths.length) return;
+
+  const service = createSupabaseServiceClient();
+  const { data: firmadas } = await service.storage
+    .from(COMPROBANTES_BUCKET)
+    .createSignedUrls([...new Set(paths)], COMPROBANTE_URL_TTL);
+
+  const porPath = new Map((firmadas ?? []).map(f => [f.path, f.signedUrl]));
+  for (const p of pedidos) {
+    if (p.comprobante_url && porPath.has(p.comprobante_url)) {
+      p.comprobante_url = porPath.get(p.comprobante_url) ?? p.comprobante_url;
+    }
+  }
 }
 
 function normalizePedido(p: Record<string, unknown>): Pedido {
@@ -285,7 +304,9 @@ export async function crearPedidoManual(
       await notificarNuevoPedido({
         id: data.id,
         total,
-        items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad })),
+        // Pedido creado por admin: se pasa producto_id real para no marcar
+        // como "manual" items del catálogo en el correo.
+        items: items.map(i => ({ nombre: i.nombre, precio: i.precio, cantidad: i.cantidad, producto_id: i.producto_id || null })),
         cliente: {
           nombre:        cliente_datos.nombre,
           telefono:      cliente_datos.telefono,

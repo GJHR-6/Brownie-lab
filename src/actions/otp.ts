@@ -3,7 +3,7 @@
 import { createHash, randomInt } from 'crypto';
 import { headers } from 'next/headers';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
+import { rateLimitPersistente, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizePhone, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import { setOtpSession } from '@/lib/otpSession';
 import { enviarCodigoOtpWhatsApp } from './whatsapp';
@@ -20,7 +20,7 @@ export async function generarOtp(
   telefono: string
 ): Promise<ActionResult<{ devCode?: string; sinVerificacion?: boolean; telefono?: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`otp:send:${ip}`, 5, 15 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`otp:send:${ip}`, 5, 15 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -30,7 +30,7 @@ export async function generarOtp(
   }
   const tel = normalizePhone(cleanPhone);
 
-  if (!rateLimit(`otp:send:${tel}`, 3, 10 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`otp:send:${tel}`, 3, 10 * 60 * 1000))) {
     return { success: false, error: 'Ya enviamos un código a este número. Espera unos minutos antes de pedir otro.' };
   }
 
@@ -66,7 +66,7 @@ export async function verificarOtp(
   code: string
 ): Promise<ActionResult<{ telefono: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`otp:verify:${ip}`, 10, 15 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`otp:verify:${ip}`, 10, 15 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 

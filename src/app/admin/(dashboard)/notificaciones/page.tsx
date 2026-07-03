@@ -1,7 +1,7 @@
 'use client';
 
 import { useActionState, useEffect, useState } from 'react';
-import { Bell, Send, Loader2, Users } from 'lucide-react';
+import { Send, Loader2, Users } from 'lucide-react';
 import { enviarNotificacion } from '@/actions/notificaciones';
 
 const INP: React.CSSProperties = {

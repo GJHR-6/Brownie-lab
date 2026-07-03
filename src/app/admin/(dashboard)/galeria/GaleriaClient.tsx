@@ -20,7 +20,6 @@ const ImageIcon = () => (
 function UsageBadge({ label }: { label: string }) {
   const isProduct     = label.startsWith('Producto:');
   const isEspecial    = label.startsWith('Especial:');
-  const isSite        = !isProduct && !isEspecial;
 
   const color = isProduct  ? { bg: '#dbeafe', fg: '#1d5fb8' }
               : isEspecial ? { bg: 'var(--cream-200)', fg: 'var(--orange-ink)' }

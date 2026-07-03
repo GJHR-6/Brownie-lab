@@ -1,7 +1,7 @@
 'use server';
 
+import { requireAdmin } from '@/lib/adminAuth';
 import { revalidatePath } from 'next/cache';
-import { createSupabaseServerClient } from '@/lib/supabase/server';
 import type { Gasto, GastoCategoria } from '@/types/database';
 import type { ActionResult } from '@/types/actions';
 import { logActividad } from './actividad';
@@ -9,15 +9,6 @@ import { logActividad } from './actividad';
 const CATEGORIAS_GASTO: ReadonlySet<string> = new Set([
   'ingredientes', 'empaque', 'delivery', 'servicios', 'equipo', 'marketing', 'otros',
 ]);
-
-async function requireAdmin() {
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error('No autorizado');
-  return { supabase, user };
-}
 
 export async function getGastos(desde?: string, hasta?: string): Promise<Gasto[]> {
   const { supabase } = await requireAdmin();

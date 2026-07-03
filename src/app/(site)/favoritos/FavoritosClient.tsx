@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useEffect } from "react";
+import { useMemo } from "react";
+import { useHydrated } from "@/hooks/useHydrated";
 import Link from "next/link";
 import { useWishlistStore } from "@/lib/wishlistStore";
 import ProductCard from "@/components/ProductCard";
@@ -9,8 +10,7 @@ import type { Producto } from "@/types/database";
 
 export default function FavoritosClient({ productos }: { productos: Producto[] }) {
   const ids        = useWishlistStore((s) => s.ids);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useHydrated();
 
   const favoritos = useMemo(
     () => productos.filter((p) => ids.includes(p.id)),

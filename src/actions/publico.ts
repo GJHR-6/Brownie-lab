@@ -3,13 +3,14 @@
 import { headers } from 'next/headers';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { rateLimit, getIpFromHeaders } from '@/lib/rate-limit';
+import { rateLimitPersistente, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
 import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
 import { parseConfigEnvio, calcularEnvio, calcularEnvioPorZona, type ConfigEnvio } from '@/lib/envio';
 import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 import { notificarNuevoPedido } from '@/lib/email';
+import { resolveComprobanteUrl, COMPROBANTES_BUCKET, COMPROBANTE_EMAIL_TTL } from '@/lib/comprobantes';
 import { redimirGiftCard } from './giftCards';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
@@ -18,7 +19,7 @@ export async function validarPromocion(
   codigo: string
 ): Promise<ActionResult<{ codigo: string; descuento_porcentaje: number }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`promo:${ip}`, 10, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`promo:${ip}`, 10, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -38,11 +39,8 @@ export async function validarPromocion(
     if (!data.activa)             return { success: false, error: 'Este código ya no está activo.' };
     if (data.usos_restantes <= 0) return { success: false, error: 'Este código no tiene usos disponibles.' };
 
-    await supabase
-      .from('promociones')
-      .update({ usos_restantes: data.usos_restantes - 1 })
-      .eq('id', data.id);
-
+    // Solo valida — el uso se consume atómicamente al crear el pedido
+    // (consumir_promocion en crearPedidoPublico).
     return { success: true, data: { codigo: data.codigo, descuento_porcentaje: data.descuento_porcentaje } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
@@ -70,7 +68,7 @@ export async function buscarPedidosPorTelefono(
   telefono: string
 ): Promise<ActionResult<PedidoTracking[]>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`track:${ip}`, 20, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`track:${ip}`, 20, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -95,7 +93,7 @@ export async function buscarPedidoPorCodigo(
   codigo: string
 ): Promise<ActionResult<PedidoTracking | null>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`track-code:${ip}`, 15, 5 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`track-code:${ip}`, 15, 5 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos. Espera unos minutos.' };
   }
 
@@ -211,7 +209,7 @@ export async function crearPedidoPublico(
   envioInput?: EnvioInput | null
 ): Promise<ActionResult<{ id: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`order:${ip}`, 5, 60 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`order:${ip}`, 5, 60 * 60 * 1000))) {
     return { success: false, error: 'Demasiados pedidos. Intenta más tarde.' };
   }
 
@@ -251,6 +249,17 @@ export async function crearPedidoPublico(
 
   try {
     const supabase = createSupabaseServiceClient();
+
+    // Reintento idempotente: si el pedido ya existe, devolverlo antes de
+    // consumir promociones/tarjetas de regalo otra vez.
+    if (idempotencyKey) {
+      const { data: existing } = await supabase
+        .from('pedidos')
+        .select('id')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+      if (existing) return { success: true, data: { id: existing.id } };
+    }
 
     // ── 3. Obtener precios reales + validar stock ────────────────────────────
     const itemsConProducto = items.filter(
@@ -299,19 +308,17 @@ export async function crearPedidoPublico(
       sanitizedItems.reduce((s, i) => s + i.precio * i.cantidad, 0) * 100
     ) / 100;
 
-    // ── 6. Reverificar descuento del promo desde BD ──────────────────────────
+    // ── 6. Consumir promo atómicamente desde BD (valida activa + usos > 0) ──
     let descuento = 0;
     let nota_promo: string | undefined;
     if (promo) {
       const cleanCode = sanitizePromoCode(promo.codigo);
-      const { data: promoData } = await supabase
-        .from('promociones')
-        .select('descuento_porcentaje, activa')
-        .eq('codigo', cleanCode.toUpperCase())
-        .single();
+      const { data: promoRows } = await supabase
+        .rpc('consumir_promocion', { codigo_input: cleanCode.toUpperCase() });
 
-      if (!promoData || !promoData.activa)
-        return { success: false, error: 'Código de descuento inválido o inactivo.' };
+      const promoData = (promoRows ?? [])[0] as { descuento_porcentaje: number } | undefined;
+      if (!promoData)
+        return { success: false, error: 'Código de descuento inválido, inactivo o sin usos disponibles.' };
 
       descuento  = Math.round(subtotalReal * (promoData.descuento_porcentaje / 100) * 100) / 100;
       nota_promo = `Descuento ${cleanCode.toUpperCase()} (${promoData.descuento_porcentaje}%)`;
@@ -401,7 +408,10 @@ export async function crearPedidoPublico(
     const totalAntesGiftCard = Math.round((subtotalReal - descuento + costoEnvio) * 100) / 100;
     if (totalAntesGiftCard <= 0) return { success: false, error: 'Total inválido.' };
 
-    // ── 6.6 Redimir tarjeta de regalo (si se aplicó) ──────────────────────────
+    // ── 6.6 Validar tarjeta de regalo (si se aplicó) ──────────────────────────
+    // Solo se valida y calcula aquí; la redención (descuento de saldo) ocurre
+    // DESPUÉS de insertar el pedido, para que un fallo del insert nunca queme
+    // saldo del cliente sin pedido creado.
     let giftCardDescuento = 0;
     let giftCardCodigoAplicado: string | undefined;
     if (sanitizedDatos.gift_card_codigo) {
@@ -416,11 +426,7 @@ export async function crearPedidoPublico(
         return { success: false, error: 'La tarjeta de regalo no es válida o no tiene saldo.' };
       }
 
-      const montoADeducir = Math.min(Number(gc.saldo), totalAntesGiftCard);
-      const redencion = await redimirGiftCard(codigoGC, montoADeducir);
-      if (!redencion.success) return { success: false, error: redencion.error };
-
-      giftCardDescuento = montoADeducir;
+      giftCardDescuento = Math.min(Number(gc.saldo), totalAntesGiftCard);
       giftCardCodigoAplicado = codigoGC;
     }
 
@@ -460,6 +466,8 @@ export async function crearPedidoPublico(
       .single();
 
     if (error?.code === '23505' && idempotencyKey) {
+      // Doble envío simultáneo: el otro request ya creó el pedido (y redimió
+      // la gift card si aplicaba) — devolver el existente sin redimir de nuevo.
       const { data: existing } = await supabase
         .from('pedidos')
         .select('id')
@@ -469,6 +477,17 @@ export async function crearPedidoPublico(
     }
 
     if (error) return { success: false, error: error.message };
+
+    // ── 7.5 Redimir gift card ahora que el pedido existe ─────────────────────
+    // Si la redención falla (saldo consumido por una compra concurrente), se
+    // elimina el pedido recién creado y el cliente puede reintentar.
+    if (giftCardCodigoAplicado && giftCardDescuento > 0) {
+      const redencion = await redimirGiftCard(giftCardCodigoAplicado, giftCardDescuento);
+      if (!redencion.success) {
+        await supabase.from('pedidos').delete().eq('id', data.id);
+        return { success: false, error: redencion.error ?? 'No se pudo redimir la tarjeta de regalo. Intenta de nuevo.' };
+      }
+    }
 
     await supabase.from('pedido_items').insert(
       sanitizedItems.map(item => ({
@@ -495,15 +514,15 @@ export async function notificarPedidoCreado(id: string): Promise<void> {
     const supabase = createSupabaseServiceClient();
     const { data: pedido } = await supabase
       .from('pedidos')
-      .select('*, pedido_items(nombre_producto, precio_unitario, cantidad)')
+      .select('*, pedido_items(nombre_producto, precio_unitario, cantidad, producto_id)')
       .eq('id', id)
       .single();
 
     if (!pedido) return;
 
     const cd = (pedido.cliente_datos ?? {}) as Record<string, string | undefined>;
-    const items = ((pedido.pedido_items ?? []) as Array<{ nombre_producto: string; precio_unitario: number; cantidad: number }>)
-      .map(i => ({ nombre: i.nombre_producto, precio: Number(i.precio_unitario), cantidad: i.cantidad }));
+    const items = ((pedido.pedido_items ?? []) as Array<{ nombre_producto: string; precio_unitario: number; cantidad: number; producto_id: string | null }>)
+      .map(i => ({ nombre: i.nombre_producto, precio: Number(i.precio_unitario), cantidad: i.cantidad, producto_id: i.producto_id ?? null }));
 
     await notificarNuevoPedido({
       id: pedido.id,
@@ -520,7 +539,7 @@ export async function notificarPedidoCreado(id: string): Promise<void> {
         hora_entrega:    cd.hora_entrega,
         metodo_pago:     cd.metodo_pago,
         notas:           cd.notas,
-        comprobante_url: pedido.comprobante_url ?? undefined,
+        comprobante_url: (await resolveComprobanteUrl(supabase, pedido.comprobante_url, COMPROBANTE_EMAIL_TTL)) ?? undefined,
       },
     });
   } catch (err) {
@@ -535,7 +554,7 @@ export async function subirComprobante(
   formData: FormData
 ): Promise<ActionResult<{ url: string }>> {
   const ip = getIpFromHeaders(await headers());
-  if (!rateLimit(`comprobante:${ip}`, 5, 60 * 60 * 1000)) {
+  if (!(await rateLimitPersistente(`comprobante:${ip}`, 5, 60 * 60 * 1000))) {
     return { success: false, error: 'Demasiados intentos.' };
   }
 
@@ -546,9 +565,16 @@ export async function subirComprobante(
   const file = formData.get('comprobante') as File | null;
   if (!file || file.size === 0) return { success: false, error: 'Archivo requerido.' };
   if (file.size > 10 * 1024 * 1024) return { success: false, error: 'Archivo muy grande (máx. 10 MB).' };
-  if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(file.type)) {
-    return { success: false, error: 'Solo imágenes (PNG, JPG, WEBP).' };
-  }
+
+  // Extensión derivada del MIME validado (no del nombre del archivo)
+  const EXT_POR_MIME: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/jpg':  'jpg',
+    'image/png':  'png',
+    'image/webp': 'webp',
+  };
+  const ext = EXT_POR_MIME[file.type];
+  if (!ext) return { success: false, error: 'Solo imágenes (PNG, JPG, WEBP).' };
 
   try {
     const service = createSupabaseServiceClient();
@@ -560,26 +586,29 @@ export async function subirComprobante(
       .single();
 
     if (!pedido) return { success: false, error: 'Pedido no encontrado.' };
-    if (pedido.comprobante_url) return { success: true, data: { url: pedido.comprobante_url } };
-    const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg';
-    const path = `comprobantes/${pedidoId}.${ext}`;
+    if (pedido.comprobante_url) {
+      const url = await resolveComprobanteUrl(service, pedido.comprobante_url);
+      return { success: true, data: { url: url ?? pedido.comprobante_url } };
+    }
+    const path = `${pedidoId}.${ext}`;
 
     const { error: uploadError } = await service.storage
-      .from('product-images')
+      .from(COMPROBANTES_BUCKET)
       .upload(path, file, { upsert: true });
 
     if (uploadError) return { success: false, error: `Error al subir: ${uploadError.message}` };
 
-    const { data: { publicUrl } } = service.storage.from('product-images').getPublicUrl(path);
-
+    // Se guarda el path (no una URL pública): el bucket es privado y el admin
+    // lo ve mediante signed URLs generadas server-side.
     const { error: dbError } = await service
       .from('pedidos')
-      .update({ comprobante_url: publicUrl })
+      .update({ comprobante_url: path })
       .eq('id', pedidoId);
 
     if (dbError) return { success: false, error: dbError.message };
 
-    return { success: true, data: { url: publicUrl } };
+    const url = await resolveComprobanteUrl(service, path);
+    return { success: true, data: { url: url ?? path } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }

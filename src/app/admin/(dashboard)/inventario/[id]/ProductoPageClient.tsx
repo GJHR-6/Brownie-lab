@@ -130,9 +130,6 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
     router.push('/admin/inventario');
   }
 
-  function toggleEtiqueta(e: string) {
-    setEtiquetas(prev => prev.includes(e) ? prev.filter(x => x !== e) : [...prev, e]);
-  }
   function toggleIngrediente(id: string) {
     setIngredientesIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   }

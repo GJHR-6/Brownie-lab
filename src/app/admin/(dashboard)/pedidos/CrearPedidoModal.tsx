@@ -58,7 +58,7 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
     setCantidades(prev => {
       const current = prev[id] ?? 0;
       const next = Math.max(0, current + delta);
-      if (next === 0) { const { [id]: _, ...rest } = prev; return rest; }
+      if (next === 0) { const rest = { ...prev }; delete rest[id]; return rest; }
       return { ...prev, [id]: next };
     });
   }

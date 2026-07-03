@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { buscarPedidosPorTelefono, buscarPedidoPorCodigo, type PedidoTracking, type PedidoTrackingItem } from "@/actions/publico";
 import BLIcon from "@/components/BLIcon";
@@ -35,23 +36,21 @@ const ORDEN: Record<string, number> = {
 type Modo = "telefono" | "codigo";
 
 export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
-  const [modo,        setModo]       = useState<Modo>("telefono");
-  const [input,       setInput]      = useState("");
+  // Deep-link: ?telefono= o ?codigo= precargan la búsqueda
+  const searchParams = useSearchParams();
+  const phoneParam = searchParams.get("telefono");
+  const codeParam  = searchParams.get("codigo");
+  const autoParam  = phoneParam ?? codeParam;
+  const autoModo: Modo = phoneParam ? "telefono" : "codigo";
+
+  const [modo,        setModo]       = useState<Modo>(autoParam ? autoModo : "telefono");
+  const [input,       setInput]      = useState(autoParam ?? "");
   const [pedidos,     setPedidos]    = useState<PedidoTracking[]>([]);
   const [loading,     setLoading]    = useState(false);
   const [searched,    setSearched]   = useState(false);
   const [error,       setError]      = useState("");
   const [openId,      setOpenId]     = useState<string | null>(null);
   const [soloActivos, setSoloActivos] = useState(false);
-
-  // Auto-buscar si viene ?telefono= o ?codigo= en la URL
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const phone = params.get("telefono");
-    const code  = params.get("codigo");
-    if (phone) { setModo("telefono"); setInput(phone); runSearch("telefono", phone); }
-    else if (code) { setModo("codigo"); setInput(code); runSearch("codigo", code); }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function runSearch(m: Modo, val: string) {
     setLoading(true);
@@ -81,6 +80,12 @@ export default function SeguimientoClient({ whatsapp }: { whatsapp: string }) {
     }
     setLoading(false);
   }
+
+  // Auto-buscar al montar si vino un parámetro en la URL
+  useEffect(() => {
+    if (autoParam) runSearch(autoModo, autoParam);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault();
