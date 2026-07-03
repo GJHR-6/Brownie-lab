@@ -232,7 +232,7 @@ export default function PersonalizaAdminClient({ initialVariantes }: { initialVa
       <div style={{ marginBottom: 28, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>
-            Personaliza
+            Armador
           </h1>
           <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
             {initialVariantes.length} variante{initialVariantes.length !== 1 ? 's' : ''} de base registrada{initialVariantes.length !== 1 ? 's' : ''}

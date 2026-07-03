@@ -63,7 +63,7 @@ export default function InventarioClient({ initialProducts, categorias }: Invent
       {/* Page head */}
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Inventario</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Productos</h1>
           <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
             {filtered.length !== initialProducts.length
               ? <>{filtered.length} de {initialProducts.length} productos</>

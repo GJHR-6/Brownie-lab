@@ -91,7 +91,7 @@ export default function PromocionesClient({ initialPromociones }: { initialPromo
     <div className="px-6 md:px-10 py-8 pb-16 max-w-[1500px] w-full">
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Promociones</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Cupones</h1>
           <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
             Códigos de descuento para tus clientes.{isPending && <span style={{ marginLeft: 8, color: 'var(--orange-ink)' }}>Actualizando…</span>}
           </p>

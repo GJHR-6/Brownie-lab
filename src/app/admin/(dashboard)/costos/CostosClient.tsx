@@ -23,11 +23,14 @@ function margenInfo(precio: number, costo: number): { pct: number | null; color:
   return { pct, color: 'var(--berry)', label: `${pct}%` };
 }
 
+type Orden = 'nombre' | 'margen-asc' | 'margen-desc';
+
 export default function CostosClient({ initialProductos }: { initialProductos: Producto[] }) {
   const router = useRouter();
   // Valores editados pendientes de guardar: id → costo (string del input)
   const [edits, setEdits] = useState<Record<string, string>>({});
   const [search, setSearch] = useState('');
+  const [orden, setOrden] = useState<Orden>('nombre');
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -38,11 +41,33 @@ export default function CostosClient({ initialProductos }: { initialProductos: P
     return orig && v !== '' && Number(v) !== Number(orig.costo);
   });
 
-  const visible = search.trim()
+  // Costo efectivo: valor editado (sin guardar) o el guardado
+  const costoDe = (p: Producto) => Number(edits[p.id] ?? p.costo) || 0;
+  const margenDe = (p: Producto) => {
+    const c = costoDe(p);
+    return c > 0 ? ((Number(p.precio) - c) / Number(p.precio)) * 100 : null;
+  };
+
+  const filtered = search.trim()
     ? initialProductos.filter(p => p.nombre.toLowerCase().includes(search.toLowerCase()))
     : initialProductos;
 
-  const sinCosto = initialProductos.filter(p => !Number(p.costo)).length;
+  const visible = orden === 'nombre'
+    ? filtered
+    : [...filtered].sort((a, b) => {
+        const ma = margenDe(a), mb = margenDe(b);
+        if (ma === null && mb === null) return 0;
+        if (ma === null) return 1; // sin costo siempre al final
+        if (mb === null) return -1;
+        return orden === 'margen-asc' ? ma - mb : mb - ma;
+      });
+
+  const sinCosto = initialProductos.filter(p => !costoDe(p)).length;
+
+  // Resumen (refleja ediciones sin guardar)
+  const conCosto = initialProductos.map(p => ({ p, m: margenDe(p) })).filter((x): x is { p: Producto; m: number } => x.m !== null);
+  const margenPromedio = conCosto.length ? conCosto.reduce((s, x) => s + x.m, 0) / conCosto.length : null;
+  const peor = conCosto.length ? conCosto.reduce((min, x) => (x.m < min.m ? x : min)) : null;
 
   async function handleGuardar() {
     if (!dirty.length) return;
@@ -62,16 +87,36 @@ export default function CostosClient({ initialProductos }: { initialProductos: P
       {/* Page head */}
       <div style={{ marginBottom: 24, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Costos</h1>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 32, color: 'var(--ink)', lineHeight: 1.05, letterSpacing: '-.01em', margin: 0 }}>Costos de producción</h1>
           <p style={{ fontSize: 15, color: 'var(--ink-soft)', marginTop: 6 }}>
             Costo de producción por unidad (ingredientes + empaque). Alimenta el margen en Reportes.
           </p>
         </div>
-        {sinCosto > 0 && (
-          <span style={{ fontSize: 13, fontWeight: 600, padding: '6px 14px', borderRadius: 'var(--r-pill)', background: '#fdf4dc', border: '1px solid #f0dca6', color: 'var(--choco-700)' }}>
-            ⚠️ {sinCosto} producto{sinCosto !== 1 ? 's' : ''} sin costo definido
-          </span>
-        )}
+      </div>
+
+      {/* Resumen */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 24 }}>
+        <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', padding: '16px 20px' }}>
+          <p style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: 0 }}>Margen promedio</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, margin: '6px 0 0', color: margenPromedio !== null ? margenInfo(100, 100 - margenPromedio).color : 'var(--ink-soft)' }}>
+            {margenPromedio !== null ? `${Math.round(margenPromedio)}%` : '—'}
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '2px 0 0' }}>{conCosto.length} producto{conCosto.length !== 1 ? 's' : ''} con costo</p>
+        </div>
+        <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-lg)', padding: '16px 20px' }}>
+          <p style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: 0 }}>Peor margen</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, margin: '6px 0 0', color: peor ? margenInfo(100, 100 - peor.m).color : 'var(--ink-soft)' }}>
+            {peor ? `${Math.round(peor.m)}%` : '—'}
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{peor ? peor.p.nombre : 'Sin datos'}</p>
+        </div>
+        <div style={{ background: sinCosto > 0 ? '#fdf4dc' : 'var(--paper-card)', border: `1px solid ${sinCosto > 0 ? '#f0dca6' : 'var(--hairline)'}`, borderRadius: 'var(--r-lg)', padding: '16px 20px' }}>
+          <p style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: 0 }}>Sin costo definido</p>
+          <p style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 26, margin: '6px 0 0', color: sinCosto > 0 ? 'var(--choco-700)' : 'var(--green)' }}>
+            {sinCosto > 0 ? `⚠️ ${sinCosto}` : '✓ 0'}
+          </p>
+          <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '2px 0 0' }}>{sinCosto > 0 ? 'No entran al margen de Reportes' : 'Todos los productos tienen costo'}</p>
+        </div>
       </div>
 
       {/* Toolbar */}
@@ -93,7 +138,22 @@ export default function CostosClient({ initialProductos }: { initialProductos: P
             </button>
           )}
         </div>
-        <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-soft)' }}>
+        <select
+          value={orden}
+          onChange={e => setOrden(e.target.value as Orden)}
+          className="bl-select"
+          style={{ padding: '9px 14px', border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-pill)', background: 'var(--paper-card)', fontFamily: 'var(--font-sans)', fontSize: 13.5, color: 'var(--ink)', outline: 'none', cursor: 'pointer' }}
+        >
+          <option value="nombre">Orden: nombre</option>
+          <option value="margen-asc">Margen: peor primero</option>
+          <option value="margen-desc">Margen: mejor primero</option>
+        </select>
+        <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-soft)', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--green)', display: 'inline-block' }} />≥50%</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#9a6a12', display: 'inline-block' }} />25–49%</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: 'var(--berry)', display: 'inline-block' }} />&lt;25%</span>
+          </span>
           {visible.length} producto{visible.length !== 1 ? 's' : ''}
         </span>
       </div>
@@ -113,6 +173,7 @@ export default function CostosClient({ initialProductos }: { initialProductos: P
                 <th style={T.th}>Producto</th>
                 <th style={{ ...T.th, textAlign: 'right' }}>Precio</th>
                 <th style={{ ...T.th, textAlign: 'right', width: 150 }}>Costo</th>
+                <th style={{ ...T.th, textAlign: 'right' }}>Ganancia</th>
                 <th style={{ ...T.th, textAlign: 'right' }}>Margen</th>
               </tr>
             </thead>
@@ -159,6 +220,11 @@ export default function CostosClient({ initialProductos }: { initialProductos: P
                       </div>
                     </td>
                     <td style={{ ...T.td, textAlign: 'right' }}>
+                      {costoNum > 0
+                        ? <span style={{ fontWeight: 600, color: Number(p.precio) - costoNum >= 0 ? 'var(--ink)' : 'var(--berry)' }}>{fmtMoney(Number(p.precio) - costoNum)}</span>
+                        : <span style={{ color: 'var(--ink-soft)' }}>—</span>}
+                    </td>
+                    <td style={{ ...T.td, textAlign: 'right' }}>
                       <span style={{ fontWeight: 700, fontSize: 14, color: m.color }}>{m.label}</span>
                     </td>
                   </tr>
@@ -166,7 +232,7 @@ export default function CostosClient({ initialProductos }: { initialProductos: P
               })}
               {visible.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ ...T.td, textAlign: 'center', padding: '44px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
+                  <td colSpan={5} style={{ ...T.td, textAlign: 'center', padding: '44px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
                     Sin resultados.
                   </td>
                 </tr>

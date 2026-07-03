@@ -214,7 +214,7 @@ export default async function AdminDashboardPage({
                 className="ml-auto flex-none flex items-center gap-[7px] font-[700] text-[14px] whitespace-nowrap"
                 style={{ color: "var(--berry)" }}
               >
-                Ir a inventario {arrowIcon}
+                Ir a productos {arrowIcon}
               </Link>
             </div>
           )}
@@ -242,7 +242,7 @@ export default async function AdminDashboardPage({
                 className="ml-auto flex-none flex items-center gap-[7px] font-[700] text-[14px] whitespace-nowrap"
                 style={{ color: "var(--orange-ink)" }}
               >
-                Ir a inventario {arrowIcon}
+                Ir a productos {arrowIcon}
               </Link>
             </div>
           )}

@@ -315,7 +315,7 @@ export default async function ReportesPage({
                 className="mt-3 rounded-[12px] px-4 py-3"
                 style={{ background: "#fdf4dc", border: "1px solid #f0dca6", color: "var(--choco-700)" }}
               >
-                ⚠️ {unidadesSinCosto} unidad{unidadesSinCosto !== 1 ? 'es' : ''} vendida{unidadesSinCosto !== 1 ? 's' : ''} sin costo definido — el margen real es menor al mostrado. Define el costo en <Link href="/admin/inventario" style={{ fontWeight: 700, color: "var(--orange-ink)" }}>Inventario</Link>.
+                ⚠️ {unidadesSinCosto} unidad{unidadesSinCosto !== 1 ? 'es' : ''} vendida{unidadesSinCosto !== 1 ? 's' : ''} sin costo definido — el margen real es menor al mostrado. Define el costo en <Link href="/admin/costos" style={{ fontWeight: 700, color: "var(--orange-ink)" }}>Costos de producción</Link>.
               </p>
             )}
           </div>

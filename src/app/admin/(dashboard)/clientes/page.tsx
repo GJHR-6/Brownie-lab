@@ -14,7 +14,6 @@ export default async function ClientesPage() {
       pedidos!telefono_cliente(count),
       cupones(count)
     `)
-    .gt('compras_totales', 0)
     .order('compras_totales', { ascending: false });
 
   return <ClientesClient clientes={clientes ?? []} />;

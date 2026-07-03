@@ -151,7 +151,7 @@ export default function ProductoPageClient({ producto, categorias, ingredientes 
           style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--ink-soft)', textDecoration: 'none', marginBottom: 14 }}
         >
           <ChevronLeft style={{ width: 15, height: 15 }} />
-          Volver a inventario
+          Volver a productos
         </Link>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 30, color: 'var(--ink)', margin: 0 }}>
           {isEditing ? 'Editar producto' : 'Nuevo producto'}
