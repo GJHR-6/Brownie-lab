@@ -23,7 +23,6 @@ const NAV_GROUPS: NavGroup[] = [
       { href: "/admin/zonas-envio",    label: "Zonas de envío", icon: "ic-tag",      exact: false },
       { href: "/admin/tarjetas-regalo",label: "Tarjetas regalo",icon: "ic-sparkle",  exact: false },
       { href: "/admin/catering",       label: "Catering",       icon: "ic-users",    exact: false },
-      { href: "/admin/fidelizacion",   label: "Fidelización",   icon: "ic-loyalty",  exact: false },
     ],
   },
   {
@@ -31,24 +30,24 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/reportes",       label: "Reportes",       icon: "ic-report",   exact: false },
       { href: "/admin/gastos",         label: "Gastos",         icon: "ic-wallet",   exact: false },
-      { href: "/admin/costos",         label: "Costos",         icon: "ic-coin",     exact: false },
+      { href: "/admin/costos",         label: "Costos de producción", icon: "ic-coin", exact: false },
     ],
   },
   {
     title: "Catálogo",
     items: [
-      { href: "/admin/inventario",     label: "Inventario",     icon: "ic-box",      exact: false },
-      { href: "/admin/ingredientes",   label: "Ingredientes",   icon: "ic-flask",    exact: false },
-      { href: "/admin/personaliza",    label: "Personaliza",    icon: "ic-sliders",  exact: false },
+      { href: "/admin/inventario",     label: "Productos",      icon: "ic-box",      exact: false },
+      { href: "/admin/ingredientes",   label: "Insumos",        icon: "ic-flask",    exact: false },
+      { href: "/admin/personaliza",    label: "Armador",        icon: "ic-sliders",  exact: false },
       { href: "/admin/categorias",     label: "Categorías",     icon: "ic-tag",      exact: false },
-      { href: "/admin/especiales",     label: "Especiales",     icon: "ic-sparkle",  exact: false },
+      { href: "/admin/especiales",     label: "Capricho del Chef", icon: "ic-sparkle", exact: false },
     ],
   },
   {
     title: "Marketing",
     items: [
       { href: "/admin/banners",        label: "Banners",        icon: "ic-banner",   exact: false },
-      { href: "/admin/promociones",    label: "Promociones",    icon: "ic-percent",  exact: false },
+      { href: "/admin/promociones",    label: "Cupones",        icon: "ic-percent",  exact: false },
       { href: "/admin/testimonios",    label: "Testimonios",    icon: "ic-chat",     exact: false },
       { href: "/admin/resenas",        label: "Reseñas",        icon: "ic-star",     exact: false },
       { href: "/admin/galeria",        label: "Galería",        icon: "ic-image",    exact: false },

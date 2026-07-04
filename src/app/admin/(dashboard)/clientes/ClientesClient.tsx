@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Search, Phone, X, Loader2 } from 'lucide-react';
-import { buscarClienteAdmin, type CuponFidelizacion } from '@/actions/fidelizacion';
+import { useRouter } from 'next/navigation';
+import { Search, Phone, X, Loader2, Plus, Merge } from 'lucide-react';
+import { useConfirm } from '@/components/admin/ConfirmProvider';
+import { buscarClienteAdmin, registrarCompraAdmin, fusionarClientes, type ClienteFidelizacion, type CuponFidelizacion } from '@/actions/fidelizacion';
 import { getPedidosPorTelefono } from '@/actions/pedidos';
 import type { Pedido, EstadoPedido, PedidoItem, ClienteDatos } from '@/types/database';
 
@@ -51,8 +53,23 @@ function SecTitle({ children }: { children: React.ReactNode }) {
 
 /* ── Drawer de detalle del cliente ── */
 function ClienteDrawer({ cliente, onClose }: { cliente: ClienteRow; onClose: () => void }) {
+  const router = useRouter();
+  const confirmar = useConfirm();
   // loading derivado: null = cargando (evita setState síncrono en effect)
   const [datos, setDatos] = useState<{ pedidos: Pedido[]; cupones: CuponFidelizacion[] } | null>(null);
+  // Sellos/compras en vivo — se actualizan tras registrar compra o fusionar sin cerrar el drawer
+  const [fidelidad, setFidelidad] = useState<{ compras_actuales: number; compras_totales: number }>({
+    compras_actuales: cliente.compras_actuales,
+    compras_totales: cliente.compras_totales,
+  });
+  const [addMsg, setAddMsg] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [showMerge, setShowMerge] = useState(false);
+  const [telFusion, setTelFusion] = useState('');
+  const [clienteFusion, setClienteFusion] = useState<ClienteFidelizacion | null>(null);
+  const [mergeLoading, setMergeLoading] = useState(false);
+  const [mergeMsg, setMergeMsg] = useState<string | null>(null);
+
   const loading = datos === null;
   const pedidos = datos?.pedidos ?? [];
   const cupones = datos?.cupones ?? [];
@@ -68,9 +85,76 @@ function ClienteDrawer({ cliente, onClose }: { cliente: ClienteRow; onClose: () 
         pedidos: peds,
         cupones: clienteResult.success ? clienteResult.data.cupones : [],
       });
+      if (clienteResult.success) {
+        setFidelidad({
+          compras_actuales: clienteResult.data.cliente.compras_actuales,
+          compras_totales: clienteResult.data.cliente.compras_totales,
+        });
+      }
     });
     return () => { activo = false; };
   }, [cliente.telefono]);
+
+  async function refrescar() {
+    const r = await buscarClienteAdmin(cliente.telefono);
+    if (r.success) {
+      setFidelidad({ compras_actuales: r.data.cliente.compras_actuales, compras_totales: r.data.cliente.compras_totales });
+      setDatos(prev => ({ pedidos: prev?.pedidos ?? [], cupones: r.data.cupones }));
+    }
+    router.refresh();
+  }
+
+  async function handleAgregarCompra() {
+    if (!(await confirmar({ titulo: 'Registrar compra', mensaje: `Se registrará una compra manual para ${cliente.nombre || cliente.telefono} y avanzará su tarjeta de fidelidad.`, confirmLabel: 'Registrar' }))) return;
+    setAdding(true);
+    setAddMsg(null);
+    const result = await registrarCompraAdmin(cliente.telefono);
+    setAdding(false);
+    if (result.success) {
+      setAddMsg(result.data.cuponGenerado
+        ? `✓ Compra registrada. ¡Cupón generado: ${result.data.cuponGenerado.codigo_unico}!`
+        : `✓ Compra registrada. Sellos: ${result.data.cliente.compras_actuales}/${LOYALTY_MAX}`);
+      await refrescar();
+    } else {
+      setAddMsg(`Error: ${result.error}`);
+    }
+  }
+
+  async function handleBuscarFusion(e: React.FormEvent) {
+    e.preventDefault();
+    if (!telFusion.trim()) return;
+    setMergeMsg(null);
+    setClienteFusion(null);
+    setMergeLoading(true);
+    const r = await buscarClienteAdmin(telFusion);
+    setMergeLoading(false);
+    if (r.success) setClienteFusion(r.data.cliente);
+    else setMergeMsg(`No encontrado: ${r.error}`);
+  }
+
+  async function handleFusionar() {
+    if (!clienteFusion) return;
+    const origen = clienteFusion.telefono;
+    const ok = await confirmar({
+      titulo: 'Fusionar clientes',
+      mensaje: `Se moverán los sellos y cupones de ${clienteFusion.nombre} (${origen}) a ${cliente.nombre || cliente.telefono} (${cliente.telefono}). El número ${origen} será eliminado. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Fusionar',
+    });
+    if (!ok) return;
+    setMergeLoading(true);
+    setMergeMsg(null);
+    const result = await fusionarClientes(origen, cliente.telefono);
+    setMergeLoading(false);
+    if (result.success) {
+      setShowMerge(false);
+      setTelFusion('');
+      setClienteFusion(null);
+      setAddMsg(`✓ Clientes fusionados. Sellos actuales: ${result.data.cliente.compras_actuales}/${LOYALTY_MAX}`);
+      await refrescar();
+    } else {
+      setMergeMsg(`Error: ${result.error}`);
+    }
+  }
 
   const initials = cliente.nombre.trim().split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
@@ -103,21 +187,87 @@ function ClienteDrawer({ cliente, onClose }: { cliente: ClienteRow; onClose: () 
           <div style={{ marginBottom: 24 }}>
             <SecTitle>Programa de fidelidad</SecTitle>
             <div style={{ background: 'var(--cream)', borderRadius: 'var(--r-md)', padding: '16px 18px' }}>
-              <LoyaltyDots current={cliente.compras_actuales} />
+              <LoyaltyDots current={fidelidad.compras_actuales} />
               <div style={{ display: 'flex', gap: 24, marginTop: 14 }}>
                 <div>
-                  <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--orange-ink)', margin: 0 }}>{cliente.compras_totales}</p>
+                  <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--orange-ink)', margin: 0 }}>{fidelidad.compras_totales}</p>
                   <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>compras totales</p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{cliente.compras_actuales}</p>
+                  <p style={{ fontSize: 22, fontWeight: 700, color: 'var(--ink)', margin: 0 }}>{fidelidad.compras_actuales}</p>
                   <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>en ciclo actual</p>
                 </div>
                 <div>
-                  <p style={{ fontSize: 22, fontWeight: 700, color: '#1f8a5b', margin: 0 }}>{cliente.cupones[0]?.count ?? 0}</p>
-                  <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>cupones totales</p>
+                  <p style={{ fontSize: 22, fontWeight: 700, color: '#1f8a5b', margin: 0 }}>{loading ? (cliente.cupones[0]?.count ?? 0) : cupones.length}</p>
+                  <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>cupones disponibles</p>
                 </div>
               </div>
+
+              {addMsg && (
+                <div style={{ marginTop: 14, background: addMsg.startsWith('Error') ? 'rgba(158,59,70,.08)' : 'rgba(31,138,91,.08)', border: `1px solid ${addMsg.startsWith('Error') ? 'rgba(158,59,70,.25)' : 'rgba(31,138,91,.2)'}`, borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 13, color: addMsg.startsWith('Error') ? 'var(--berry)' : '#1f8a5b' }}>
+                  {addMsg}
+                </div>
+              )}
+
+              {/* Acciones de fidelidad */}
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 14 }}>
+                <button
+                  onClick={handleAgregarCompra} disabled={adding}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '8px 15px', borderRadius: 'var(--r-pill)', border: '1.5px solid transparent', cursor: 'pointer', background: 'var(--orange)', color: '#fff', opacity: adding ? 0.7 : 1 }}>
+                  {adding ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> : <Plus style={{ width: 14, height: 14 }} />}
+                  Registrar compra manual
+                </button>
+                <button
+                  onClick={() => { setShowMerge(v => !v); setMergeMsg(null); setClienteFusion(null); setTelFusion(''); }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '8px 15px', borderRadius: 'var(--r-pill)', border: '1.5px solid var(--hairline)', cursor: 'pointer', background: 'var(--paper)', color: 'var(--ink-soft)' }}>
+                  <Merge style={{ width: 14, height: 14 }} />
+                  Fusionar número
+                </button>
+              </div>
+
+              {/* Panel de fusión */}
+              {showMerge && (
+                <div style={{ marginTop: 14, padding: 14, borderRadius: 'var(--r-md)', border: '1.5px solid var(--amber)', background: 'rgba(255,200,80,.06)' }}>
+                  <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--orange-ink)', margin: '0 0 10px' }}>
+                    Mover sellos y cupones de otro número a este cliente
+                  </p>
+                  <form onSubmit={handleBuscarFusion} style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                    <input
+                      type="tel" value={telFusion} onChange={e => setTelFusion(e.target.value)}
+                      placeholder="Número a fusionar (será eliminado)"
+                      style={{ flex: 1, minWidth: 0, border: '1.5px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13, color: 'var(--ink)', background: 'var(--paper)', outline: 'none', fontFamily: 'ui-monospace,monospace' }}
+                      onFocus={e => e.target.style.borderColor = 'var(--orange)'}
+                      onBlur={e => e.target.style.borderColor = 'var(--hairline)'}
+                    />
+                    <button type="submit" disabled={mergeLoading || !telFusion.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 14px', borderRadius: 'var(--r-pill)', border: 'none', cursor: 'pointer', background: 'var(--choco-900)', color: '#fff', opacity: mergeLoading || !telFusion.trim() ? 0.6 : 1 }}>
+                      {mergeLoading ? <Loader2 style={{ width: 13, height: 13, animation: 'spin 1s linear infinite' }} /> : <Search style={{ width: 13, height: 13 }} />}
+                      Buscar
+                    </button>
+                  </form>
+
+                  {mergeMsg && (
+                    <p style={{ fontSize: 13, color: mergeMsg.startsWith('Error') ? 'var(--berry)' : '#1f8a5b', margin: '0 0 10px' }}>{mergeMsg}</p>
+                  )}
+
+                  {clienteFusion && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      <div style={{ background: 'var(--paper-card)', border: '1px solid var(--hairline)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
+                        <p style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)', margin: '0 0 4px' }}>{clienteFusion.nombre} <span style={{ fontFamily: 'ui-monospace,monospace', fontWeight: 400, fontSize: 12, color: 'var(--ink-soft)' }}>({clienteFusion.telefono})</span></p>
+                        <LoyaltyDots current={clienteFusion.compras_actuales} />
+                        <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: '6px 0 0' }}>
+                          {clienteFusion.compras_totales} compras totales · Resultado fusión: <strong>{Math.min(clienteFusion.compras_actuales + fidelidad.compras_actuales, LOYALTY_MAX)}/{LOYALTY_MAX}</strong> sellos
+                        </p>
+                      </div>
+                      <button onClick={handleFusionar} disabled={mergeLoading}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontWeight: 700, fontSize: 13, padding: '9px 15px', borderRadius: 'var(--r-pill)', border: 'none', cursor: 'pointer', background: 'var(--berry)', color: '#fff', opacity: mergeLoading ? 0.7 : 1, alignSelf: 'flex-start' }}>
+                        {mergeLoading ? <Loader2 style={{ width: 14, height: 14, animation: 'spin 1s linear infinite' }} /> : <Merge style={{ width: 14, height: 14 }} />}
+                        Confirmar fusión
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
