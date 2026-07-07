@@ -245,6 +245,20 @@ export interface PersonalizaVariante {
   updated_at: string;
 }
 
+export interface Caja {
+  id: string;
+  slug: string;
+  nombre: string;
+  descripcion: string;
+  tamano: number;
+  descuento_pct: number;
+  imagen_url: string;
+  activo: boolean;
+  orden: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Ingrediente {
   id: string;
   nombre: string;

@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import type { Producto, Especial, Banner, Configuracion, Categoria, Testimonio, PersonalizaVariante } from '@/types/database';
+import type { Producto, Especial, Banner, Configuracion, Categoria, Testimonio, PersonalizaVariante, Caja } from '@/types/database';
 
 const PRODUCTO_SELECT = '*, categorias!categoria_id(slug, nombre)';
 
@@ -142,6 +142,29 @@ export async function getRellenosDinamicos(): Promise<{ id: string; nombre: stri
     nombre:      d.nombre as string,
     precio_extra: Number(d.precio_extra ?? 0),
     imagen_url:  (d.imagen_url as string | null) ?? null,
+  }));
+}
+
+export async function getCajasPublicas(): Promise<Caja[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('cajas')
+    .select('*')
+    .eq('activo', true)
+    .order('orden');
+  if (error) { console.error('getCajasPublicas:', error.message); return []; }
+  return (data ?? []).map(c => ({
+    id:            c.id as string,
+    slug:          c.slug as string,
+    nombre:        c.nombre as string,
+    descripcion:   (c.descripcion as string) ?? '',
+    tamano:        Number(c.tamano ?? 0),
+    descuento_pct: Number(c.descuento_pct ?? 0),
+    imagen_url:    (c.imagen_url as string) ?? '',
+    activo:        Boolean(c.activo),
+    orden:         Number(c.orden ?? 0),
+    created_at:    c.created_at as string,
+    updated_at:    c.updated_at as string,
   }));
 }
 

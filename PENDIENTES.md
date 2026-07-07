@@ -29,9 +29,17 @@ Contexto: sesión del 3 jul 2026. Se completó: renombres de secciones del admin
 
 ## Exactitud de Reportes (deuda)
 
-9. **Toppings fuera del COGS** — el ingreso del pedido incluye `precio_extra` de toppings pero el costo solo cuenta el producto base → margen inflado en pedidos personalizados.
+9. **Toppings fuera del COGS** — el ingreso del pedido incluye `precio_extra` de toppings pero el costo solo cuenta el producto base → margen inflado en pedidos personalizados. *(Ampliado el 7 jul: rellenos y contenido de cajas también quedan fuera del costo.)*
 
 10. **Margen sobre ventas con ISV incluido** — el `margenPct` se calcula sobre el total con ISV; el margen real sobre base imponible es menor al mostrado.
+
+## Fase 3 — Arma tu caja (deuda del 7 jul 2026)
+
+11. **Recalcular precio de cajas en el servidor** — el precio de la caja (suma − descuento) se calcula en el cliente y viaja como item sin `producto_id`; hoy solo se valida rango 1–1000 en `crearPedido`. Con % de descuento el incentivo a manipular crece: recalcular server-side contra `cajas.descuento_pct` y precios reales.
+
+12. **Stock y límites de categoría del contenido de cajas** — los postres del menú elegidos dentro de una caja no descuentan stock ni cuentan contra `LIMITES_CATEGORIA` (la caja entra al carrito como 1 item sin categoría). El picker ya filtra `stock > 0`, pero el checkout no lo re-valida.
+
+13. **Nombre del item de caja limitado a 200 chars** — el contenido viaja en `nombre_producto` (se trunca en `sanitizeText`); cajas grandes pueden perder el final de la lista. Opción: columna `detalle` en `pedido_items`.
 
 ## Decisiones abiertas
 

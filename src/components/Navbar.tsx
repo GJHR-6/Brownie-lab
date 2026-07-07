@@ -48,6 +48,7 @@ export default function Navbar({ logoUrl, storeName = "Brownie Lab" }: { logoUrl
     { href: "/", label: "Inicio" },
     { href: "/menu", label: "Menú" },
     { href: "/personaliza", label: "Personaliza", icon: "sparkle" },
+    { href: "/cajas", label: "Arma tu caja" },
     { href: "/contact", label: "Nosotros" },
     { href: "/seguimiento", label: "Seguir pedido", icon: "truck" },
   ];
