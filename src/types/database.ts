@@ -258,6 +258,7 @@ export interface Ingrediente {
   stock_paquetes: number;
   precio_extra: number;
   es_topping: boolean;
+  es_relleno: boolean;
   activo: boolean;
   notas: string | null;
   imagen_url: string | null;

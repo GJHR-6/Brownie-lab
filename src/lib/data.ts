@@ -128,6 +128,23 @@ export async function getToppingsDinamicos(): Promise<{ id: string; nombre: stri
   }));
 }
 
+export async function getRellenosDinamicos(): Promise<{ id: string; nombre: string; precio_extra: number; imagen_url: string | null }[]> {
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from('ingredientes')
+    .select('id, nombre, precio_extra, imagen_url')
+    .eq('es_relleno', true)
+    .eq('activo', true)
+    .order('nombre');
+  if (error) { console.error('getRellenosDinamicos:', error.message); return []; }
+  return (data ?? []).map(d => ({
+    id:          d.id as string,
+    nombre:      d.nombre as string,
+    precio_extra: Number(d.precio_extra ?? 0),
+    imagen_url:  (d.imagen_url as string | null) ?? null,
+  }));
+}
+
 export async function getProductosSimilares(categoriaSlug: string, excludeId: string): Promise<Producto[]> {
   const supabase = await createSupabaseServerClient();
   const today = new Date().toISOString().split('T')[0];
