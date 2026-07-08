@@ -2,6 +2,7 @@
 
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import type { ComposicionItem } from "@/types/database";
 
 export const LIMITES_CATEGORIA: Record<string, number> = {
   brownie: 18,
@@ -16,6 +17,7 @@ export interface CartItem {
   emoji: string;
   detalle?: string;
   categoria?: string;
+  composicion?: ComposicionItem;
 }
 
 interface CartStore {
