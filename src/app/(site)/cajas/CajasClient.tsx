@@ -16,7 +16,7 @@ interface ToppingDef { name: string; price: number; imagen_url?: string | null; 
 
 type SlotContent =
   | { tipo: "producto"; productoId: string; nombre: string; precio: number; emoji: string | null; imagenUrl: string | null }
-  | { tipo: "custom"; nombre: string; precio: number; emoji: string };
+  | { tipo: "custom"; nombre: string; precio: number; emoji: string; base: MainBase; varianteSlug: string; toppings: string[]; relleno: string | null };
 
 const MAX_TOPPINGS = 2;
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -120,7 +120,10 @@ export default function CajasClient({
     const nombre = `${cBase === "brownie" ? "Brownie" : "Galleta"} ${cVariant.name}${
       cRellenoDef ? ` rellena de ${cRellenoDef.name}` : ""
     }${selNames.length > 0 ? ` con ${selNames.join(", ")}` : ""}`;
-    fillSlot({ tipo: "custom", nombre, precio: cPrice, emoji: cBase === "brownie" ? "🍫" : "🍪" });
+    fillSlot({
+      tipo: "custom", nombre, precio: cPrice, emoji: cBase === "brownie" ? "🍫" : "🍪",
+      base: cBase, varianteSlug: cVariant.id, toppings: selNames, relleno: cRellenoDef?.name ?? null,
+    });
   }
 
   // ── Totales ──
@@ -146,6 +149,13 @@ export default function CajasClient({
       price: total,
       emoji: "🎁",
       detalle,
+      composicion: {
+        tipo: "caja",
+        cajaId: caja.id,
+        slots: filled.map(s => s.tipo === "producto"
+          ? { tipo: "producto" as const, productoId: s.productoId }
+          : { tipo: "custom" as const, base: s.base, varianteSlug: s.varianteSlug, toppings: s.toppings, relleno: s.relleno }),
+      },
     });
     router.push("/cart");
   }

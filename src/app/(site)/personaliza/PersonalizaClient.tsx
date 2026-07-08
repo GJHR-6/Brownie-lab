@@ -129,8 +129,15 @@ export default function PersonalizaClient({
       ...(rellenoDef ? [`Relleno de ${rellenoDef.name} +${sym}${rellenoDef.price}`] : []),
       ...TOPPINGS.filter(t => selected.has(t.name)).map(t => `${t.name} +${sym}${t.price}`),
     ].join(" · ");
+    const composicion = {
+      tipo: "custom" as const,
+      base,
+      varianteSlug: activeVariant.id,
+      toppings: selectedNames,
+      relleno: rellenoDef?.name ?? null,
+    };
     for (let i = 0; i < qty; i++)
-      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji, detalle });
+      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji, detalle, composicion });
     router.push("/cart");
   }
 

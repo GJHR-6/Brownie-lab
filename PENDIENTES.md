@@ -33,11 +33,11 @@ Contexto: sesión del 3 jul 2026. Se completó: renombres de secciones del admin
 
 10. **Margen sobre ventas con ISV incluido** — el `margenPct` se calcula sobre el total con ISV; el margen real sobre base imponible es menor al mostrado.
 
-## Fase 3 — Arma tu caja (deuda del 7 jul 2026)
+## Arma tu caja — deuda restante
 
-11. **Recalcular precio de cajas en el servidor** — el precio de la caja (suma − descuento) se calcula en el cliente y viaja como item sin `producto_id`; hoy solo se valida rango 1–1000 en `crearPedido`. Con % de descuento el incentivo a manipular crece: recalcular server-side contra `cajas.descuento_pct` y precios reales.
+~~11. Recalcular precio de cajas en el servidor~~ — **hecho (8 jul 2026)**: los items compuestos (cajas y personalizados) viajan con `composicion` estructurada y `crearPedidoPublico` recalcula el precio real contra la BD (`recalcularComposiciones` en `publico.ts`); si no coincide, rechaza el pedido. También valida stock del contenido de cajas (productos del menú, sumado a items directos).
 
-12. **Stock y límites de categoría del contenido de cajas** — los postres del menú elegidos dentro de una caja no descuentan stock ni cuentan contra `LIMITES_CATEGORIA` (la caja entra al carrito como 1 item sin categoría). El picker ya filtra `stock > 0`, pero el checkout no lo re-valida.
+12. **Límites de categoría del contenido de cajas** — el contenido de una caja no cuenta contra `LIMITES_CATEGORIA` (la caja es 1 item sin categoría). El stock sí se valida ya en el servidor; los límites de producción por categoría no.
 
 13. **Nombre del item de caja limitado a 200 chars** — el contenido viaja en `nombre_producto` (se trunca en `sanitizeText`); cajas grandes pueden perder el final de la lista. Opción: columna `detalle` en `pedido_items`.
 

@@ -57,12 +57,32 @@ export interface ClienteDatos {
   gift_card_descuento?: number;
 }
 
+// Composición estructurada de items armados en el cliente (personalizados y
+// cajas). Viaja junto al item del checkout para que el servidor recalcule el
+// precio real; no se persiste en pedido_items.
+export type ComposicionCustom = {
+  tipo: 'custom';
+  base: 'brownie' | 'galleta';
+  varianteSlug: string;
+  toppings: string[];
+  relleno?: string | null;
+};
+
+export type ComposicionSlot =
+  | { tipo: 'producto'; productoId: string }
+  | ComposicionCustom;
+
+export type ComposicionItem =
+  | { tipo: 'caja'; cajaId: string; slots: ComposicionSlot[] }
+  | ComposicionCustom;
+
 export interface PedidoItem {
   producto_id: string | null;
   nombre: string;
   precio: number;
   cantidad: number;
   subtotal: number;
+  composicion?: ComposicionItem | null;
 }
 
 export interface Pedido {

@@ -6,7 +6,7 @@ import { createSupabaseServiceClient } from '@/lib/supabase/service';
 import { rateLimitPersistente, getIpFromHeaders } from '@/lib/rate-limit';
 import { sanitizeText, sanitizePhone, sanitizePromoCode, isValidHonduranPhone, normalizePhone } from '@/lib/sanitize';
 import type { ActionResult } from '@/types/actions';
-import type { ClienteDatos, EstadoPedido, PedidoItem } from '@/types/database';
+import type { ClienteDatos, EstadoPedido, PedidoItem, ComposicionItem, ComposicionCustom } from '@/types/database';
 import { parseConfigEnvio, calcularEnvio, calcularEnvioPorZona, type ConfigEnvio } from '@/lib/envio';
 import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 import { notificarNuevoPedido } from '@/lib/email';
@@ -200,6 +200,171 @@ const METODOS_PAGO   = new Set(['efectivo', 'transferencia', '']);
 // Ubicación GPS del cliente (envio_modo='distancia') o zona elegida (envio_modo='zonas')
 export type EnvioInput = { lat: number; lng: number } | { zonaId: string };
 
+// ── Recalcular precios de items compuestos (cajas y personalizados) ─────────
+// El cliente arma cajas/personalizados y calcula el precio localmente; aquí se
+// recalcula contra la BD. Si el precio recibido no coincide con el real, el
+// pedido se rechaza (precios cambiaron o cliente manipulado).
+const MAX_TOPPINGS_ITEM = 2;
+const round2 = (n: number) => Math.round(n * 100) / 100;
+
+async function recalcularComposiciones(
+  supabase: ReturnType<typeof createSupabaseServiceClient>,
+  items: PedidoItem[],
+): Promise<{ precios: Map<number, number> } | { error: string }> {
+  const conCompos = items
+    .map((item, idx) => ({ item, idx, compos: item.composicion }))
+    .filter((x): x is { item: PedidoItem; idx: number; compos: ComposicionItem } => x.compos != null);
+  if (conCompos.length === 0) return { precios: new Map() };
+
+  // ── Validación estructural + recolección de referencias ──
+  const cajaIds = new Set<string>();
+  const prodIds = new Set<string>();
+  const nombresExtras = new Set<string>();
+  let hayCustom = false;
+
+  const validarCustom = (c: ComposicionCustom): string | null => {
+    if (c.base !== 'brownie' && c.base !== 'galleta') return 'Base inválida en un postre personalizado.';
+    if (typeof c.varianteSlug !== 'string' || !c.varianteSlug || c.varianteSlug.length > 80) return 'Variante inválida en un postre personalizado.';
+    if (!Array.isArray(c.toppings) || c.toppings.length > MAX_TOPPINGS_ITEM) return `Máximo ${MAX_TOPPINGS_ITEM} toppings por postre.`;
+    if (c.toppings.some(t => typeof t !== 'string' || !t || t.length > 80)) return 'Topping inválido.';
+    if (c.relleno != null && (typeof c.relleno !== 'string' || !c.relleno || c.relleno.length > 80)) return 'Relleno inválido.';
+    hayCustom = true;
+    c.toppings.forEach(t => nombresExtras.add(t));
+    if (c.relleno) nombresExtras.add(c.relleno);
+    return null;
+  };
+
+  for (const { compos } of conCompos) {
+    if (compos.tipo === 'custom') {
+      const err = validarCustom(compos);
+      if (err) return { error: err };
+    } else if (compos.tipo === 'caja') {
+      if (typeof compos.cajaId !== 'string' || !UUID_RE.test(compos.cajaId)) return { error: 'Caja inválida.' };
+      if (!Array.isArray(compos.slots) || compos.slots.length < 1 || compos.slots.length > 24)
+        return { error: 'Contenido de caja inválido.' };
+      cajaIds.add(compos.cajaId);
+      for (const slot of compos.slots) {
+        if (slot.tipo === 'producto') {
+          if (typeof slot.productoId !== 'string' || !UUID_RE.test(slot.productoId)) return { error: 'Producto inválido dentro de la caja.' };
+          prodIds.add(slot.productoId);
+        } else if (slot.tipo === 'custom') {
+          const err = validarCustom(slot);
+          if (err) return { error: err };
+        } else {
+          return { error: 'Contenido de caja inválido.' };
+        }
+      }
+    } else {
+      return { error: 'Item inválido.' };
+    }
+  }
+
+  // ── Datos reales desde BD ──
+  const [cajasRes, prodsRes, varsRes, extrasRes] = await Promise.all([
+    cajaIds.size > 0
+      ? supabase.from('cajas').select('id, tamano, descuento_pct, activo').in('id', [...cajaIds])
+      : Promise.resolve({ data: [] }),
+    prodIds.size > 0
+      ? supabase.from('productos').select('id, nombre, precio, stock, disponible').in('id', [...prodIds])
+      : Promise.resolve({ data: [] }),
+    hayCustom
+      ? supabase.from('personaliza_variantes').select('base, slug, precio, activo, proximamente')
+      : Promise.resolve({ data: [] }),
+    nombresExtras.size > 0
+      ? supabase.from('ingredientes').select('nombre, precio_extra, es_topping, es_relleno, activo').in('nombre', [...nombresExtras])
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  type CajaRow    = { id: string; tamano: number; descuento_pct: number; activo: boolean };
+  type ProdRow    = { id: string; nombre: string; precio: number; stock: number; disponible: boolean };
+  type VarRow     = { base: string; slug: string; precio: number; activo: boolean; proximamente: boolean };
+  type ExtraRow   = { nombre: string; precio_extra: number; es_topping: boolean; es_relleno: boolean; activo: boolean };
+
+  const cajasMap = new Map(
+    ((cajasRes.data ?? []) as CajaRow[]).filter(c => c.activo)
+      .map(c => [c.id, { tamano: Number(c.tamano), descuento: Number(c.descuento_pct) }]),
+  );
+  const slotProdMap = new Map(
+    ((prodsRes.data ?? []) as ProdRow[]).filter(p => p.disponible)
+      .map(p => [p.id, { nombre: p.nombre, precio: Number(p.precio), stock: Number(p.stock) }]),
+  );
+  const varMap = new Map(
+    ((varsRes.data ?? []) as VarRow[]).filter(v => v.activo && !v.proximamente)
+      .map(v => [`${v.base}:${v.slug}`, Number(v.precio)]),
+  );
+  const extras = ((extrasRes.data ?? []) as ExtraRow[]).filter(e => e.activo);
+  const topMap = new Map(extras.filter(e => e.es_topping).map(e => [e.nombre, Number(e.precio_extra)]));
+  const relMap = new Map(extras.filter(e => e.es_relleno).map(e => [e.nombre, Number(e.precio_extra)]));
+
+  const precioCustom = (c: ComposicionCustom): number | { error: string } => {
+    const varPrecio = varMap.get(`${c.base}:${c.varianteSlug}`);
+    if (varPrecio === undefined) return { error: 'Uno de los postres personalizados ya no está disponible.' };
+    let precio = varPrecio;
+    for (const t of c.toppings) {
+      const p = topMap.get(t);
+      if (p === undefined) return { error: `El topping "${sanitizeText(t, 80)}" ya no está disponible.` };
+      precio += p;
+    }
+    if (c.relleno) {
+      const p = relMap.get(c.relleno);
+      if (p === undefined) return { error: `El relleno "${sanitizeText(c.relleno, 80)}" ya no está disponible.` };
+      precio += p;
+    }
+    return round2(precio);
+  };
+
+  // ── Calcular precio real por item y validar contra el recibido ──
+  const precios = new Map<number, number>();
+  const stockCajas = new Map<string, number>(); // productoId → unidades dentro de cajas
+
+  for (const { item, idx, compos } of conCompos) {
+    let esperado: number;
+
+    if (compos.tipo === 'custom') {
+      const r = precioCustom(compos);
+      if (typeof r !== 'number') return r;
+      esperado = r;
+    } else {
+      const caja = cajasMap.get(compos.cajaId);
+      if (!caja) return { error: 'La caja elegida ya no está disponible.' };
+      if (compos.slots.length !== caja.tamano)
+        return { error: 'El contenido no coincide con el tamaño de la caja.' };
+
+      let subtotal = 0;
+      for (const slot of compos.slots) {
+        if (slot.tipo === 'producto') {
+          const prod = slotProdMap.get(slot.productoId);
+          if (!prod) return { error: 'Un producto de la caja ya no está disponible.' };
+          subtotal += prod.precio;
+          stockCajas.set(slot.productoId, (stockCajas.get(slot.productoId) ?? 0) + item.cantidad);
+        } else {
+          const r = precioCustom(slot);
+          if (typeof r !== 'number') return r;
+          subtotal += r;
+        }
+      }
+      esperado = round2(round2(subtotal) * (1 - caja.descuento / 100));
+    }
+
+    if (Math.abs(Number(item.precio) - esperado) > 0.01) {
+      return { error: `El precio de "${sanitizeText(item.nombre, 80)}" cambió. Actualiza tu carrito e intenta de nuevo.` };
+    }
+    precios.set(idx, esperado);
+  }
+
+  // ── Stock: contenido de cajas + items directos del mismo producto ──
+  for (const [prodId, enCajas] of stockCajas) {
+    const directo = items
+      .filter(i => i.producto_id === prodId)
+      .reduce((s, i) => s + i.cantidad, 0);
+    const prod = slotProdMap.get(prodId)!;
+    if (prod.stock < enCajas + directo)
+      return { error: `Stock insuficiente para "${prod.nombre}". Disponible: ${prod.stock}.` };
+  }
+
+  return { precios };
+}
+
 export async function crearPedidoPublico(
   clienteDatos: ClienteDatos,
   items: PedidoItem[],
@@ -287,17 +452,25 @@ export async function crearPedidoPublico(
       }
     }
 
+    // ── 3b. Recalcular items compuestos (cajas y personalizados) ────────────
+    const recalc = await recalcularComposiciones(supabase, items);
+    if ('error' in recalc) return { success: false, error: recalc.error };
+
     // ── 4. Construir items con precios reales y nombres saneados ────────────
-    const sanitizedItems = items.map(item => {
-      const realPrecio = item.producto_id && prodMap.has(item.producto_id)
-        ? prodMap.get(item.producto_id)!.precio
-        : item.precio;
+    const sanitizedItems = items.map((item, idx) => {
+      const precioCompuesto = recalc.precios.get(idx);
+      const realPrecio = precioCompuesto !== undefined
+        ? precioCompuesto
+        : item.producto_id && prodMap.has(item.producto_id)
+          ? prodMap.get(item.producto_id)!.precio
+          : item.precio;
       return { ...item, precio: realPrecio, nombre: sanitizeText(item.nombre, 200) };
     });
 
-    // Validar rango de precio para ítems personalizados (sin producto_id)
-    for (const item of sanitizedItems) {
-      if (!item.producto_id) {
+    // Validar rango de precio para ítems sin producto_id ni composición
+    // (los compuestos ya se recalcularon contra la BD y pueden superar 1000)
+    for (const [idx, item] of sanitizedItems.entries()) {
+      if (!item.producto_id && !recalc.precios.has(idx)) {
         if (typeof item.precio !== 'number' || item.precio < 1 || item.precio > 1000)
           return { success: false, error: 'Precio inválido en uno de los productos.' };
       }
