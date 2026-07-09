@@ -31,18 +31,22 @@ function minAvailablePrice(variants: Variant[]): number | null {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function PersonalizaClient({
   toppings,
+  rellenos,
   brownies,
   galletas,
 }: {
   toppings: ToppingDef[];
+  rellenos: ToppingDef[];
   brownies: Variant[];
   galletas: Variant[];
 }) {
   const TOPPINGS = toppings;
+  const RELLENOS = rellenos;
   const [base, setBase] = useState<MainBase>("brownie");
   const [brownieVariantIdx, setBrownieVariantIdx] = useState(0);
   const [galletaVariantIdx, setGalletaVariantIdx] = useState(0);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [relleno, setRelleno] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
 
   const addItem = useCartStore(s => s.addItem);
@@ -58,6 +62,7 @@ export default function PersonalizaClient({
     if (b === base) return;
     setBase(b);
     setSelected(new Set());
+    setRelleno(null);
   }
   function setVariantIdx(i: number) {
     if (base === "brownie") setBrownieVariantIdx(i);
@@ -81,7 +86,11 @@ export default function PersonalizaClient({
     () => TOPPINGS.filter(t => selected.has(t.name)).reduce((s, t) => s + t.price, 0),
     [selected, TOPPINGS],
   );
-  const unitPrice = activeVariant.price + extraPrice;
+  // Relleno: solo galletas, selección única
+  const rellenoDef = base === "galleta" && relleno
+    ? RELLENOS.find(r => r.name === relleno) ?? null
+    : null;
+  const unitPrice = activeVariant.price + (rellenoDef?.price ?? 0) + extraPrice;
   const totalPrice = unitPrice * qty;
 
   // Topping placements for the SVG stage
@@ -98,11 +107,16 @@ export default function PersonalizaClient({
     return -((h % 300) / 100); // 0 a -2.99s
   }
 
+  const llevaBase = rellenoDef
+    ? `${activeVariant.name} · relleno de ${rellenoDef.name}`
+    : activeVariant.name;
   const llevaText = selectedNames.length === 0
-    ? `${activeVariant.name} · sin toppings`
-    : `${activeVariant.name} · ${selectedNames.join(" · ")}`;
+    ? `${llevaBase} · sin toppings`
+    : `${llevaBase} · ${selectedNames.join(" · ")}`;
 
   const itemName = `${base === "brownie" ? "Brownie" : "Galleta"} ${activeVariant.name}${
+    rellenoDef ? ` rellena de ${rellenoDef.name}` : ""
+  }${
     selectedNames.length > 0 ? ` con ${selectedNames.join(", ")}` : ""
   }`;
 
@@ -112,10 +126,18 @@ export default function PersonalizaClient({
     const sym = storeConfig.currencySymbol;
     const detalle = [
       `${activeVariant.name} ${sym}${activeVariant.price}`,
+      ...(rellenoDef ? [`Relleno de ${rellenoDef.name} +${sym}${rellenoDef.price}`] : []),
       ...TOPPINGS.filter(t => selected.has(t.name)).map(t => `${t.name} +${sym}${t.price}`),
     ].join(" · ");
+    const composicion = {
+      tipo: "custom" as const,
+      base,
+      varianteSlug: activeVariant.id,
+      toppings: selectedNames,
+      relleno: rellenoDef?.name ?? null,
+    };
     for (let i = 0; i < qty; i++)
-      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji, detalle });
+      addItem({ id: i === 0 ? id : `${id}-${i}`, name: itemName, price: unitPrice, emoji, detalle, composicion });
     router.push("/cart");
   }
 
@@ -342,6 +364,76 @@ export default function PersonalizaClient({
               );
             })}
           </div>
+
+          {/* Relleno — solo galletas, selección única */}
+          {base === "galleta" && RELLENOS.length > 0 && (
+            <>
+              <div className="flex items-baseline justify-between gap-3 mb-1.5">
+                <h2 className="font-bold" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(22px,2.6vw,28px)", color: "var(--ink)" }}>
+                  Elige tu relleno
+                </h2>
+                <span className="text-[13px] font-semibold shrink-0" style={{ color: "var(--ink-soft)" }}>
+                  {relleno ? "1/1" : "0/1"}
+                </span>
+              </div>
+              <p className="mb-5 text-[15px]" style={{ color: "var(--ink-soft)" }}>
+                Opcional. Toca uno para elegirlo; toca de nuevo para quitarlo.
+              </p>
+              <div className="bl-toppings-grid grid gap-3 mb-6">
+                {RELLENOS.map(r => {
+                  const isOn = relleno === r.name;
+                  return (
+                    <button
+                      key={r.name}
+                      onClick={() => setRelleno(prev => (prev === r.name ? null : r.name))}
+                      className="relative flex items-center gap-3 text-left cursor-pointer transition-all"
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: "var(--r-md)", border: "1.5px solid",
+                        background: "var(--paper-card)",
+                        borderColor: isOn ? "var(--orange)" : "var(--hairline)",
+                        boxShadow: isOn ? "0 0 0 3px rgba(217,113,30,.14)" : "none",
+                        transform: isOn ? "translateY(-1px)" : "none",
+                      }}
+                    >
+                      {r.imagen_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={r.imagen_url}
+                          alt={r.name}
+                          style={{ width: 44, height: 44, borderRadius: 13, objectFit: "cover", flexShrink: 0, border: isOn ? "1.5px solid var(--orange)" : "1px solid var(--hairline)" }}
+                        />
+                      ) : (
+                        <span
+                          className="flex-none grid place-items-center"
+                          style={{ width: 44, height: 44, borderRadius: 13, background: isOn ? "#fff" : "var(--cream)", fontSize: 22 }}
+                        >
+                          🍯
+                        </span>
+                      )}
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span className="block font-semibold text-[15px] leading-tight" style={{ color: "var(--ink)" }}>
+                          {r.name}
+                        </span>
+                        <span className="text-[13px] font-bold" style={{ color: "var(--orange-ink)" }}>
+                          +{sym}{r.price}
+                        </span>
+                      </span>
+                      {isOn && (
+                        <span
+                          className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full grid place-items-center"
+                          style={{ background: "var(--orange)", color: "#fff", fontSize: 10, fontWeight: 700 }}
+                          aria-hidden="true"
+                        >
+                          ✓
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )}
 
           {/* Toppings */}
           <div className="flex items-baseline justify-between gap-3 mb-1.5">

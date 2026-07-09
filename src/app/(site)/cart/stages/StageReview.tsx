@@ -163,6 +163,7 @@ export default function StageReview({
       const pedidoItems = items.map(i => ({
         producto_id: UUID_RE.test(i.id) ? i.id : null, nombre: i.name, precio: i.price,
         cantidad: i.quantity, subtotal: i.price * i.quantity,
+        composicion: i.composicion ?? null,
       }));
       const clienteDatos = {
         nombre: nombre.trim(), telefono: (selection.telefono ?? telefonoManual).trim(),

@@ -50,6 +50,7 @@ export async function createIngrediente(
     const stock_paquetes = parseFloat(formData.get('stock_paquetes') as string) || 0;
     const precio_extra = parseFloat(formData.get('precio_extra') as string) || 0;
     const es_topping = formData.get('es_topping') === 'true';
+    const es_relleno = formData.get('es_relleno') === 'true';
     const activo = formData.get('activo') === 'true';
     const notas = (formData.get('notas') as string).trim() || null;
     const imgFile = formData.get('imagen_file') as File | null;
@@ -59,13 +60,13 @@ export async function createIngrediente(
     }
 
     let imagen_url: string | null = null;
-    if (es_topping && imgFile && imgFile.size > 0) {
+    if ((es_topping || es_relleno) && imgFile && imgFile.size > 0) {
       imagen_url = await uploadToppingImage(imgFile);
     }
 
     const { data, error } = await supabase
       .from('ingredientes')
-      .insert({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas, imagen_url })
+      .insert({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, es_relleno, activo, notas, imagen_url })
       .select()
       .single();
 
@@ -96,6 +97,7 @@ export async function updateIngrediente(
     const stock_paquetes = parseFloat(formData.get('stock_paquetes') as string) || 0;
     const precio_extra = parseFloat(formData.get('precio_extra') as string) || 0;
     const es_topping = formData.get('es_topping') === 'true';
+    const es_relleno = formData.get('es_relleno') === 'true';
     const activo = formData.get('activo') === 'true';
     const notas = (formData.get('notas') as string).trim() || null;
     const imgFile = formData.get('imagen_file') as File | null;
@@ -106,15 +108,15 @@ export async function updateIngrediente(
     }
 
     let imagen_url: string | null = keepExistingImg;
-    if (es_topping && imgFile && imgFile.size > 0) {
+    if ((es_topping || es_relleno) && imgFile && imgFile.size > 0) {
       const uploaded = await uploadToppingImage(imgFile);
       if (uploaded) imagen_url = uploaded;
     }
-    if (!es_topping) imagen_url = null;
+    if (!es_topping && !es_relleno) imagen_url = null;
 
     const { data, error } = await supabase
       .from('ingredientes')
-      .update({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, activo, notas, imagen_url })
+      .update({ nombre, descripcion_paquete, unidad, tamano_paquete, costo_paquete, cantidad_por_bandeja, costo_por_bandeja, stock_paquetes, precio_extra, es_topping, es_relleno, activo, notas, imagen_url })
       .eq('id', id)
       .select()
       .single();

@@ -34,6 +34,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
   const boundAction = useMemo(() => isEdit ? updateIngrediente.bind(null, inicial.id) : createIngrediente, []);
   const [state, formAction, pending] = useActionState(boundAction, null);
   const [esTopping, setEsTopping] = useState(inicial?.es_topping ?? false);
+  const [esRelleno, setEsRelleno] = useState(inicial?.es_relleno ?? false);
   const [imgPreview, setImgPreview] = useState<string | null>(inicial?.imagen_url ?? null);
   useEffect(() => { if (state?.success) onSuccess(); }, [state, onSuccess]);
 
@@ -95,7 +96,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Precio extra (L.) <span style={{ color: 'var(--ink-soft)', fontWeight: 400 }}>(solo toppings)</span></label>
+          <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Precio extra (L.) <span style={{ color: 'var(--ink-soft)', fontWeight: 400 }}>(toppings y rellenos)</span></label>
           <input name="precio_extra" type="number" step="0.01" min="0" defaultValue={inicial?.precio_extra ?? 0}
             style={{ ...T.inp, opacity: pending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
@@ -108,17 +109,23 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
             Es topping
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--ink)', cursor: 'pointer' }}>
+            <input type="checkbox" name="es_relleno" value="true" defaultChecked={inicial?.es_relleno ?? false}
+              onChange={e => setEsRelleno(e.target.checked)}
+              style={{ accentColor: 'var(--orange)', width: 16, height: 16 }} />
+            Es relleno
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 14, color: 'var(--ink)', cursor: 'pointer' }}>
             <input type="checkbox" name="activo" value="true" defaultChecked={inicial?.activo ?? true}
               style={{ accentColor: 'var(--orange)', width: 16, height: 16 }} />
             Activo / En Personaliza
           </label>
         </div>
 
-        {/* Imagen del topping (solo si es topping) */}
-        {esTopping && (
+        {/* Imagen (solo toppings y rellenos) */}
+        {(esTopping || esRelleno) && (
           <div style={{ gridColumn: '1/-1', display: 'flex', flexDirection: 'column', gap: 8 }}>
             <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-              Imagen del topping
+              {esTopping ? 'Imagen del topping' : 'Imagen del relleno'}
               <span style={{ marginLeft: 6, fontSize: 12, fontWeight: 400, color: 'var(--ink-soft)' }}>
                 (se usa si no hay arte SVG incorporado)
               </span>
@@ -175,7 +182,7 @@ function IngredienteForm({ inicial, onSuccess, onCancel }: { inicial?: Ingredien
 }
 
 function IngredienteIcon({ ingrediente }: { ingrediente: Ingrediente }) {
-  if (ingrediente.es_topping && ingrediente.imagen_url) {
+  if ((ingrediente.es_topping || ingrediente.es_relleno) && ingrediente.imagen_url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
@@ -188,10 +195,10 @@ function IngredienteIcon({ ingrediente }: { ingrediente: Ingrediente }) {
   return (
     <div style={{
       width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center',
-      background: ingrediente.es_topping ? 'rgba(217,113,30,.12)' : 'var(--cream)',
+      background: ingrediente.es_topping || ingrediente.es_relleno ? 'rgba(217,113,30,.12)' : 'var(--cream)',
       color: 'var(--orange-ink)',
     }}>
-      {ingrediente.es_topping
+      {ingrediente.es_topping || ingrediente.es_relleno
         ? <Sparkles style={{ width: 17, height: 17 }} />
         : <FlaskConical style={{ width: 17, height: 17 }} />}
     </div>
@@ -217,18 +224,20 @@ function ActionBtns({ onEdit, onDelete, deleting }: { onEdit: () => void; onDele
   );
 }
 
-type Filtro = 'todos' | 'base' | 'toppings';
+type Filtro = 'todos' | 'base' | 'toppings' | 'rellenos';
 
 const FILTROS: { key: Filtro; label: string }[] = [
   { key: 'todos',    label: 'Todos' },
   { key: 'base',     label: 'Receta base' },
   { key: 'toppings', label: 'Toppings' },
+  { key: 'rellenos', label: 'Rellenos' },
 ];
 
 const TAB_DESC: Record<Filtro, string> = {
   todos:    'Costos calculados a partir del paquete y la cantidad usada por bandeja.',
   base:     'Ingredientes de la receta. El costo del brownie se calcula automáticamente.',
   toppings: 'Costo, precio de venta y visibilidad de cada topping en "Personaliza tu postre".',
+  rellenos: 'Rellenos para galletas en "Personaliza tu postre". Selección única con precio extra.',
 };
 
 export default function IngredientesClient({ initialIngredientes }: { initialIngredientes: Ingrediente[] }) {
@@ -263,13 +272,14 @@ export default function IngredientesClient({ initialIngredientes }: { initialIng
   }
 
   const filtered = initialIngredientes.filter(i => {
-    if (filtro === 'base')     return !i.es_topping;
+    if (filtro === 'base')     return !i.es_topping && !i.es_relleno;
     if (filtro === 'toppings') return i.es_topping;
+    if (filtro === 'rellenos') return i.es_relleno;
     return true;
   });
 
   // Stat card calculations (base ingredients only)
-  const baseActivos = initialIngredientes.filter(i => !i.es_topping);
+  const baseActivos = initialIngredientes.filter(i => !i.es_topping && !i.es_relleno);
   const totalBandeja = baseActivos.reduce((s, i) => s + (i.costo_por_bandeja ?? 0), 0);
   const costoPorUnidad = porciones > 0 ? totalBandeja / porciones : 0;
   const margenBajo = PRECIO_VENTA_BAJO - costoPorUnidad;
@@ -438,8 +448,8 @@ export default function IngredientesClient({ initialIngredientes }: { initialIng
                   {/* Tipo badge (todos only) */}
                   {filtro === 'todos' && (
                     <td style={{ ...T.td, textAlign: 'center' }}>
-                      <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11.5, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: i.es_topping ? '#ece8f8' : 'var(--cream-200)', color: i.es_topping ? '#6b46c1' : 'var(--orange-ink)' }}>
-                        {i.es_topping ? 'Topping' : 'Base'}
+                      <span style={{ display: 'inline-flex', alignItems: 'center', fontSize: 11.5, fontWeight: 700, padding: '3px 10px', borderRadius: 'var(--r-pill)', background: i.es_topping ? '#ece8f8' : i.es_relleno ? 'rgba(158,59,70,.12)' : 'var(--cream-200)', color: i.es_topping ? '#6b46c1' : i.es_relleno ? 'var(--berry)' : 'var(--orange-ink)' }}>
+                        {i.es_topping ? 'Topping' : i.es_relleno ? 'Relleno' : 'Base'}
                       </span>
                     </td>
                   )}
