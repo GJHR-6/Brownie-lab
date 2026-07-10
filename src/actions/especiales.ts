@@ -36,6 +36,7 @@ export async function createEspecial(
     const emoji = (formData.get('emoji') as string).trim() || '🍪';
     const fecha_inicio = (formData.get('fecha_inicio') as string) || new Date().toISOString().split('T')[0];
     const duracion_dias = parseInt(formData.get('duracion_dias') as string, 10);
+    const producto_id = ((formData.get('producto_id') as string) || '').trim() || null;
 
     if (!nombre || !descripcion || isNaN(duracion_dias) || duracion_dias < 1) {
       return { success: false, error: 'Nombre, descripción y duración son requeridos.' };
@@ -44,7 +45,7 @@ export async function createEspecial(
     // Insert first to get the ID
     const { data, error } = await supabase
       .from('especiales')
-      .insert({ nombre, descripcion, emoji, fecha_inicio, duracion_dias })
+      .insert({ nombre, descripcion, emoji, fecha_inicio, duracion_dias, producto_id })
       .select()
       .single();
 
@@ -114,6 +115,19 @@ export async function removeEspecialImagen(id: string, url: string): Promise<Act
     const { error } = await supabase.from('especiales').update(updates).eq('id', id);
     if (error) return { success: false, error: error.message };
 
+    revalidatePath('/admin/especiales');
+    revalidatePath('/');
+    return { success: true, data: undefined };
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
+  }
+}
+
+export async function setEspecialProducto(id: string, productoId: string | null): Promise<ActionResult> {
+  try {
+    const { supabase } = await requireAdmin();
+    const { error } = await supabase.from('especiales').update({ producto_id: productoId }).eq('id', id);
+    if (error) return { success: false, error: error.message };
     revalidatePath('/admin/especiales');
     revalidatePath('/');
     return { success: true, data: undefined };

@@ -6,9 +6,11 @@ import { useState, useCallback, useTransition, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2, Loader2, X, Upload } from 'lucide-react';
 import { useActionState, useEffect } from 'react';
-import { createEspecial, toggleEspecial, deleteEspecial, addEspecialImagen, removeEspecialImagen } from '@/actions/especiales';
+import { createEspecial, toggleEspecial, deleteEspecial, addEspecialImagen, removeEspecialImagen, setEspecialProducto } from '@/actions/especiales';
 import type { Especial } from '@/types/database';
 import ToggleSwitch from '@/components/admin/ToggleSwitch';
+
+type ProductoOpcion = { id: string; nombre: string };
 
 const T = {
   th: { textAlign: 'left' as const, fontSize: 11.5, fontWeight: 700, letterSpacing: '.08em', textTransform: 'uppercase' as const, color: 'var(--ink-soft)', padding: '14px 22px', borderBottom: '1px solid var(--hairline)', whiteSpace: 'nowrap' as const, background: 'var(--paper)' },
@@ -34,7 +36,7 @@ function inpBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
   e.target.style.borderColor = 'var(--hairline)'; e.target.style.background = 'var(--paper)';
 }
 
-function EspecialForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel: () => void }) {
+function EspecialForm({ productos, onSuccess, onCancel }: { productos: ProductoOpcion[]; onSuccess: () => void; onCancel: () => void }) {
   const [state, formAction, isPending] = useActionState(createEspecial, null);
   const [preview, setPreview] = useState<string | null>(null);
   const today = new Date().toISOString().split('T')[0];
@@ -99,6 +101,19 @@ function EspecialForm({ onSuccess, onCancel }: { onSuccess: () => void; onCancel
           <input name="duracion_dias" type="number" min="1" required disabled={isPending} defaultValue={7}
             style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }} onFocus={inpFocus} onBlur={inpBlur} />
         </div>
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Producto vinculado <span style={{ color: 'var(--ink-soft)', fontWeight: 500 }}>(opcional)</span></label>
+        <select name="producto_id" disabled={isPending} defaultValue=""
+          style={{ ...T.inp, opacity: isPending ? 0.6 : 1, cursor: 'pointer' }}>
+          <option value="">Sin vincular — pedidos por WhatsApp</option>
+          {productos.map((p) => (
+            <option key={p.id} value={p.id}>{p.nombre}</option>
+          ))}
+        </select>
+        <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>
+          Con producto vinculado, la portada muestra &ldquo;Conocer más&rdquo; y &ldquo;Pedir ahora&rdquo; hacia el flujo de pedido.
+        </p>
       </div>
       <div style={{ display: 'flex', gap: 10, paddingTop: 4, borderTop: '1px solid var(--hairline)', marginTop: 4 }}>
         <button type="button" onClick={onCancel} disabled={isPending} style={{ ...T.btnGhost, flex: 1, justifyContent: 'center' }}>Cancelar</button>
@@ -180,14 +195,22 @@ function GaleriaEspecial({ especial, onDone }: { especial: Especial; onDone: () 
   );
 }
 
-export default function EspecialesClient({ initialEspeciales }: { initialEspeciales: Especial[] }) {
+export default function EspecialesClient({ initialEspeciales, productos }: { initialEspeciales: Especial[]; productos: ProductoOpcion[] }) {
   const router = useRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [linkingId, setLinkingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const refresh = useCallback(() => { startTransition(() => { router.refresh(); }); }, [router]);
+
+  async function handleLinkProducto(id: string, productoId: string) {
+    setLinkingId(id);
+    await setEspecialProducto(id, productoId || null);
+    setLinkingId(null);
+    refresh();
+  }
 
   async function handleToggle(id: string, current: boolean) {
     setTogglingId(id);
@@ -227,6 +250,7 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
             <thead>
               <tr>
                 <th style={T.th}>Especial</th>
+                <th style={T.th}>Producto</th>
                 <th style={T.th}>Fecha inicio</th>
                 <th style={{ ...T.th, textAlign: 'center' }}>Duración</th>
                 <th style={{ ...T.th, textAlign: 'center' }}>Días restantes</th>
@@ -260,6 +284,21 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
                           <p style={{ fontSize: 12, color: 'var(--ink-soft)', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', margin: 0 }}>{e.descripcion}</p>
                         </div>
                       </div>
+                    </td>
+
+                    {/* Producto vinculado */}
+                    <td style={T.td}>
+                      <select
+                        value={e.producto_id ?? ''}
+                        disabled={linkingId === e.id}
+                        onChange={(ev) => handleLinkProducto(e.id, ev.target.value)}
+                        style={{ ...T.inp, width: 180, padding: '7px 10px', fontSize: 13, cursor: 'pointer', opacity: linkingId === e.id ? 0.6 : 1 }}
+                      >
+                        <option value="">Sin vincular</option>
+                        {productos.map((p) => (
+                          <option key={p.id} value={p.id}>{p.nombre}</option>
+                        ))}
+                      </select>
                     </td>
 
                     <td style={{ ...T.td, color: 'var(--ink-soft)' }}>{e.fecha_inicio}</td>
@@ -296,7 +335,7 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
               })}
               {initialEspeciales.length === 0 && (
                 <tr>
-                  <td colSpan={6} style={{ ...T.td, textAlign: 'center', padding: '48px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
+                  <td colSpan={7} style={{ ...T.td, textAlign: 'center', padding: '48px 22px', color: 'var(--ink-soft)', borderBottom: 0 }}>
                     No hay especiales. Agrega el primero.
                   </td>
                 </tr>
@@ -316,7 +355,7 @@ export default function EspecialesClient({ initialEspeciales }: { initialEspecia
                 <X style={{ width: 18, height: 18 }} />
               </button>
             </div>
-            <EspecialForm onSuccess={() => { setIsModalOpen(false); refresh(); }} onCancel={() => setIsModalOpen(false)} />
+            <EspecialForm productos={productos} onSuccess={() => { setIsModalOpen(false); refresh(); }} onCancel={() => setIsModalOpen(false)} />
           </div>
         </div>
       )}

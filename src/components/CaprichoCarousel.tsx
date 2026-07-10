@@ -2,10 +2,15 @@
 
 // Carrusel de especiales activos para la sección "Capricho del Chef".
 // Cada slide = foto + copy + countdown + CTA. Auto-avanza cada 7s.
+// Con producto vinculado: "Conocer más" → /menu/[id] y "Pedir ahora" → carrito + /cart.
+// Sin producto vinculado: se pide por WhatsApp (comportamiento anterior).
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import BLIcon from "@/components/BLIcon";
 import EspecialCarousel from "@/components/EspecialCarousel";
+import { useCartStore } from "@/lib/cartStore";
 import type { Especial } from "@/types/database";
 
 function getDaysLeft(fechaInicio: string, duracionDias: number): number {
@@ -18,10 +23,37 @@ function getDaysLeft(fechaInicio: string, duracionDias: number): number {
   return Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
+// Rango legible de la semana del especial, p. ej. "5 – 11 jul"
+function formatRango(fechaInicio: string, duracionDias: number): string {
+  const start = new Date(fechaInicio + "T00:00:00");
+  const end = new Date(start);
+  end.setDate(end.getDate() + Math.max(0, duracionDias - 1));
+  const fmt = new Intl.DateTimeFormat("es-HN", { day: "numeric", month: "short" });
+  return `${fmt.format(start)} – ${fmt.format(end)}`;
+}
+
 export default function CaprichoCarousel({ especiales, whatsapp }: { especiales: Especial[]; whatsapp: string }) {
+  const router = useRouter();
+  const addItem = useCartStore((s) => s.addItem);
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const total = especiales.length;
+
+  // "Pedir ahora" estilo Crumbl: agrega el producto vinculado y arranca el
+  // flujo de pedido (/cart abre eligiendo pickup o domicilio).
+  function handlePedir(e: Especial) {
+    const p = e.producto;
+    if (p && p.disponible && p.stock > 0) {
+      addItem({
+        id: p.id,
+        name: p.nombre,
+        price: p.precio,
+        emoji: p.emoji || e.emoji,
+        categoria: p.categoria,
+      });
+    }
+    router.push("/cart");
+  }
 
   // Auto-avance — solo con 2+ especiales y sin hover
   useEffect(() => {
@@ -33,6 +65,7 @@ export default function CaprichoCarousel({ especiales, whatsapp }: { especiales:
   if (total === 0) return null;
   const e = especiales[Math.min(idx, total - 1)];
   const dias = getDaysLeft(e.fecha_inicio, e.duracion_dias);
+  const agotado = !!e.producto && (!e.producto.disponible || e.producto.stock <= 0);
 
   return (
     <div
@@ -62,38 +95,75 @@ export default function CaprichoCarousel({ especiales, whatsapp }: { especiales:
 
         {/* Copy */}
         <div>
-          <span className="text-[12px] font-bold tracking-[0.22em] uppercase" style={{ color: "var(--amber)" }}>
-            Edición limitada
+          <div className="flex items-center flex-wrap gap-3">
+            <span
+              className="inline-flex items-center text-[12px] font-bold px-3 py-1.5 rounded-full"
+              style={{ background: "rgba(200,80,120,.22)", color: "#f2a9c4" }}
+            >
+              {formatRango(e.fecha_inicio, e.duracion_dias)}
+            </span>
+            <span className="text-[12px] font-bold tracking-[0.22em] uppercase" style={{ color: "var(--amber)" }}>
+              Edición limitada
+            </span>
+          </div>
+          <span
+            className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full mt-5"
+            style={{ background: "rgba(232,162,58,.15)", color: "var(--amber)" }}
+          >
+            Solo esta semana
           </span>
-          <h3 className="font-bold mt-4 mb-4" style={{ fontSize: "clamp(34px, 5vw, 52px)" }}>
+          <h3 className="font-bold mt-3 mb-4" style={{ fontSize: "clamp(34px, 5vw, 52px)" }}>
             {e.nombre}
           </h3>
           <p style={{ color: "var(--on-dark-soft)", fontSize: 17, maxWidth: "46ch" }}>
             {e.descripcion}
           </p>
-          <div className="flex items-center flex-wrap gap-4 mt-7">
-            <span
-              className="inline-flex items-center gap-1.5 text-[12px] font-bold px-3 py-1.5 rounded-full"
-              style={{ background: "rgba(232,162,58,.15)", color: "var(--amber)" }}
-            >
-              Solo esta semana
-            </span>
+          <div className="flex items-center flex-wrap gap-4 mt-6">
             <span className="inline-flex items-center gap-2 font-bold text-[15px]" style={{ color: "var(--amber)" }}>
               <BLIcon name="clock" size={18} />
               {dias === 1 ? "Queda 1 día" : `Quedan ${dias} días`}
             </span>
           </div>
-          <div className="mt-5">
-            <a
-              href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Me interesa el ${e.nombre} del Capricho del Chef`)}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
-              style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
-            >
-              Pedir ahora
-              <BLIcon name="arrow-right" size={16} />
-            </a>
+          <div className="flex items-center flex-wrap gap-3.5 mt-6">
+            {e.producto ? (
+              <>
+                <Link
+                  href={`/menu/${e.producto.id}`}
+                  className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full no-underline transition-colors border"
+                  style={{ color: "var(--on-dark)", borderColor: "rgba(246,234,212,.4)", background: "transparent" }}
+                >
+                  Conocer más
+                </Link>
+                {agotado ? (
+                  <span
+                    className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full"
+                    style={{ background: "rgba(246,234,212,.12)", color: "var(--on-dark-soft)" }}
+                  >
+                    Agotado hoy
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => handlePedir(e)}
+                    className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white border-0 cursor-pointer transition-colors"
+                    style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+                  >
+                    Pedir ahora
+                    <BLIcon name="arrow-right" size={16} />
+                  </button>
+                )}
+              </>
+            ) : (
+              <a
+                href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(`Hola! Me interesa el ${e.nombre} del Capricho del Chef`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 font-bold text-[15px] px-6 py-3.5 rounded-full text-white no-underline transition-colors"
+                style={{ background: "var(--orange)", boxShadow: "0 6px 18px rgba(217,113,30,.32)" }}
+              >
+                Pedir ahora
+                <BLIcon name="arrow-right" size={16} />
+              </a>
+            )}
           </div>
         </div>
       </div>
