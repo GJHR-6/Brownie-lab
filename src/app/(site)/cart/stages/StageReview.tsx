@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Loader2, CheckCircle, ArrowLeft, MapPin, Wallet, Tag,
@@ -352,11 +353,25 @@ export default function StageReview({
           {/* Bolsa */}
           <Card>
             {cardTitle(<BLIcon name="cart" size={16} />, "Mi bolsa")}
-            <div className="flex flex-col gap-2 mb-3">
+            <div className="flex flex-col gap-3 mb-3">
               {items.map(item => (
-                <div key={item.id} className="flex items-center gap-2 text-[14.5px]">
-                  <span className="flex-1 truncate" style={{ color: "var(--ink)" }}>{item.quantity}× {item.name}</span>
-                  <span className="font-semibold" style={{ color: "var(--ink)" }}>{sym}{(item.price * item.quantity).toFixed(2)}</span>
+                <div key={item.id} className="flex items-start gap-3 text-[14.5px]">
+                  {item.imagen ? (
+                    <span className="relative shrink-0 block overflow-hidden" style={{ width: 40, height: 40, borderRadius: "var(--r-md)", background: "var(--cream)" }}>
+                      <Image src={item.imagen} alt="" fill className="object-cover" sizes="40px" />
+                    </span>
+                  ) : (
+                    <span className="grid place-items-center shrink-0 text-[20px]" style={{ width: 40, height: 40, borderRadius: "var(--r-md)", background: "var(--cream)" }}>
+                      {item.emoji}
+                    </span>
+                  )}
+                  <span className="flex-1 min-w-0">
+                    <span className="block truncate" style={{ color: "var(--ink)" }}>{item.quantity}× {item.name}</span>
+                    {item.detalle && item.detalle.split(" · ").map((linea, i) => (
+                      <span key={i} className="block truncate" style={{ color: "var(--ink-soft)", fontSize: 12, lineHeight: 1.45 }}>{linea}</span>
+                    ))}
+                  </span>
+                  <span className="font-semibold shrink-0" style={{ color: "var(--ink)" }}>{sym}{(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>

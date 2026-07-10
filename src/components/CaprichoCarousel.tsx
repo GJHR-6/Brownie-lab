@@ -50,6 +50,7 @@ export default function CaprichoCarousel({ especiales, whatsapp }: { especiales:
         price: p.precio,
         emoji: p.emoji || e.emoji,
         categoria: p.categoria,
+        imagen: e.imagen_url ?? undefined,
       });
     }
     router.push("/cart");
@@ -74,7 +75,7 @@ export default function CaprichoCarousel({ especiales, whatsapp }: { especiales:
     >
       <div
         key={e.id}
-        className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col"
+        className="mx-auto px-[var(--gutter)] grid items-center gap-[clamp(28px,5vw,64px)] bl-grid-2col bl-capricho-slide"
         style={{ maxWidth: "var(--maxw)", gridTemplateColumns: ".9fr 1.1fr", animation: "fadeIn .45s ease" }}
       >
         {/* Media — carousel de imágenes del especial */}
@@ -217,6 +218,18 @@ export default function CaprichoCarousel({ especiales, whatsapp }: { especiales:
           </span>
         </div>
       )}
+
+      {/* Hover estilo Crumbl: el slide "enciende" un panel redondeado */}
+      <style>{`
+        .bl-capricho-slide {
+          border-radius: 28px;
+          padding-block: clamp(20px, 3vw, 36px);
+          transition: background .25s ease;
+        }
+        .bl-capricho-slide:hover {
+          background: rgba(255, 255, 255, .05);
+        }
+      `}</style>
     </div>
   );
 }

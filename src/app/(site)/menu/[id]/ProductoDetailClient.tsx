@@ -52,7 +52,7 @@ export default function ProductoDetailClient({
     if (bloqueado) return;
     const toAdd = Math.min(qty, stockRestante);
     for (let i = 0; i < toAdd; i++) {
-      addItem({ id: producto.id, name: producto.nombre, price: Number(producto.precio), emoji: producto.emoji ?? "🍪", categoria: producto.categoria });
+      addItem({ id: producto.id, name: producto.nombre, price: Number(producto.precio), emoji: producto.emoji ?? "🍪", categoria: producto.categoria, imagen: producto.imagen_url ?? undefined });
     }
     setAdded(true);
     setTimeout(() => setAdded(false), 1400);

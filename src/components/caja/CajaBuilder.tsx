@@ -1,23 +1,35 @@
 "use client";
 
-// Núcleo del armador de cajas: selector de tamaño, grid de slots, resumen
-// sticky con totales y botón de agregar. Compartido por /cajas y por la
-// etapa "cajas" del flujo de pedido (/cart).
+// Builder de cajas estilo Crumbl ("Select N Flavors"): imagen de la caja
+// sticky a la izquierda con el resumen, y a la derecha la lista de postres
+// con steppers de cantidad, agrupados por categoría. Compartido por /cajas
+// y por la etapa "cajas" del flujo de pedido (/cart).
 
 import { useMemo, useState } from "react";
 import Image from "next/image";
+import { Minus, Plus } from "lucide-react";
 import { storeConfig } from "@/config/store";
 import { useCartStore } from "@/lib/cartStore";
 import BLIcon from "@/components/BLIcon";
-import SlotPickerModal from "./SlotPickerModal";
-import type { CajaBuilderData, SlotContent } from "./types";
+import CustomizerModal, { type CustomContent } from "./CustomizerModal";
+import type { CajaBuilderData, ProductoLite } from "./types";
 import { round2 } from "./types";
+
+interface CustomRow { content: CustomContent; qty: number }
+
+// Dos customs son "iguales" si comparten base, sabor, toppings y relleno.
+function sameCustom(a: CustomContent, b: CustomContent): boolean {
+  return a.base === b.base && a.varianteSlug === b.varianteSlug
+    && a.relleno === b.relleno
+    && a.toppings.length === b.toppings.length
+    && a.toppings.every(t => b.toppings.includes(t));
+}
 
 export default function CajaBuilder({
   data,
   initialCajaId,
   showSizeSelector = true,
-  addLabel = "Agregar caja al carrito",
+  addLabel = "Agregar a la bolsa",
   onAdded,
 }: {
   data: CajaBuilderData;
@@ -28,128 +40,192 @@ export default function CajaBuilder({
 }) {
   const sym = storeConfig.currencySymbol;
   const addItem = useCartStore(s => s.addItem);
-  const { cajas } = data;
+  const { cajas, productos } = data;
 
   const initialIdx = Math.max(0, initialCajaId ? cajas.findIndex(c => c.id === initialCajaId) : 0);
   const [cajaIdx, setCajaIdx] = useState(initialIdx);
   const caja = cajas[Math.min(cajaIdx, Math.max(0, cajas.length - 1))] ?? null;
 
-  const [slots, setSlots] = useState<(SlotContent | null)[]>(
-    () => Array.from({ length: cajas[initialIdx]?.tamano ?? 0 }, () => null),
-  );
-  const [pickerSlot, setPickerSlot] = useState<number | null>(null);
-
-  function selectCaja(i: number) {
-    if (i === cajaIdx) return;
-    setCajaIdx(i);
-    const tam = cajas[i]?.tamano ?? 0;
-    setSlots(prev => {
-      const next = prev.slice(0, tam);
-      while (next.length < tam) next.push(null);
-      return next;
-    });
-  }
-
-  function fillSlot(content: SlotContent) {
-    if (pickerSlot === null) return;
-    setSlots(prev => prev.map((s, i) => (i === pickerSlot ? content : s)));
-    setPickerSlot(null);
-  }
-
-  function clearSlot(i: number) {
-    setSlots(prev => prev.map((s, j) => (j === i ? null : s)));
-  }
+  const [qtyMenu, setQtyMenu] = useState<Record<string, number>>({});
+  const [customs, setCustoms] = useState<CustomRow[]>([]);
+  const [customizerOpen, setCustomizerOpen] = useState(false);
 
   // ── Totales ──
-  const filled = useMemo(() => slots.filter((s): s is SlotContent => s !== null), [slots]);
-  const allFilled = caja !== null && filled.length === caja.tamano;
-  const subtotal = round2(filled.reduce((s, i) => s + i.precio, 0));
+  const elegidos = useMemo(
+    () => Object.values(qtyMenu).reduce((s, q) => s + q, 0) + customs.reduce((s, c) => s + c.qty, 0),
+    [qtyMenu, customs],
+  );
+  const tamano = caja?.tamano ?? 0;
+  const completo = caja !== null && elegidos === tamano;
+  const lleno = elegidos >= tamano;
+  const subtotal = round2(
+    productos.reduce((s, p) => s + p.precio * (qtyMenu[p.id] ?? 0), 0)
+    + customs.reduce((s, c) => s + c.content.precio * c.qty, 0),
+  );
   const pct = caja?.descuentoPct ?? 0;
   const total = round2(subtotal * (1 - pct / 100));
   const ahorro = round2(subtotal - total);
 
+  function setQty(productoId: string, delta: number) {
+    setQtyMenu(prev => {
+      const current = prev[productoId] ?? 0;
+      if (delta > 0 && lleno) return prev;
+      const next = Math.max(0, current + delta);
+      if (next === 0) { const rest = { ...prev }; delete rest[productoId]; return rest; }
+      return { ...prev, [productoId]: next };
+    });
+  }
+
+  function setCustomQty(idx: number, delta: number) {
+    setCustoms(prev => {
+      if (delta > 0 && lleno) return prev;
+      return prev
+        .map((c, i) => (i === idx ? { ...c, qty: Math.max(0, c.qty + delta) } : c))
+        .filter(c => c.qty > 0);
+    });
+  }
+
+  function addCustom(content: CustomContent) {
+    setCustomizerOpen(false);
+    if (lleno) return;
+    setCustoms(prev => {
+      const idx = prev.findIndex(c => sameCustom(c.content, content));
+      if (idx >= 0) return prev.map((c, i) => (i === idx ? { ...c, qty: c.qty + 1 } : c));
+      return [...prev, { content, qty: 1 }];
+    });
+  }
+
+  function selectCaja(i: number) {
+    if (i === cajaIdx) return;
+    setCajaIdx(i);
+    // Las selecciones se conservan; si sobran, el botón de agregar lo indica.
+  }
+
+  // ── Agregar a la bolsa ──
   function handleAddToCart() {
-    if (!caja || !allFilled) return;
-    const counts = new Map<string, number>();
-    filled.forEach(s => counts.set(s.nombre, (counts.get(s.nombre) ?? 0) + 1));
-    const resumen = [...counts].map(([n, c]) => (c > 1 ? `${c}× ${n}` : n)).join(", ");
+    if (!caja || !completo) return;
+
+    const elegidosMenu = productos.filter(p => (qtyMenu[p.id] ?? 0) > 0);
+    const partes: { nombre: string; precio: number; qty: number }[] = [
+      ...elegidosMenu.map(p => ({ nombre: p.nombre, precio: p.precio, qty: qtyMenu[p.id] })),
+      ...customs.map(c => ({ nombre: c.content.nombre, precio: c.content.precio, qty: c.qty })),
+    ];
+    const resumen = partes.map(p => (p.qty > 1 ? `${p.qty}× ${p.nombre}` : p.nombre)).join(", ");
     const detalle = [
-      ...filled.map(s => `${s.nombre} ${sym}${s.precio}`),
+      ...partes.map(p => `${p.qty}× ${p.nombre}`),
       ...(ahorro > 0 ? [`Descuento ${pct}% −${sym}${ahorro}`] : []),
     ].join(" · ");
+
+    // Expandir cantidades → slots (mismo contrato que valida el servidor)
+    const slots = [
+      ...elegidosMenu.flatMap(p =>
+        Array.from({ length: qtyMenu[p.id] }, () => ({ tipo: "producto" as const, productoId: p.id }))),
+      ...customs.flatMap(c =>
+        Array.from({ length: c.qty }, () => ({
+          tipo: "custom" as const,
+          base: c.content.base,
+          varianteSlug: c.content.varianteSlug,
+          toppings: c.content.toppings,
+          relleno: c.content.relleno,
+        }))),
+    ];
+
     addItem({
       id: `caja-${crypto.randomUUID()}`,
       name: `${caja.nombre}: ${resumen}`,
       price: total,
       emoji: "🎁",
       detalle,
-      composicion: {
-        tipo: "caja",
-        cajaId: caja.id,
-        slots: filled.map(s => s.tipo === "producto"
-          ? { tipo: "producto" as const, productoId: s.productoId }
-          : { tipo: "custom" as const, base: s.base, varianteSlug: s.varianteSlug, toppings: s.toppings, relleno: s.relleno }),
-      },
+      imagen: caja.imagenUrl ?? undefined,
+      composicion: { tipo: "caja", cajaId: caja.id, slots },
     });
     onAdded();
   }
 
   if (!caja) return null;
 
-  // Miniatura de un slot: foto del producto si existe, si no emoji.
-  function slotThumb(s: SlotContent | null, size: number, fontSize: number, empty: string | number) {
-    if (s && s.tipo === "producto" && s.imagenUrl) {
-      return (
-        <span className="relative flex-none block overflow-hidden" style={{ width: size, height: size, borderRadius: Math.round(size * 0.3) }}>
-          <Image src={s.imagenUrl} alt="" fill className="object-cover" sizes={`${size}px`} />
-        </span>
-      );
-    }
-    return (
-      <span className="flex-none grid place-items-center" style={{ width: size, height: size, borderRadius: Math.round(size * 0.3), background: s ? "#fff" : "var(--cream)", fontSize }}>
-        {s ? s.emoji ?? "🧁" : empty}
-      </span>
-    );
-  }
+  // Productos agrupados por categoría (equivalente a Weekly/Classic Flavors)
+  const grupos = productos.reduce<Record<string, ProductoLite[]>>((acc, p) => {
+    const key = p.categoria || "otros";
+    (acc[key] ??= []).push(p);
+    return acc;
+  }, {});
+
+  const faltan = tamano - elegidos;
+
+  const addBtnLabel = completo
+    ? `${addLabel} — ${sym}${total}`
+    : faltan > 0
+      ? `Faltan ${faltan} postre${faltan !== 1 ? "s" : ""}`
+      : `Sobran ${-faltan} — quita alguno`;
 
   return (
     <>
-      {/* ── Builder grid ── */}
       <div
         className="mx-auto px-[var(--gutter)] bl-caja-grid"
-        style={{ maxWidth: "var(--maxw)", paddingBlock: "clamp(48px, 6vw, 80px)" }}
+        style={{ maxWidth: "var(--maxw)", paddingBlock: "clamp(40px, 5vw, 64px)" }}
       >
-        {/* ── Summary (sticky left on desktop) ── */}
+        {/* ── Izquierda: imagen de la caja + resumen (sticky) ── */}
         <div className="bl-caja-summary-col">
+          {/* PNG de la caja, sin marco, flotante estilo Crumbl */}
+          {caja.imagenUrl ? (
+            <div className="relative w-full" style={{ aspectRatio: "4/3" }}>
+              <Image
+                src={caja.imagenUrl}
+                alt={caja.nombre}
+                fill
+                className="object-contain"
+                sizes="(max-width: 920px) 100vw, 45vw"
+                style={{ filter: "drop-shadow(0 18px 28px rgba(60,32,14,.22))" }}
+              />
+            </div>
+          ) : (
+            <div
+              className="grid place-items-center w-full rounded-[24px]"
+              style={{
+                aspectRatio: "4/3",
+                fontSize: 72,
+                background:
+                  "repeating-linear-gradient(135deg, rgba(246,234,212,.06) 0 10px, rgba(246,234,212,0) 10px 20px), linear-gradient(150deg, var(--choco-900), var(--choco-700))",
+              }}
+            >
+              🎁
+            </div>
+          )}
+
           <div
-            className="rounded-[24px] p-[26px]"
+            className="rounded-[24px] p-[24px] mt-4"
             style={{ background: "var(--paper-card)", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-md)" }}
           >
             <p className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ color: "var(--ink-soft)" }}>Tu caja</p>
-            <p className="mt-1 font-bold text-[19px]" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", color: "var(--ink)" }}>
-              {caja.nombre} · {filled.length}/{caja.tamano}
+            <p className="mt-1 font-bold text-[20px]" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", color: "var(--ink)" }}>
+              {caja.nombre}
+            </p>
+            <p className="text-[14px] mt-0.5" style={{ color: completo ? "#1f8a5b" : "var(--ink-soft)" }}>
+              {elegidos}/{tamano} postres elegidos
             </p>
 
-            {/* Contents */}
-            <ul style={{ listStyle: "none", margin: "14px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 8 }}>
-              {slots.map((s, i) => (
-                <li key={i} className="flex items-center gap-2 text-[14px]" style={{ color: s ? "var(--ink)" : "var(--ink-soft)" }}>
-                  {slotThumb(s, 26, 14, i + 1)}
-                  {s ? (
-                    <>
-                      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.nombre}</span>
-                      <span className="font-semibold shrink-0" style={{ color: "var(--orange-ink)" }}>{sym}{s.precio}</span>
-                    </>
-                  ) : (
-                    <span style={{ flex: 1 }}>Espacio vacío</span>
-                  )}
-                </li>
-              ))}
-            </ul>
+            {(elegidos > 0) && (
+              <ul style={{ listStyle: "none", margin: "12px 0 0", padding: 0, display: "flex", flexDirection: "column", gap: 6 }}>
+                {productos.filter(p => (qtyMenu[p.id] ?? 0) > 0).map(p => (
+                  <li key={p.id} className="flex items-center gap-2 text-[13.5px]" style={{ color: "var(--ink)" }}>
+                    <span className="font-bold" style={{ color: "var(--orange-ink)", minWidth: 26 }}>{qtyMenu[p.id]}×</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.nombre}</span>
+                    <span className="font-semibold shrink-0" style={{ color: "var(--ink-soft)" }}>{sym}{round2(p.precio * qtyMenu[p.id])}</span>
+                  </li>
+                ))}
+                {customs.map((c, i) => (
+                  <li key={i} className="flex items-center gap-2 text-[13.5px]" style={{ color: "var(--ink)" }}>
+                    <span className="font-bold" style={{ color: "var(--orange-ink)", minWidth: 26 }}>{c.qty}×</span>
+                    <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.content.nombre}</span>
+                    <span className="font-semibold shrink-0" style={{ color: "var(--ink-soft)" }}>{sym}{round2(c.content.precio * c.qty)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
 
-            <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "18px 0" }} />
+            <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "16px 0" }} />
 
-            {/* Totals */}
             <div className="flex flex-col gap-1.5 text-[14px]">
               <div className="flex justify-between" style={{ color: "var(--ink-soft)" }}>
                 <span>Subtotal</span>
@@ -159,48 +235,37 @@ export default function CajaBuilder({
                 <span>Descuento {pct}%</span>
                 <span>−{sym}{ahorro}</span>
               </div>
-            </div>
-            <div className="text-center mt-4">
-              <p className="text-[11px] font-bold tracking-[0.16em] uppercase" style={{ color: "var(--ink-soft)" }}>Total de la caja</p>
-              <p
-                className="font-extrabold mt-1"
-                style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(34px,4.5vw,44px)", color: "var(--orange-ink)", lineHeight: 1.1 }}
-              >
-                {sym}{total}
-              </p>
-              {ahorro > 0 && (
-                <p className="text-[13px] font-semibold mt-1" style={{ color: "#1f8a5b" }}>
-                  Ahorras {sym}{ahorro}
-                </p>
-              )}
+              <div className="flex justify-between font-extrabold text-[17px] mt-1" style={{ color: "var(--ink)" }}>
+                <span>Total</span>
+                <span style={{ color: "var(--orange-ink)" }}>{sym}{total}</span>
+              </div>
             </div>
 
-            {/* Add to cart — desktop */}
+            {/* Agregar — desktop */}
             <button
               onClick={handleAddToCart}
-              disabled={!allFilled}
+              disabled={!completo}
               className="hidden lg:inline-flex w-full mt-5 items-center justify-center gap-2 font-bold text-[15px] py-3.5 rounded-full text-white border-0 transition-colors"
               style={{
-                background: allFilled ? "var(--orange)" : "var(--hairline)",
-                boxShadow: allFilled ? "0 6px 18px rgba(217,113,30,.32)" : "none",
-                cursor: allFilled ? "pointer" : "not-allowed",
+                background: completo ? "var(--orange)" : "var(--hairline)",
+                boxShadow: completo ? "0 6px 18px rgba(217,113,30,.32)" : "none",
+                cursor: completo ? "pointer" : "not-allowed",
               }}
             >
               <BLIcon name="cart" size={18} />
-              {allFilled ? addLabel : `Faltan ${caja.tamano - filled.length} postre${caja.tamano - filled.length !== 1 ? "s" : ""}`}
+              {addBtnLabel}
             </button>
           </div>
         </div>
 
-        {/* ── Options panel ── */}
+        {/* ── Derecha: selector de tamaño + lista con steppers ── */}
         <div>
-          {/* Caja size selector */}
-          {showSizeSelector && (
+          {showSizeSelector && cajas.length > 1 && (
             <>
               <p className="text-[11px] font-bold tracking-[0.16em] uppercase mb-[11px]" style={{ color: "var(--ink-soft)" }}>
                 Elige el tamaño
               </p>
-              <div className="grid gap-3 mb-[26px]" style={{ gridTemplateColumns: `repeat(${Math.min(cajas.length, 3)}, 1fr)` }}>
+              <div className="grid gap-3 mb-[22px]" style={{ gridTemplateColumns: `repeat(${Math.min(cajas.length, 3)}, 1fr)` }}>
                 {cajas.map((c, i) => {
                   const on = i === cajaIdx;
                   return (
@@ -209,13 +274,13 @@ export default function CajaBuilder({
                       onClick={() => selectCaja(i)}
                       style={{
                         display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2,
-                        padding: "16px 20px", textAlign: "left", cursor: "pointer", transition: "all .15s",
+                        padding: "14px 18px", textAlign: "left", cursor: "pointer", transition: "all .15s",
                         borderRadius: "var(--r-md)", border: "1.5px solid",
                         background: on ? "var(--choco-900)" : "var(--paper-card)",
                         borderColor: on ? "var(--choco-900)" : "var(--hairline)",
                       }}
                     >
-                      <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 19, color: on ? "var(--on-dark)" : "var(--ink)" }}>
+                      <strong style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: 18, color: on ? "var(--on-dark)" : "var(--ink)" }}>
                         {c.nombre}
                       </strong>
                       <span style={{ fontSize: 13, color: on ? "var(--on-dark-soft)" : "var(--ink-soft)" }}>
@@ -228,89 +293,124 @@ export default function CajaBuilder({
             </>
           )}
 
-          {/* Slots */}
-          <div className="flex items-baseline justify-between gap-3 mb-1.5">
-            <h2 className="font-bold" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(22px,2.6vw,28px)", color: "var(--ink)" }}>
-              Llena tu caja
-            </h2>
-            <span className="text-[13px] font-semibold shrink-0" style={{ color: allFilled ? "#1f8a5b" : "var(--ink-soft)" }}>
-              {filled.length}/{caja.tamano}
-            </span>
-          </div>
+          <h2 className="font-bold mb-1" style={{ fontFamily: "var(--font-display,'Playfair Display',Georgia,serif)", fontSize: "clamp(24px,3vw,32px)", color: "var(--ink)" }}>
+            Elige {tamano} postre{tamano !== 1 ? "s" : ""}
+          </h2>
           <p className="mb-5 text-[15px]" style={{ color: "var(--ink-soft)" }}>
-            {allFilled ? "¡Caja completa! Agrégala al carrito." : "Toca un espacio para elegir el postre que va ahí."}
+            {completo ? "¡Caja completa! Agrégala a tu bolsa." : "Usa + y − para armar tu combinación."}
           </p>
 
-          <div className="bl-caja-slots grid gap-3">
-            {slots.map((s, i) => (
-              <div key={i} style={{ position: "relative" }}>
-                <button
-                  onClick={() => setPickerSlot(i)}
-                  className="w-full flex items-center gap-3 text-left cursor-pointer transition-all"
-                  style={{
-                    padding: "14px 16px", minHeight: 76,
-                    borderRadius: "var(--r-md)",
-                    border: s ? "1.5px solid var(--orange)" : "1.5px dashed var(--hairline)",
-                    background: s ? "#fcf2e4" : "var(--paper-card)",
-                  }}
-                >
-                  {slotThumb(s, 44, 22, "+")}
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    {s ? (
-                      <>
-                        <span className="block font-semibold text-[14px] leading-tight" style={{ color: "var(--ink)" }}>{s.nombre}</span>
-                        <span className="text-[13px] font-bold" style={{ color: "var(--orange-ink)" }}>{sym}{s.precio}</span>
-                      </>
-                    ) : (
-                      <span className="block font-semibold text-[14px]" style={{ color: "var(--ink-soft)" }}>Elegir postre</span>
-                    )}
-                  </span>
-                </button>
-                {s && (
-                  <button
-                    onClick={() => clearSlot(i)}
-                    aria-label="Quitar del espacio"
-                    className="absolute grid place-items-center cursor-pointer"
-                    style={{ top: -7, right: -7, width: 22, height: 22, borderRadius: "50%", background: "var(--berry)", color: "#fff", border: "none", fontSize: 11, fontWeight: 700 }}
-                  >
-                    ×
-                  </button>
-                )}
+          {/* Grupos por categoría */}
+          {Object.entries(grupos).map(([cat, prods]) => (
+            <div key={cat} className="mb-5">
+              <div
+                className="flex items-center justify-between px-4 py-2 rounded-[10px] mb-1"
+                style={{ background: "var(--cream)", border: "1px solid var(--hairline)" }}
+              >
+                <span className="font-bold text-[13px] capitalize" style={{ color: "var(--ink)" }}>{cat}s</span>
               </div>
-            ))}
-          </div>
+              <div className="flex flex-col">
+                {prods.map(p => {
+                  const q = qtyMenu[p.id] ?? 0;
+                  return (
+                    <div key={p.id} className="flex items-center gap-3 py-2.5" style={{ borderBottom: "1px solid var(--hairline)" }}>
+                      {p.imagen_url ? (
+                        <span className="relative flex-none block overflow-hidden" style={{ width: 44, height: 44, borderRadius: "50%" }}>
+                          <Image src={p.imagen_url} alt="" fill className="object-cover" sizes="44px" />
+                        </span>
+                      ) : (
+                        <span className="flex-none grid place-items-center" style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--cream)", fontSize: 20 }}>
+                          {p.emoji ?? "🧁"}
+                        </span>
+                      )}
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span className="block font-semibold text-[14.5px] leading-tight" style={{ color: "var(--ink)" }}>{p.nombre}</span>
+                        <span className="text-[13px] font-bold" style={{ color: "var(--orange-ink)" }}>{sym}{p.precio}</span>
+                      </span>
+                      <Stepper
+                        qty={q}
+                        onMinus={() => setQty(p.id, -1)}
+                        onPlus={() => setQty(p.id, 1)}
+                        plusDisabled={lleno}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+
+          {/* Personalizados */}
+          {(data.brownies.length > 0 || data.galletas.length > 0) && (
+            <div className="mb-5">
+              <div
+                className="flex items-center justify-between px-4 py-2 rounded-[10px] mb-1"
+                style={{ background: "rgba(232,162,58,.16)", border: "1px solid var(--hairline)" }}
+              >
+                <span className="font-bold text-[13px]" style={{ color: "var(--ink)" }}>Personalizados</span>
+                <span className="text-[12px] font-semibold" style={{ color: "var(--ink-soft)" }}>Tú eliges base y toppings</span>
+              </div>
+              <div className="flex flex-col">
+                {customs.map((c, i) => (
+                  <div key={i} className="flex items-center gap-3 py-2.5" style={{ borderBottom: "1px solid var(--hairline)" }}>
+                    <span className="flex-none grid place-items-center" style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--cream)", fontSize: 20 }}>
+                      {c.content.emoji}
+                    </span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span className="block font-semibold text-[14.5px] leading-tight" style={{ color: "var(--ink)" }}>{c.content.nombre}</span>
+                      <span className="text-[13px] font-bold" style={{ color: "var(--orange-ink)" }}>{sym}{c.content.precio}</span>
+                    </span>
+                    <Stepper
+                      qty={c.qty}
+                      onMinus={() => setCustomQty(i, -1)}
+                      onPlus={() => setCustomQty(i, 1)}
+                      plusDisabled={lleno}
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={() => setCustomizerOpen(true)}
+                disabled={lleno}
+                className="mt-3 inline-flex items-center gap-2 font-bold text-[14px] px-5 py-2.5 rounded-full transition-colors border"
+                style={{
+                  background: "transparent",
+                  borderColor: lleno ? "var(--hairline)" : "var(--orange)",
+                  color: lleno ? "var(--ink-soft)" : "var(--orange-ink)",
+                  cursor: lleno ? "not-allowed" : "pointer",
+                }}
+              >
+                <Plus size={15} />
+                Crear postre personalizado
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ── Mobile sticky add button ── */}
+      {/* ── Botón sticky móvil ── */}
       <div
         className="lg:hidden fixed bottom-0 left-0 right-0 p-4 z-30"
         style={{ background: "rgba(251,246,236,.92)", backdropFilter: "blur(10px)", borderTop: "1px solid var(--hairline)" }}
       >
         <button
           onClick={handleAddToCart}
-          disabled={!allFilled}
+          disabled={!completo}
           className="w-full inline-flex items-center justify-center gap-2 font-bold text-[15px] py-4 rounded-full text-white border-0 transition-colors"
           style={{
-            background: allFilled ? "var(--orange)" : "var(--hairline)",
-            boxShadow: allFilled ? "0 6px 18px rgba(217,113,30,.32)" : "none",
-            cursor: allFilled ? "pointer" : "not-allowed",
+            background: completo ? "var(--orange)" : "var(--hairline)",
+            boxShadow: completo ? "0 6px 18px rgba(217,113,30,.32)" : "none",
+            cursor: completo ? "pointer" : "not-allowed",
           }}
         >
           <BLIcon name="cart" size={18} />
-          {allFilled ? `${addLabel} — ${sym}${total}` : `Faltan ${caja.tamano - filled.length} · ${sym}${total}`}
+          {completo ? addBtnLabel : `${addBtnLabel} · ${sym}${total}`}
         </button>
       </div>
 
-      {/* ── Picker modal ── */}
-      {pickerSlot !== null && (
-        <SlotPickerModal
-          slotIndex={pickerSlot}
-          tamano={caja.tamano}
-          data={data}
-          onSelect={fillSlot}
-          onClose={() => setPickerSlot(null)}
-        />
+      {/* ── Modal personalizador ── */}
+      {customizerOpen && (
+        <CustomizerModal data={data} onConfirm={addCustom} onClose={() => setCustomizerOpen(false)} />
       )}
 
       <style>{`
@@ -321,16 +421,38 @@ export default function CajaBuilder({
           align-items: start;
         }
         .bl-caja-summary-col { position: sticky; top: 96px; }
-        .bl-caja-slots { grid-template-columns: 1fr 1fr; }
 
         @media (max-width: 920px) {
           .bl-caja-grid { grid-template-columns: 1fr; }
-          .bl-caja-summary-col { position: static; order: 2; }
-        }
-        @media (max-width: 560px) {
-          .bl-caja-slots { grid-template-columns: 1fr; }
+          .bl-caja-summary-col { position: static; }
         }
       `}</style>
     </>
+  );
+}
+
+function Stepper({ qty, onMinus, onPlus, plusDisabled }: { qty: number; onMinus: () => void; onPlus: () => void; plusDisabled: boolean }) {
+  return (
+    <div className="inline-flex items-center overflow-hidden shrink-0" style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)", background: "var(--paper-card)" }}>
+      <button
+        onClick={onMinus}
+        disabled={qty === 0}
+        aria-label="Quitar uno"
+        className="w-8 h-8 grid place-items-center border-0 bg-transparent"
+        style={{ color: qty === 0 ? "var(--hairline)" : "var(--ink)", cursor: qty === 0 ? "default" : "pointer" }}
+      >
+        <Minus size={14} />
+      </button>
+      <span className="text-center font-bold text-sm" style={{ minWidth: 22, color: qty > 0 ? "var(--orange-ink)" : "var(--ink-soft)" }}>{qty}</span>
+      <button
+        onClick={onPlus}
+        disabled={plusDisabled}
+        aria-label="Agregar uno"
+        className="w-8 h-8 grid place-items-center border-0 bg-transparent"
+        style={{ color: plusDisabled ? "var(--hairline)" : "var(--ink)", cursor: plusDisabled ? "default" : "pointer" }}
+      >
+        <Plus size={14} />
+      </button>
+    </div>
   );
 }
