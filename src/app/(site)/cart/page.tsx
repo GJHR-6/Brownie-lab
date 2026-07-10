@@ -1,7 +1,7 @@
-"use client";
-
 import PedidoFlow from "./PedidoFlow";
+import { getCajaBuilderData } from "@/lib/cajaBuilderData";
 
-export default function CartPage() {
-  return <PedidoFlow />;
+export default async function CartPage() {
+  const builderData = await getCajaBuilderData();
+  return <PedidoFlow builderData={builderData} />;
 }

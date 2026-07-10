@@ -10,7 +10,7 @@ import type { ClienteDatos, EstadoPedido, PedidoItem, ComposicionItem, Composici
 import { parseConfigEnvio, calcularEnvio, calcularEnvioPorZona, type ConfigEnvio } from '@/lib/envio';
 import { parseConfigPedidos, fechaMinimaEntrega, CONFIG_PEDIDOS_DEFAULT, type ConfigPedidos } from '@/lib/horarios';
 import { notificarNuevoPedido } from '@/lib/email';
-import { resolveComprobanteUrl, COMPROBANTES_BUCKET, COMPROBANTE_EMAIL_TTL } from '@/lib/comprobantes';
+import { resolveComprobanteUrl, COMPROBANTES_BUCKET, COMPROBANTE_EMAIL_TTL, COMPROBANTE_EXT_POR_MIME, COMPROBANTE_MAX_BYTES } from '@/lib/comprobantes';
 import { redimirGiftCard } from './giftCards';
 
 // ── Validar código de promo ───────────────────────────────────────────────────
@@ -737,16 +737,9 @@ export async function subirComprobante(
 
   const file = formData.get('comprobante') as File | null;
   if (!file || file.size === 0) return { success: false, error: 'Archivo requerido.' };
-  if (file.size > 10 * 1024 * 1024) return { success: false, error: 'Archivo muy grande (máx. 10 MB).' };
+  if (file.size > COMPROBANTE_MAX_BYTES) return { success: false, error: 'Archivo muy grande (máx. 10 MB).' };
 
-  // Extensión derivada del MIME validado (no del nombre del archivo)
-  const EXT_POR_MIME: Record<string, string> = {
-    'image/jpeg': 'jpg',
-    'image/jpg':  'jpg',
-    'image/png':  'png',
-    'image/webp': 'webp',
-  };
-  const ext = EXT_POR_MIME[file.type];
+  const ext = COMPROBANTE_EXT_POR_MIME[file.type];
   if (!ext) return { success: false, error: 'Solo imágenes (PNG, JPG, WEBP).' };
 
   try {

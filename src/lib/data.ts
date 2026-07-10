@@ -203,14 +203,21 @@ export const getEspecialesActivos = cache(async (): Promise<Especial[]> => {
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase
     .from('especiales')
-    .select('*')
+    .select('*, producto:productos!producto_id(id, nombre, precio, emoji, stock, disponible, categorias!categoria_id(slug))')
     .eq('activo', true)
     .order('created_at', { ascending: false });
   if (error) {
     console.error('getEspecialesActivos:', error.message);
     return [];
   }
-  return data ?? [];
+  // Aplana el slug de categoría del producto vinculado (mismo patrón que normalizeProducto)
+  return (data ?? []).map((e) => {
+    const prod = e.producto as (Record<string, unknown> & { categorias?: { slug?: string } | null }) | null;
+    return {
+      ...e,
+      producto: prod ? { ...prod, categoria: prod.categorias?.slug ?? '' } : null,
+    } as unknown as Especial;
+  });
 });
 
 export const getBannersActivos = cache(async (): Promise<Banner[]> => {

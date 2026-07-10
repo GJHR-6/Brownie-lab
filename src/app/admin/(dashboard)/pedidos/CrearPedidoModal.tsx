@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useActionState, useEffect, useMemo } from 'react';
-import { Loader2, X, Plus, Minus, Search } from 'lucide-react';
+import { Loader2, X, Plus, Minus, Search, Upload } from 'lucide-react';
 import { crearPedidoManual, actualizarPedidoManual } from '@/actions/pedidos';
 import { useModalA11y } from '@/hooks/useModalA11y';
 import type { Producto, Pedido, PedidoItem, ClienteDatos, OrigenPedido } from '@/types/database';
@@ -45,6 +45,8 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
 
   const [busqueda, setBusqueda] = useState('');
   const [tipoEntrega, setTipoEntrega] = useState<'pickup' | 'domicilio'>(cd.tipo_entrega ?? 'pickup');
+  const [metodoPago, setMetodoPago] = useState<string>(cd.metodo_pago ?? '');
+  const [comprobantePreview, setComprobantePreview] = useState<string | null>(null);
   const [origen, setOrigen] = useState<OrigenPedido>(cd.origen ?? 'instagram');
   const telefonoRequerido = origen === 'pagina';
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -174,7 +176,8 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Método de pago</label>
-                  <select name="metodo_pago" disabled={isPending} defaultValue={cd.metodo_pago ?? ""} className="bl-select"
+                  <select name="metodo_pago" value={metodoPago} disabled={isPending} className="bl-select"
+                    onChange={e => setMetodoPago(e.target.value)}
                     style={{ ...T.inp, opacity: isPending ? 0.6 : 1 }}
                     onFocus={e => { e.target.style.borderColor = 'var(--orange)'; }}
                     onBlur={e => { e.target.style.borderColor = 'var(--hairline)'; }}>
@@ -183,6 +186,34 @@ export default function CrearPedidoModal({ productos, toppings = [], pedido, onS
                     <option value="transferencia">🏦 Transferencia</option>
                   </select>
                 </div>
+                {/* Comprobante de transferencia — solo al crear */}
+                {!isEditing && metodoPago === 'transferencia' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                      Comprobante de transferencia <span style={{ color: 'var(--ink-soft)', fontWeight: 500 }}>(opcional)</span>
+                    </label>
+                    <label
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer', padding: '12px 14px', border: '1.5px dashed var(--hairline)', borderRadius: 'var(--r-md)', background: 'var(--paper)', transition: '.14s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLLabelElement).style.borderColor = 'var(--orange)'; }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLLabelElement).style.borderColor = 'var(--hairline)'; }}
+                    >
+                      <input type="file" name="comprobante" accept="image/png,image/jpeg,image/webp" disabled={isPending} style={{ display: 'none' }}
+                        onChange={e => { const f = e.target.files?.[0]; setComprobantePreview(f ? URL.createObjectURL(f) : null); }} />
+                      {comprobantePreview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={comprobantePreview} alt="comprobante" style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', flexShrink: 0 }} />
+                      ) : (
+                        <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--cream)', display: 'grid', placeItems: 'center', color: 'var(--orange-ink)', flexShrink: 0 }}>
+                          <Upload style={{ width: 20, height: 20 }} />
+                        </div>
+                      )}
+                      <div>
+                        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{comprobantePreview ? 'Comprobante seleccionado' : 'Adjuntar screenshot'}</p>
+                        <p style={{ fontSize: 12, color: 'var(--ink-soft)', margin: 0 }}>PNG, JPG o WebP · Máx. 10 MB</p>
+                      </div>
+                    </label>
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Notas</label>
                   <input name="notas" maxLength={500} disabled={isPending} defaultValue={cd.notas ?? ""}
