@@ -36,6 +36,7 @@ export async function getCajaBuilderData(): Promise<CajaBuilderData> {
       precio: p.precio,
       emoji: p.emoji,
       imagen_url: p.imagen_url,
+      categoria: p.categoria,
     }));
 
   const toppings = toppingsDB.map(t => ({

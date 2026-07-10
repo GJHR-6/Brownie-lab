@@ -1,34 +1,33 @@
 "use client";
 
-// Etapa "cajas" del flujo de pedido (estilo Crumbl): tras resolver la
-// ubicación, el cliente elige un tamaño de caja y la llena con postres.
-// Ruta secundaria: "Prefiero productos individuales" → menú clásico.
+// Etapa "cajas" del flujo de pedido (estilo Crumbl): el cliente llega desde
+// la sección "Cajas" del menú con un tamaño elegido (initialCajaId) y llena
+// la caja con steppers. Sin initialCajaId (p. ej. sesión restaurada) muestra
+// primero las cards de tamaño.
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, ShoppingBag } from "lucide-react";
-import { useHydrated } from "@/hooks/useHydrated";
-import { useCartStore } from "@/lib/cartStore";
+import { ArrowLeft } from "lucide-react";
 import CajaSizeCards from "@/components/caja/CajaSizeCards";
 import CajaBuilder from "@/components/caja/CajaBuilder";
 import type { CajaBuilderData } from "@/components/caja/types";
 
 export default function StageCajas({
   builderData,
+  initialCajaId,
   onBack,
   onSkip,
   onBoxAdded,
 }: {
   builderData: CajaBuilderData;
+  initialCajaId?: string;
   onBack: () => void;
   onSkip: () => void;
   onBoxAdded: () => void;
 }) {
-  const [view, setView] = useState<"size" | "build">("size");
-  const [selectedCajaId, setSelectedCajaId] = useState<string | null>(null);
-  const mounted = useHydrated();
-  const itemCount = useCartStore(s => s.itemCount());
+  const [view, setView] = useState<"size" | "build">(initialCajaId ? "build" : "size");
+  const [selectedCajaId, setSelectedCajaId] = useState<string | null>(initialCajaId ?? null);
 
-  // Sin cajas configuradas → directo al menú clásico.
+  // Sin cajas configuradas → directo al menú.
   const sinCajas = builderData.cajas.length === 0;
   useEffect(() => {
     if (sinCajas) onSkip();
@@ -40,19 +39,19 @@ export default function StageCajas({
       <div style={{ paddingBottom: 40 }}>
         <div className="mx-auto px-[var(--gutter)] pt-8" style={{ maxWidth: "var(--maxw)" }}>
           <button
-            onClick={() => setView("size")}
+            onClick={() => { if (initialCajaId) { onBack(); } else { setView("size"); } }}
             className="inline-flex items-center gap-2 font-bold text-[14px] cursor-pointer border-0 bg-transparent p-0"
             style={{ color: "var(--orange-ink)" }}
           >
             <ArrowLeft size={16} />
-            Cambiar tamaño de caja
+            {initialCajaId ? "Volver al menú" : "Cambiar tamaño de caja"}
           </button>
         </div>
         <CajaBuilder
           data={builderData}
           initialCajaId={selectedCajaId ?? undefined}
           showSizeSelector={false}
-          addLabel="Agregar al pedido"
+          addLabel="Agregar a la bolsa"
           onAdded={onBoxAdded}
         />
       </div>
@@ -81,26 +80,6 @@ export default function StageCajas({
           Entre más grande la caja, más ahorras.
         </p>
       </div>
-
-      {/* Ya hay items en la bolsa */}
-      {mounted && itemCount > 0 && (
-        <div
-          className="flex items-center gap-3 mx-auto mb-8 px-5 py-3.5 rounded-[16px]"
-          style={{ maxWidth: 560, background: "var(--paper-card)", border: "1px solid var(--hairline)", boxShadow: "var(--shadow-sm)" }}
-        >
-          <ShoppingBag size={20} style={{ color: "var(--orange-ink)", flexShrink: 0 }} />
-          <p className="flex-1 text-[14px] m-0" style={{ color: "var(--ink)" }}>
-            Ya tienes <strong>{itemCount}</strong> {itemCount === 1 ? "artículo" : "artículos"} en tu bolsa.
-          </p>
-          <button
-            onClick={onSkip}
-            className="font-bold text-[14px] cursor-pointer border-0 bg-transparent p-0 shrink-0"
-            style={{ color: "var(--orange-ink)" }}
-          >
-            Ver menú
-          </button>
-        </div>
-      )}
 
       <CajaSizeCards
         cajas={builderData.cajas}

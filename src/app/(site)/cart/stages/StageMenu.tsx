@@ -7,6 +7,8 @@ import { getConfiguracionEnvio, getEnvioModo, getConfiguracionPedidos } from "@/
 import { getDeliveryZonesPublicas } from "@/actions/deliveryZones";
 import { useCartStore } from "@/lib/cartStore";
 import ProductCard from "@/components/ProductCard";
+import CajaSizeCards from "@/components/caja/CajaSizeCards";
+import type { CajaDef } from "@/components/caja/types";
 import BagDrawer from "../BagDrawer";
 import StoreLocator from "../StoreLocator";
 import LocationMapPicker from "../LocationMapPicker";
@@ -17,7 +19,7 @@ import type { SedeEnvio } from "@/lib/envio";
 import type { FlowSelection } from "../PedidoFlow";
 
 export default function StageMenu({
-  selection, onBack, onSelectSedePickup, onSelectZona, onSelectCoords, onContinue, onSignIn, onSetFechaHora, onArmarCaja,
+  selection, onBack, onSelectSedePickup, onSelectZona, onSelectCoords, onContinue, onSignIn, onSetFechaHora, cajas, onElegirCaja,
 }: {
   selection: FlowSelection;
   onBack: () => void;
@@ -27,7 +29,8 @@ export default function StageMenu({
   onContinue: (giftCardCodigo: string | null) => void;
   onSignIn: () => void;
   onSetFechaHora: (fecha: string | null, hora: string | null) => void;
-  onArmarCaja?: () => void;
+  cajas?: CajaDef[];
+  onElegirCaja?: (cajaId: string) => void;
 }) {
   const [productos, setProductos] = useState<Producto[] | null>(null);
   const [sedes, setSedes] = useState<SedeEnvio[]>([]);
@@ -132,27 +135,17 @@ export default function StageMenu({
         </>
       )}
 
-      {/* Re-entrada al armador de cajas (flujo estilo Crumbl) */}
-      {onArmarCaja && (
-        <div
-          className="flex flex-wrap items-center gap-3 mb-8 px-5 py-4 rounded-[18px]"
-          style={{ background: "var(--choco-900)", color: "var(--on-dark)" }}
-        >
-          <span style={{ fontSize: 26 }}>🎁</span>
-          <div className="flex-1" style={{ minWidth: 200 }}>
-            <p className="font-bold text-[15px] m-0" style={{ color: "var(--on-dark)" }}>Arma tu caja y ahorra</p>
-            <p className="text-[13px] m-0" style={{ color: "var(--on-dark-soft)" }}>
-              Combina postres del menú o personalizados con descuento por caja.
-            </p>
-          </div>
-          <button
-            onClick={onArmarCaja}
-            className="font-bold text-[14px] cursor-pointer border-0 text-white shrink-0"
-            style={{ background: "var(--orange)", borderRadius: "var(--r-pill)", padding: "10px 20px" }}
-          >
-            Armar caja
-          </button>
-        </div>
+      {/* Cajas — primera sección del menú (estilo Crumbl "Large Desserts") */}
+      {cajas && cajas.length > 0 && onElegirCaja && (
+        <section className="mb-10">
+          <h2 className="font-bold mb-1" style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", fontSize: 22, color: "var(--ink)" }}>
+            Cajas
+          </h2>
+          <p className="mb-4 text-[14px]" style={{ color: "var(--ink-soft)" }}>
+            Elige el tamaño y llénala con tus postres favoritos — entre más grande, más ahorras.
+          </p>
+          <CajaSizeCards cajas={cajas} onSelect={onElegirCaja} />
+        </section>
       )}
 
       {productos === null && (

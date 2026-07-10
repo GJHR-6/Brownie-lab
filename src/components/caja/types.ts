@@ -18,6 +18,7 @@ export interface ProductoLite {
   precio: number;
   emoji: string | null;
   imagen_url: string | null;
+  categoria: string;
 }
 
 export interface Variant {

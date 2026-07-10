@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useCartStore } from "@/lib/cartStore";
 import StageStart from "./stages/StageStart";
 import StageSignIn from "./stages/StageSignIn";
 import StageCajas from "./stages/StageCajas";
@@ -43,13 +42,10 @@ const INITIAL: FlowSelection = {
 export default function PedidoFlow({ builderData }: { builderData: CajaBuilderData }) {
   const [sel, setSel] = useState<FlowSelection>(INITIAL);
   const [hydrated, setHydrated] = useState(false);
-  const itemCount = useCartStore(s => s.itemCount());
-
-  // Flujo estilo Crumbl: con la ubicación resuelta y la bolsa vacía, la
-  // primera pantalla de pedido es elegir caja; con items ya en la bolsa
-  // (landing, ProductCard) se va directo al menú.
-  const destinoTrasUbicacion: Stage =
-    builderData.cajas.length > 0 && itemCount === 0 ? "cajas" : "menu";
+  // Caja elegida desde la sección "Cajas" del menú (estilo Crumbl). Vive en
+  // estado local, no en FlowSelection: al restaurar sesión sin ella, la etapa
+  // "cajas" muestra su vista de tamaños.
+  const [cajaElegida, setCajaElegida] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -102,9 +98,10 @@ export default function PedidoFlow({ builderData }: { builderData: CajaBuilderDa
       return (
         <StageCajas
           builderData={builderData}
-          onBack={() => goToStage("start")}
-          onSkip={() => goToStage("menu")}
-          onBoxAdded={() => goToStage("menu")}
+          initialCajaId={cajaElegida ?? undefined}
+          onBack={() => { setCajaElegida(null); goToStage("menu"); }}
+          onSkip={() => { setCajaElegida(null); goToStage("menu"); }}
+          onBoxAdded={() => { setCajaElegida(null); goToStage("menu"); }}
         />
       );
     case "stores":
@@ -114,13 +111,14 @@ export default function PedidoFlow({ builderData }: { builderData: CajaBuilderDa
         <StageMenu
           selection={sel}
           onBack={() => goToStage("start")}
-          onSelectSedePickup={(sedePickup) => update({ sedePickup, stage: destinoTrasUbicacion })}
-          onSelectZona={(zonaId) => update({ zonaId, stage: destinoTrasUbicacion })}
-          onSelectCoords={(coordsCliente) => update({ coordsCliente, stage: destinoTrasUbicacion })}
+          onSelectSedePickup={(sedePickup) => update({ sedePickup, stage: "menu" })}
+          onSelectZona={(zonaId) => update({ zonaId, stage: "menu" })}
+          onSelectCoords={(coordsCliente) => update({ coordsCliente, stage: "menu" })}
           onContinue={(giftCardCodigo) => update({ giftCardCodigo, stage: "review" })}
           onSignIn={() => goToStage("signin")}
           onSetFechaHora={(fechaEntrega, horaEntrega) => update({ fechaEntrega, horaEntrega })}
-          onArmarCaja={builderData.cajas.length > 0 ? () => goToStage("cajas") : undefined}
+          cajas={builderData.cajas}
+          onElegirCaja={(cajaId) => { setCajaElegida(cajaId); goToStage("cajas"); }}
         />
       );
     case "giftcard":

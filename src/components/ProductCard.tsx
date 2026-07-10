@@ -53,7 +53,7 @@ export default function ProductCard({ product }: { product: Producto }) {
     if (bloqueado) return;
     const toAdd = Math.min(qty, stockRestante);
     for (let i = 0; i < toAdd; i++) {
-      addItem({ id: product.id, name: product.nombre, price: Number(product.precio), emoji: product.emoji ?? "🍪", categoria: product.categoria });
+      addItem({ id: product.id, name: product.nombre, price: Number(product.precio), emoji: product.emoji ?? "🍪", categoria: product.categoria, imagen: product.imagen_url ?? undefined });
     }
     setAdded(true);
     setQty(1);

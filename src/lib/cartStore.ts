@@ -17,6 +17,7 @@ export interface CartItem {
   emoji: string;
   detalle?: string;
   categoria?: string;
+  imagen?: string;
   composicion?: ComposicionItem;
 }
 
