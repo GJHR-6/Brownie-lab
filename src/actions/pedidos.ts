@@ -10,7 +10,7 @@ import type { ActionResult } from '@/types/actions';
 import { normalizePhone } from '@/lib/sanitize';
 import { notificarNuevoPedido } from '@/lib/email';
 import { createSupabaseServiceClient } from '@/lib/supabase/service';
-import { COMPROBANTES_BUCKET, COMPROBANTE_URL_TTL } from '@/lib/comprobantes';
+import { COMPROBANTES_BUCKET, COMPROBANTE_URL_TTL, COMPROBANTE_EXT_POR_MIME, COMPROBANTE_MAX_BYTES } from '@/lib/comprobantes';
 
 type SupabaseClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
@@ -299,6 +299,38 @@ export async function crearPedidoManual(
         cantidad:        item.cantidad,
       }))
     );
+
+    // Comprobante de pago adjunto (opcional). Un fallo aquí no revierte el
+    // pedido: se reporta como advertencia en el mensaje de éxito.
+    let advertenciaComprobante: string | null = null;
+    const comprobante = formData.get('comprobante') as File | null;
+    if (comprobante && comprobante.size > 0) {
+      if (comprobante.size > COMPROBANTE_MAX_BYTES) {
+        advertenciaComprobante = 'El comprobante no se guardó: archivo muy grande (máx. 10 MB).';
+      } else {
+        const ext = COMPROBANTE_EXT_POR_MIME[comprobante.type];
+        if (!ext) {
+          advertenciaComprobante = 'El comprobante no se guardó: solo imágenes (PNG, JPG, WEBP).';
+        } else {
+          const service = createSupabaseServiceClient();
+          const path = `${data.id}.${ext}`;
+          const { error: uploadError } = await service.storage
+            .from(COMPROBANTES_BUCKET)
+            .upload(path, comprobante, { upsert: true });
+          if (uploadError) {
+            advertenciaComprobante = `El comprobante no se pudo subir: ${uploadError.message}`;
+          } else {
+            // Path (no URL pública): bucket privado, el admin lo ve vía signed URLs.
+            const { error: dbError } = await service
+              .from('pedidos')
+              .update({ comprobante_url: path })
+              .eq('id', data.id);
+            if (dbError) advertenciaComprobante = `El comprobante subió pero no se vinculó: ${dbError.message}`;
+          }
+        }
+      }
+      if (advertenciaComprobante) console.error('[pedido manual] comprobante:', advertenciaComprobante);
+    }
 
     try {
       await notificarNuevoPedido({

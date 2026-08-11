@@ -7,6 +7,8 @@ import { getConfiguracionEnvio, getEnvioModo, getConfiguracionPedidos } from "@/
 import { getDeliveryZonesPublicas } from "@/actions/deliveryZones";
 import { useCartStore } from "@/lib/cartStore";
 import ProductCard from "@/components/ProductCard";
+import CajaSizeCards from "@/components/caja/CajaSizeCards";
+import type { CajaDef } from "@/components/caja/types";
 import BagDrawer from "../BagDrawer";
 import StoreLocator from "../StoreLocator";
 import LocationMapPicker from "../LocationMapPicker";
@@ -17,7 +19,7 @@ import type { SedeEnvio } from "@/lib/envio";
 import type { FlowSelection } from "../PedidoFlow";
 
 export default function StageMenu({
-  selection, onBack, onSelectSedePickup, onSelectZona, onSelectCoords, onContinue, onSignIn, onSetFechaHora,
+  selection, onBack, onSelectSedePickup, onSelectZona, onSelectCoords, onContinue, onSignIn, onSetFechaHora, cajas, onElegirCaja,
 }: {
   selection: FlowSelection;
   onBack: () => void;
@@ -27,6 +29,8 @@ export default function StageMenu({
   onContinue: (giftCardCodigo: string | null) => void;
   onSignIn: () => void;
   onSetFechaHora: (fecha: string | null, hora: string | null) => void;
+  cajas?: CajaDef[];
+  onElegirCaja?: (cajaId: string) => void;
 }) {
   const [productos, setProductos] = useState<Producto[] | null>(null);
   const [sedes, setSedes] = useState<SedeEnvio[]>([]);
@@ -129,6 +133,19 @@ export default function StageMenu({
             <p className="mb-5" style={{ color: "var(--berry)", fontSize: 13.5 }}>Elige fecha y hora de recogida antes de continuar.</p>
           )}
         </>
+      )}
+
+      {/* Cajas — primera sección del menú (estilo Crumbl "Large Desserts") */}
+      {cajas && cajas.length > 0 && onElegirCaja && (
+        <section className="mb-10">
+          <h2 className="font-bold mb-1" style={{ fontFamily: "var(--font-playfair, 'Playfair Display'), Georgia, serif", fontSize: 22, color: "var(--ink)" }}>
+            Cajas
+          </h2>
+          <p className="mb-4 text-[14px]" style={{ color: "var(--ink-soft)" }}>
+            Elige el tamaño y llénala con tus postres favoritos — entre más grande, más ahorras.
+          </p>
+          <CajaSizeCards cajas={cajas} onSelect={onElegirCaja} />
+        </section>
       )}
 
       {productos === null && (

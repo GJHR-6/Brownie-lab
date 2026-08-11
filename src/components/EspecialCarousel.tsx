@@ -24,13 +24,15 @@ export default function EspecialCarousel({ especial }: { especial: Especial }) {
   }
 
   return (
-    <div className="relative w-full overflow-hidden rounded-[24px]" style={{ aspectRatio: "4/5" }}>
+    // Sin marco ni recorte: PNG transparente flotante estilo Crumbl
+    <div className="relative w-full" style={{ aspectRatio: "1/1" }}>
       <Image
         src={imgs[idx]}
         alt={especial.nombre}
         fill
-        className="object-cover transition-opacity duration-300"
+        className="object-contain transition-opacity duration-300"
         sizes="(max-width: 1024px) 100vw, 45vw"
+        style={{ filter: "drop-shadow(0 24px 36px rgba(0,0,0,.35))" }}
       />
 
       {/* Navigation dots */}

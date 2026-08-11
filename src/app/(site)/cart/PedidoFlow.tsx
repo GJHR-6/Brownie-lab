@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import StageStart from "./stages/StageStart";
 import StageSignIn from "./stages/StageSignIn";
+import StageCajas from "./stages/StageCajas";
 import StageMenu from "./stages/StageMenu";
 import StageGiftCard from "./stages/StageGiftCard";
 import StageCatering from "./stages/StageCatering";
 import StageReview from "./stages/StageReview";
+import type { CajaBuilderData } from "@/components/caja/types";
 
 export type TipoEntrega = "pickup" | "domicilio";
-export type Stage = "start" | "signin" | "stores" | "address" | "menu" | "giftcard" | "catering" | "review";
+export type Stage = "start" | "signin" | "stores" | "address" | "cajas" | "menu" | "giftcard" | "catering" | "review";
 
 export interface FlowSelection {
   stage: Stage;
@@ -37,9 +39,13 @@ const INITIAL: FlowSelection = {
   horaEntrega: null,
 };
 
-export default function PedidoFlow() {
+export default function PedidoFlow({ builderData }: { builderData: CajaBuilderData }) {
   const [sel, setSel] = useState<FlowSelection>(INITIAL);
   const [hydrated, setHydrated] = useState(false);
+  // Caja elegida desde la sección "Cajas" del menú (estilo Crumbl). Vive en
+  // estado local, no en FlowSelection: al restaurar sesión sin ella, la etapa
+  // "cajas" muestra su vista de tamaños.
+  const [cajaElegida, setCajaElegida] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.resolve().then(() => {
@@ -88,6 +94,16 @@ export default function PedidoFlow() {
         />
       );
     }
+    case "cajas":
+      return (
+        <StageCajas
+          builderData={builderData}
+          initialCajaId={cajaElegida ?? undefined}
+          onBack={() => { setCajaElegida(null); goToStage("menu"); }}
+          onSkip={() => { setCajaElegida(null); goToStage("menu"); }}
+          onBoxAdded={() => { setCajaElegida(null); goToStage("menu"); }}
+        />
+      );
     case "stores":
     case "address":
     case "menu":
@@ -101,6 +117,8 @@ export default function PedidoFlow() {
           onContinue={(giftCardCodigo) => update({ giftCardCodigo, stage: "review" })}
           onSignIn={() => goToStage("signin")}
           onSetFechaHora={(fechaEntrega, horaEntrega) => update({ fechaEntrega, horaEntrega })}
+          cajas={builderData.cajas}
+          onElegirCaja={(cajaId) => { setCajaElegida(cajaId); goToStage("cajas"); }}
         />
       );
     case "giftcard":

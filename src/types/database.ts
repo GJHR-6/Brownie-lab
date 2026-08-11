@@ -247,6 +247,9 @@ export interface Especial {
   fecha_inicio: string;
   duracion_dias: number;
   activo: boolean;
+  producto_id: string | null;
+  /** Producto vinculado (join en getEspecialesActivos) */
+  producto?: Pick<Producto, 'id' | 'nombre' | 'precio' | 'emoji' | 'categoria' | 'stock' | 'disponible'> | null;
   created_at: string;
 }
 

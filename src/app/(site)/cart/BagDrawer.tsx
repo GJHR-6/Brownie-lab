@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { X, Minus, Plus, Tag, Loader2, Award } from "lucide-react";
 import { useCartStore } from "@/lib/cartStore";
 import { validarGiftCard } from "@/actions/giftCards";
@@ -116,12 +117,22 @@ export default function BagDrawer({
 
           {items.length === 0 && <p style={{ color: "var(--ink-soft)" }}>Tu bolsa está vacía.</p>}
           {items.map(item => (
-            <div key={item.id} className="flex items-center gap-3 mb-4 pb-4" style={{ borderBottom: "1px solid var(--hairline)" }}>
-              <div className="grid place-items-center text-2xl shrink-0" style={{ width: 44, height: 44, borderRadius: "var(--r-md)", background: "var(--cream)" }}>
-                {item.emoji}
-              </div>
+            <div key={item.id} className="flex items-start gap-3 mb-4 pb-4" style={{ borderBottom: "1px solid var(--hairline)" }}>
+              {item.imagen ? (
+                <div className="relative shrink-0 overflow-hidden" style={{ width: 44, height: 44, borderRadius: "var(--r-md)", background: "var(--cream)" }}>
+                  <Image src={item.imagen} alt="" fill className="object-cover" sizes="44px" />
+                </div>
+              ) : (
+                <div className="grid place-items-center text-2xl shrink-0" style={{ width: 44, height: 44, borderRadius: "var(--r-md)", background: "var(--cream)" }}>
+                  {item.emoji}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold truncate" style={{ color: "var(--ink)", fontSize: 14.5 }}>{item.name}</p>
+                {/* Desglose de contenido (cajas / personalizados) estilo Crumbl */}
+                {item.detalle && item.detalle.split(" · ").map((linea, i) => (
+                  <p key={i} className="truncate" style={{ color: "var(--ink-soft)", fontSize: 12, lineHeight: 1.45 }}>{linea}</p>
+                ))}
                 <p style={{ color: "var(--orange-ink)", fontSize: 13.5, fontWeight: 700 }}>L.{item.price.toFixed(2)}</p>
               </div>
               <div className="inline-flex items-center overflow-hidden shrink-0" style={{ border: "1.5px solid var(--hairline)", borderRadius: "var(--r-pill)" }}>
@@ -145,7 +156,7 @@ export default function BagDrawer({
                   <p style={{ color: "var(--orange-ink)", fontSize: 13, fontWeight: 700 }}>L.{sugerido.precio.toFixed(2)}</p>
                 </div>
                 <button
-                  onClick={() => addItem({ id: sugerido.id, name: sugerido.nombre, price: sugerido.precio, emoji: sugerido.emoji ?? "🍫", categoria: sugerido.categoria })}
+                  onClick={() => addItem({ id: sugerido.id, name: sugerido.nombre, price: sugerido.precio, emoji: sugerido.emoji ?? "🍫", categoria: sugerido.categoria, imagen: sugerido.imagen_url ?? undefined })}
                   className="grid place-items-center cursor-pointer border-0 text-white shrink-0"
                   style={{ width: 30, height: 30, borderRadius: "var(--r-pill)", background: "var(--orange)" }}
                   aria-label={`Agregar ${sugerido.nombre}`}
