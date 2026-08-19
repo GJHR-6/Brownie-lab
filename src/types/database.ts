@@ -36,6 +36,8 @@ export interface EnvioDatos {
   gratis: boolean;
   zona_id?: string;        // id de delivery_zones cuando envio_modo === 'zonas'
   zona_nombre?: string;
+  lat?: number;            // ubicación GPS del cliente (solo modo distancia)
+  lng?: number;
 }
 
 export type OrigenPedido = 'pagina' | 'instagram' | 'facebook' | 'whatsapp' | 'otro';

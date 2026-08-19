@@ -11,7 +11,7 @@ import { useCartStore } from "@/lib/cartStore";
 import { storeConfig } from "@/config/store";
 import {
   validarPromocion, crearPedidoPublico, getConfiguracionBanco, getConfiguracionEnvio,
-  getConfiguracionPedidos, getEnvioModo, subirComprobante, notificarPedidoCreado,
+  getConfiguracionPedidos, getEnvioModo, subirComprobante,
 } from "@/actions/publico";
 import { getDeliveryZonesPublicas } from "@/actions/deliveryZones";
 import { enviarConfirmacionWhatsApp } from "@/actions/whatsapp";
@@ -209,8 +209,6 @@ export default function StageReview({
             setOrderError(`Pedido creado, pero no se pudo subir el comprobante: ${uploadResult.error ?? "Error desconocido"}. Envíalo por WhatsApp.`);
           }
         }
-
-        notificarPedidoCreado(id).catch(() => {});
       }
 
       try {
