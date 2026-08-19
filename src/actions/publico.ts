@@ -550,9 +550,11 @@ export async function crearPedidoPublico(
         if (cfgEnvio.sedes.length > 0) {
           const subtotalConDescuento = Math.round((subtotalReal - descuento) * 100) / 100;
           let resultado = null;
+          let lat: number | undefined;
+          let lng: number | undefined;
 
           if (envioInput && 'lat' in envioInput) {
-            const { lat, lng } = envioInput;
+            ({ lat, lng } = envioInput);
             // Bounds aproximados de Honduras — rechaza coords basura
             if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < 12.9 || lat > 16.6 || lng < -89.5 || lng > -83) {
               return { success: false, error: 'Ubicación de entrega inválida.' };
@@ -572,6 +574,8 @@ export async function crearPedidoPublico(
               distancia_km: resultado.distancia_km,
               costo: resultado.costo,
               gratis: resultado.gratis,
+              lat,
+              lng,
             };
           }
         }
@@ -672,15 +676,24 @@ export async function crearPedidoPublico(
       }))
     );
 
+    // Notificar server-side, aquí mismo, para que el correo no dependa de que
+    // el cliente haga una llamada adicional después. Si es transferencia, el
+    // comprobante casi nunca está subido todavía en este punto — el admin lo
+    // ve directo en el panel una vez el cliente lo suba.
+    await enviarCorreoPedido(data.id);
+
     return { success: true, data: { id: data.id } };
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'Error inesperado.' };
   }
 }
 
-// ── Notificar pedido (se llama desde el cliente tras crear pedido + subir comprobante) ──
+// ── Notificar pedido nuevo por correo ─────────────────────────────────────────
+// Se llama server-side desde crearPedidoPublico, en la misma request que crea
+// el pedido — nunca desde el cliente, para que el envío no dependa de que el
+// navegador siga abierto para una llamada adicional.
 
-export async function notificarPedidoCreado(id: string): Promise<void> {
+async function enviarCorreoPedido(id: string): Promise<void> {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return;
 
   try {

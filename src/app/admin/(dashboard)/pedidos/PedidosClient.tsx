@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef, useTransition, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { Plus, Download, Search, X, MessageCircle, Bell, ChefHat } from 'lucide-react';
 import { useRealtimePedidos } from '@/hooks/useRealtimePedidos';
@@ -12,6 +13,8 @@ import { useModalA11y } from '@/hooks/useModalA11y';
 import CrearPedidoModal, { type ToppingExtra } from './CrearPedidoModal';
 import type { Pedido, EstadoPedido, EstadoPago, Producto, PedidoItem } from '@/types/database';
 import type { ClienteDatos } from '@/types/database';
+
+const DeliveryMapPin = dynamic(() => import('@/components/admin/DeliveryMapPin'), { ssr: false });
 
 /* ── Design tokens ── */
 const ESTADO_CFG: Record<EstadoPedido, { label: string; chip: string; dot: string }> = {
@@ -226,6 +229,9 @@ function PedidoDrawer({ pedido, onClose, onUpdated, onEditar }: { pedido: Pedido
                     {cd.envio.gratis ? 'GRATIS' : `L.${Number(cd.envio.costo).toFixed(2)}`}
                   </span>
                 </div>
+              )}
+              {typeof cd.envio?.lat === 'number' && typeof cd.envio?.lng === 'number' && (
+                <DeliveryMapPin lat={cd.envio.lat} lng={cd.envio.lng} />
               )}
             </div>
           )}
